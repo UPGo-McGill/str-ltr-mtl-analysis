@@ -27,30 +27,28 @@ plan(multiprocess, workers = 4)
 
 #### load data to prepare LTR weekly update ####
 load("data/kj_r_mtl.Rdata")
-load("data/Canada_CL_2020_06_15.Rdata") ### load new data from CL and KJ
-load("data/Canada_kijiji_2020_06_15.Rdata")
+load("data/Canada_cl_2020_06_22.Rdata") ### load new data from CL and KJ
+load("data/Canada_kj_2020_06_22.Rdata")
 
 # data on image mataching
-load("data/kj_matches.Rdata")
-load("data/cl_matches.Rdata")
+load("data/mtl_kj_matches_2020-06-22.Rdata")
+load("data/mtl_cl_matches_2020-06-22.Rdata")
 
 # load the data already filtered with mutate_geocode(location) to have the geometry from the previous week
 load("data/kj_geo.Rdata")
 
 # rename the dfs
-kj_nogeo <- Canada_kijiji_2020_06_15
-cl <- Canada_CL_2020_06_15
+kj_nogeo <- Canada_kj_2020_06_22
+cl <- Canada_cl_2020_06_22
 rclalq <- kj_r_mtl
 
-rm(Canada_kijiji_2020_06_15)
+rm(Canada_kj_2020_06_22)
 rm(kj_r_mtl)
-rm(Canada_CL_2020_06_15)
+rm(Canada_cl_2020_06_22)
 
 
 # import data from AirDNA (already raffled, info on FREH, GH, etc.)
 load("data/montreal_str_processed_a.Rdata")
-
-
 
 
 
@@ -94,16 +92,17 @@ kj <- kj_geo
 # clean the image matching ids and put it in only one DF
 
 kj_matches$x_name <- 
-  str_replace_all(kj_matches$x_name, c("ab/|.jpg" = ""))
+  str_replace_all(kj_matches$x_name, c("/Volumes/Data/Scrape photos/mtl/ab/|.jpg" = ""))
 
 kj_matches$y_name <- 
-  str_replace_all(kj_matches$y_name, c("kj/|-[:digit:]+.jpg" = ""))
+  str_replace_all(kj_matches$y_name, c("/Volumes/Data/Scrape photos/mtl/kj/|-[:digit:]+.jpg" = ""))
 
 cl_matches$x_name <- 
-  str_replace_all(cl_matches$x_name, c("ab/|.jpg" = ""))
+  str_replace_all(cl_matches$x_name, c("/Volumes/Data/Scrape photos/mtl/ab/|.jpg" = ""))
 
 cl_matches$y_name <- 
-  str_replace_all(cl_matches$y_name, c("cl/|-[:digit:]+.jpg" = ""))
+  str_replace_all(cl_matches$y_name, c("/Volumes/Data/Scrape photos/mtl/cl/|-[:digit:]+.jpg" = ""))
+
 
 matches <- rbind(kj_matches, cl_matches)
 rm(kj_matches)

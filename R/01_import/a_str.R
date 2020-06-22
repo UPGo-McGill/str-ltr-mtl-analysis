@@ -27,17 +27,14 @@ plan(multiprocess, workers = 4)
 end_date <- as.Date(max(daily$date))
 key_date <- as.Date("2020-03-14")
 
-exchange_rate <- 1
-#exchange_rate <- 
-#  map_dbl(0:11, ~{ 
-#    ex_table <- 
+exchange_rate <- 1.33868019270251
+# exchange_rate <-
+#  map_dbl(0:11, ~{
+#    ex_table <-
 #      fixerapi::fixer_historical(
 #        date = (end_date %m-% months(.x)), symbols = c("CAD", "USD"))
 #    ex_table[1,]$value / ex_table[2,]$value
 #  }) %>% mean()
-
-
-
 
 
 
