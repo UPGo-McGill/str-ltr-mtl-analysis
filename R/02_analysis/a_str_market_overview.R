@@ -3,8 +3,14 @@ library(tidyverse)
 library(lubridate)
 library(sf)
 library(gt)
-load("data/airdna.Rdata")
-load("data/ltr.Rdata")
+library(future)
+library(ggplot2)
+library(data.table)
+
+memory.limit(size = 48000)
+plan(multiprocess, workers = 4)
+
+load("data/montreal_str_processed_b.Rdata")
 
 
 
@@ -55,7 +61,7 @@ length(unique(LTM_property$host_ID))
 LTM_revenue <-
   daily %>%
   filter(housing,
-         date <= end_date, date > end_date - years(1),
+         date <= key_date, date > key_date - years(1),
          status == "R") %>%
   group_by(property_ID) %>%
   summarize(revenue_LTM = sum(price) * exchange_rate) %>%
@@ -108,9 +114,8 @@ nrow(LTM_property)
 
 # Listing types for city
 
-LTM_revenue_table <- 
-  LTM_revenue %>% 
-  filter(housing, created <= end_date, scraped > end_date - years(1)) %>% 
+LTM_revenue %>% 
+#  filter(housing, created <= key_date, scraped > key_date - years(1)) %>% 
   rename(`Listing type` = listing_type) %>% 
   st_drop_geometry() %>% 
   group_by(`Listing type`) %>% 
@@ -131,17 +136,13 @@ LTM_revenue_table <-
     `Rev. per listing` = round(`Rev. per listing`),
     `Rev. per listing` = paste0("$", str_sub(`Rev. per listing`, 1, -4),
                                 ",", str_sub(`Rev. per listing`, -3, -1))
-  )
-
-LTM_revenue_table <- # visual table
-  LTM_revenue_table %>%
+  ) %>% 
   gt() %>%
   tab_header(
     title = "LTM revenue",
-    subtitle = glue::glue("2019-03-31 to 2020-03-31")
+    subtitle = glue::glue("2019-03-14 to 2020-03-14")
   ) %>%
-  opt_row_striping() %>%
-  gtsave("output/LTM_revenue_table.png", path = NULL)
+  opt_row_striping()
 
 
 # By borough
@@ -176,7 +177,7 @@ LTM_revenue %>%
   rename(Borough = neighbourhood) %>% 
   gt() %>% 
   tab_header(
-    title = "Boroughs with at least a thousand listing",
+    title = "Boroughs with at least a thousand listing on 2020-03-14",
     subtitle = glue::glue("2019-03-14 to 2020-03-14")
   ) %>%
   fmt_number(columns = 2:4,
@@ -185,6 +186,7 @@ LTM_revenue %>%
   opt_row_striping() %>% 
   fmt_percent(columns = 5:7)
   
+
 
 
 
@@ -214,9 +216,8 @@ LTM_property %>%
 
 ## Host revenue percentiles
 
-table_host_revenue <- 
-  daily %>%
-  filter(housing == TRUE, date > end_date - years(1), status == "R") %>%
+daily %>%
+  filter(housing == TRUE, date < key_date, date > key_date - years(1), status == "R") %>%
   group_by(host_ID) %>%
   summarize(rev = sum(price)*exchange_rate) %>%
   filter(rev > 0) %>%
@@ -224,7 +225,12 @@ table_host_revenue <-
     `Top 1%`  = sum(rev[rev > quantile(rev, c(0.99))] / sum(rev)),
     `Top 5%`  = sum(rev[rev > quantile(rev, c(0.95))] / sum(rev)),
     `Top 10%` = sum(rev[rev > quantile(rev, c(0.90))] / sum(rev)),
-    `Top 20%` = sum(rev[rev > quantile(rev, c(0.80))] / sum(rev))) 
+    `Top 20%` = sum(rev[rev > quantile(rev, c(0.80))] / sum(rev))) %>% 
+  gt() %>% 
+  tab_header(
+    title = "% of total STR revenue in the hand of x%  ofhosts",
+  ) %>%
+  opt_row_striping() 
 
 
 ## Median host income
@@ -269,42 +275,6 @@ LTM_revenue %>%
   opt_row_striping() 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##### WHERE I'M AT
 ## Multilistings
 
 ML_table <- 
@@ -325,37 +295,33 @@ daily %>%
   filter(listing_type == "Entire home/apt") %>% 
   group_by(date) %>% 
   summarize(Listings = sum(multi)) %>% 
-  filter(date == end_date)
+  filter(date == key_date)
 
 ### Housing loss ###############################################################
 
 FREH %>% 
-  filter(date == end_date) %>% 
+  filter(date == key_date) %>% 
   count()
 
-freh_listings_mtl <- FREH %>% 
+FREH %>% 
   count(date) %>% 
+  filter(date <= end_date, date >= "2020-01-01") %>% 
   ggplot() +
   geom_line(aes(date, n), colour = "black", size = 1) +
   theme_minimal() +
-  scale_y_continuous(name = NULL, label = comma) +
-  ggtitle("FREH listings in Montreal")
+  scale_y_continuous(name = NULL) +
+  ggtitle("FREH listings in Montreal (in 2020)")
 
-ggsave("output/freh_listings_mtl.pdf", plot = freh_listings_mtl, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
-
-units_converted_gh_mtl <- GH %>% 
+GH %>% 
   st_drop_geometry() %>% 
   group_by(date) %>% 
   summarize(GH_units = sum(housing_units)) %>%
   ggplot() +
   geom_line(aes(date, GH_units), colour = "black", size = 1) +
   theme_minimal() +
-  scale_y_continuous(name = NULL, label = comma) +
+  scale_y_continuous(name = NULL) +
   ggtitle("Units converted to ghost hostels in Montreal")
 
-ggsave("output/units_converted_gh_mtl.pdf", plot = units_converted_gh_mtl, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
 
 GH_total <-
   GH %>%
@@ -366,41 +332,6 @@ GH_total <-
   mutate(GH_average = if_else(is.na(GH_average), 8, GH_average)) %>%
   select(-GH_units)
 
-# Seasonal housing loss
-
-# 2019
-FREH_season_2019 <- 
-  FREH %>% 
-  filter(date >= season_start & date <= season_end)
-
-seasonal_loss_2019 <- 
-  nrow(filter(property, seasonal_2019 == TRUE)) - 
-  property %>% 
-  filter(seasonal_2019, property_ID %in% FREH_season_2019$property_ID) %>% 
-  nrow()
-
-#2018
-FREH_season_2018 <-
-  FREH %>% 
-  filter(date >= season_start - years(1) & date <= season_end - years(1))
-
-seasonal_loss_2018 <-
-  nrow(filter(property, seasonal_2018 == TRUE)) - 
-  property %>% 
-  filter(seasonal_2018, property_ID %in% FREH_season_2018$property_ID) %>% 
-  nrow()
-
-#2017
-FREH_season_2017 <- 
-  FREH %>% 
-  filter(date >= season_start - years(2) & date <= season_end - years(2))
-
-seasonal_loss_2017 <-
-  nrow(filter(property, seasonal_2017 == TRUE)) - 
-  property %>% 
-  filter(seasonal_2017, property_ID %in% FREH_season_2017$property_ID) %>% 
-  nrow()
-
 # Housing loss numbers
 
 housing_loss <-
@@ -409,17 +340,12 @@ housing_loss <-
   summarize(`Entire home/apt` = n()) %>%
   left_join(GH_total, by = "date") %>%
   rename(`Private room` = GH_average) %>%
-  # mutate(`Summer listings` = case_when(
-  #   date >= season_start & date <= season_end ~ seasonal_loss_2019,
-  #   date >= season_start - years(1) & date <= season_end - years(1) ~ seasonal_loss_2018,
-  #   date >= season_start - years(2) & date <= season_end - years(2) ~ seasonal_loss_2017,
-  #   TRUE ~ 0L)) %>% 
-  gather(`Entire home/apt`, `Private room`, #`Summer listings`, 
+  gather(`Entire home/apt`, `Private room`, 
          key = `Listing type`, value = `Housing units`) 
 
 
 # Current housing loss figure
-sum(filter(housing_loss, date == end_date)$`Housing units`)
+sum(filter(housing_loss, date == key_date)$`Housing units`)
 
 ## Daily graphs:
 
@@ -428,73 +354,15 @@ GH %>%
   count()
 
 
-## Total nights "R" in 2019
+## Total nights "R"
 daily %>%
-  filter(housing, date > end_date - years(1), status == "R") %>%
+  filter(housing, date > key_date - years(1), date < key_date, status == "R") %>%
   count(property_ID) %>% 
   summarize(sum(n))
 
 
 
 
-## Relate housing loss to rental vacancy rate
-
-# vacancy_rate <- 1.016
-# 
-# housing <-
-#   get_census("CA16", regions = list(CSD = "2466023"), level = "CSD",
-#              vectors = c("v_CA16_4897", "v_CA16_405"))
-# 
-# housing %>%
-#   select(
-#     `v_CA16_405: Private dwellings occupied by usual residents`,
-# `v_CA16_4897: Total - Tenant households in non-farm, non-reserve private dwellings - 25% sample data`
-#          ) %>%
-#   set_names(c("Dwellings", "Tenants")) %>%
-#   pull(Tenants) %>%
-#   {. * vacancy_rate * (vacancy_rate - 1)}
-
 
 ## Save files #####################################
-save(property, file = "data/Montreal_property.Rdata")
-save(housing_loss, file = "data/housing_loss.Rdata")
-
-
-
-
-
-#### 2020-06-10 Getting data to compare with Cloe's KJ_CL report
-
-daily_r_2020 <- 
-  daily %>% 
-  filter(date >= "2020-01-01",
-         status == "R") %>% 
-  left_join(select(st_drop_geometry(property), borough, property_ID), by= "property_ID")
-
-daily_r_2020_plot <- 
-  daily_r_2020 %>% 
-  filter(date >= "2020-01-23",
-         borough %in% !! unique(arrange(count(filter(daily_r_2020, status == "R", !is.na(borough)), borough), desc(n))$borough[1:10])) %>% 
-  group_by(date) %>% 
-  count(borough) %>% 
-  arrange(desc(n)) %>% 
-  group_by(borough) %>%
-  filter(!is.na(date)) %>% 
-  ggplot()+
-  geom_smooth(aes(date, n, color = borough), se = F, size = 1.5)+
-  scale_color_brewer(palette = "Paired")+
-  ggtitle("Number of reservations per day (STR)")
-
-ggsave("output/daily_r_2020_plot.pdf", plot = daily_r_2020_plot, width = 10, 
-       height = 5, units = "in", useDingbats = FALSE)
-
-daily %>% 
-  filter(borough %in% unique(arrange(count(kj_mtl, borough), desc(n))$borough[1:10])) %>% 
-  group_by(created) %>% 
-  count(borough) %>% 
-  group_by(borough) %>%
-  filter(!is.na(created)) %>% 
-  ggplot()+
-  geom_line(aes(created, n, color = borough), se = F)+
-  geom_smooth(aes(created, n, color = borough), se = F, size = 1.5)+
-  scale_color_brewer(palette = "Paired")
+save.image(file = "data/montreal_str_processed_c.Rdata")
