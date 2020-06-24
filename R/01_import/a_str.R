@@ -103,7 +103,7 @@ borough_geometries <-
 
 ### Process the property file ##################################################
 
-## Spatial join or run the raffle to assign a DA to each listing
+## Spatial join or run the raffle to assign a CT to each listing
 
 property <-
   property %>% 
@@ -173,4 +173,6 @@ save(city, daily, CTs, FREH, GH, host,
      key_date, exchange_rate, #season_start, season_end,
      boroughs, borough_geometries,
      file = "data/montreal_str_processed_a.Rdata")
+
+
 
