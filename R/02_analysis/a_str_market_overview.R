@@ -10,7 +10,7 @@ library(data.table)
 memory.limit(size = 48000)
 plan(multiprocess, workers = 4)
 
-load("data/montreal_str_processed_b.Rdata")
+load("data/montreal_str_processed_a.Rdata")
 
 
 
@@ -38,7 +38,7 @@ property %>%
 # Housing listings over the last twelve months
 LTM_property <-
   property %>%
-  filter(housing, created <= end_date, scraped > end_date - years(1))
+  filter(housing, created <= key_date, scraped > key_date - years(1))
 
 nrow(LTM_property)
 
@@ -46,14 +46,11 @@ nrow(LTM_property)
 # Number of hosts over last twelve months
 length(unique(LTM_property$host_ID))
 
-# Hosts by listing type
-# LTM_property %>%
-#   filter(housing,listing_type == "Private room") %>%
-#   select(host_ID) %>%
-#   st_drop_geometry() %>%
-#   unique() %>%
-#   nrow()/
-#   length(unique(LTM_property$host_ID))
+# LTM reservations
+
+daily %>% 
+  filter(date <= key_date, date > key_date - years(1), status == "R") %>% 
+  nrow()
 
 
 # LTM revenue
@@ -71,21 +68,21 @@ sum(LTM_revenue$revenue_LTM, na.rm = TRUE)
 
 # YOY growth rate
 #2019
-nrow(filter(property, housing == TRUE, created <= end_date, scraped >= end_date)) / 
-  nrow(filter(property, created <= end_date - years(1), scraped >= end_date - years(1),
-              housing == TRUE))
-
-#2018
-nrow(filter(property, created <= end_date - years(1), scraped >= end_date - years(1),
-            housing == TRUE)) / 
-  nrow(filter(property, created <= end_date - years(2), scraped >= end_date - years(2),
-              housing == TRUE))
-
-#2017
-nrow(filter(property, created <= end_date - years(2), scraped >= end_date - years(2),
-            housing == TRUE)) / 
-  nrow(filter(property, created <= end_date - years(3), scraped >= end_date - years(3),
-              housing == TRUE))
+# nrow(filter(property, housing == TRUE, created <= end_date, scraped >= end_date)) / 
+#   nrow(filter(property, created <= end_date - years(1), scraped >= end_date - years(1),
+#               housing == TRUE))
+# 
+# #2018
+# nrow(filter(property, created <= end_date - years(1), scraped >= end_date - years(1),
+#             housing == TRUE)) / 
+#   nrow(filter(property, created <= end_date - years(2), scraped >= end_date - years(2),
+#               housing == TRUE))
+# 
+# #2017
+# nrow(filter(property, created <= end_date - years(2), scraped >= end_date - years(2),
+#             housing == TRUE)) / 
+#   nrow(filter(property, created <= end_date - years(3), scraped >= end_date - years(3),
+#               housing == TRUE))
 
 
 
@@ -196,7 +193,7 @@ LTM_revenue %>%
 LTM_property %>% 
   st_drop_geometry() %>%  
   filter(housing == TRUE,
-         listing_type == "Shared room",
+         listing_type == "Entire home/apt",
          created <= key_date, scraped >= key_date) %>% 
   count(bedrooms) %>% 
   mutate(percentage = n / sum(n)) %>% 
@@ -283,8 +280,7 @@ ML_table <-
   summarize(Listings = mean(multi),
             Revenue = sum(price * (status == "R") * multi * 
                             exchange_rate, na.rm = TRUE) / 
-              sum(price * (status == "R") * exchange_rate, na.rm = TRUE)) %>% 
-  gather(Listings, Revenue, key = `Multilisting percentage`, value = Value)
+              sum(price * (status == "R") * exchange_rate, na.rm = TRUE))
 
 ML_table %>% 
   filter(date == key_date)
