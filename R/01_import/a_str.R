@@ -79,16 +79,17 @@ boroughs <-
   select(borough = NOM) %>% 
   st_transform(32618)
 
-zones <- 
-  read_sf("data/shapefiles/AffectationPU.shp") %>% 
-  st_transform(32618)
+# zones <- 
+#   read_sf("data/shapefiles/AffectationPU.shp") %>% 
+#   st_transform(32618)
 
 # Add population data from the census
 
-boroughs <- 
-  st_join(CTs, boroughs) %>% 
-  group_by(borough) %>% 
-  summarize(dwellings=sum(dwellings))
+# this needs to be retouched: it is damaging the borders of each boroughs.
+# boroughs <- 
+#   st_join(CTs, boroughs) %>% 
+#   group_by(borough) %>% 
+#   summarize(dwellings=sum(dwellings))
 
 
 borough_geometries <- 
