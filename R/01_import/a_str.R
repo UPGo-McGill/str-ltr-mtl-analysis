@@ -85,11 +85,10 @@ boroughs <-
 
 # Add population data from the census
 
-# this needs to be retouched: it is damaging the borders of each boroughs.
-# boroughs <- 
-#   st_join(CTs, boroughs) %>% 
-#   group_by(borough) %>% 
-#   summarize(dwellings=sum(dwellings))
+boroughs <-
+  st_join(boroughs, CTs) %>%
+  group_by(borough) %>%
+  summarize(dwellings=sum(dwellings))
 
 
 borough_geometries <- 
@@ -100,7 +99,8 @@ borough_geometries <-
   st_union() %>% 
   smoothr::fill_holes(400)
 
-
+ggplot(boroughs2)+
+  geom_sf(aes(fill = borough))
 
 
 
@@ -130,10 +130,16 @@ FREH <-
   filter(FREH == TRUE) %>% 
   select(-FREH)
 
+## Short term FREH (2020)
+FREH_2020 <- 
+daily %>% 
+  filter(housing, date >= "2020-01-01") %>% 
+  strr_FREH(start_date = "2020-01-01", end_date = key_date,
+            n_days = 73, r_cut = 18, ar_cut = 37)
+
 GH <- 
   property %>% 
   strr_ghost(start_date = "2017-01-01", end_date = end_date)
-
 
 
 
