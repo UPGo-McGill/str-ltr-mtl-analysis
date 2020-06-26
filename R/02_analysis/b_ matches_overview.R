@@ -130,3 +130,125 @@ daily %>%
              sep_mark = " ",
              decimals = 0) %>% 
   opt_row_striping() 
+
+
+
+
+
+### portrait of STR units going on LTR #################################
+## GH, FREH, Multi
+
+#GH
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% unlist(GH$property_IDs),
+         !is.na(ltr_id), scraped > "2020-01-01") %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  nrow() /
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% unlist(GH$property_IDs),
+         scraped > "2020-01-01") %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  nrow()
+
+#FREH
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% FREH_2020$property_ID,
+         !is.na(ltr_id)) %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  nrow() /
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% unlist(FREH_2020$property_ID),
+         scraped > "2020-01-01") %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  nrow()
+
+#multi
+daily %>%
+  filter(date > "2020-01-01", multi == T) %>%
+  count(property_ID) %>%
+  filter(property_ID %in% matches$ab_id) %>% 
+  select(property_ID) %>% 
+  nrow() /
+daily %>%
+  filter(date >= "2020-01-01",
+         multi == T) %>%
+  count(property_ID) %>%
+  nrow() 
+
+
+#how many of these FREH on all matches
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% FREH_2020$property_ID,
+         !is.na(ltr_id)) %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  nrow()/
+property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_id),
+         ltr_id %in% ltr_mtl$id) %>% 
+  distinct(property_ID) %>% 
+  nrow()
+
+
+### all commercial operations
+#commercial listings that matched out of all matches
+rbind(property %>% 
+        st_drop_geometry() %>% 
+        filter(property_ID %in% unlist(GH$property_IDs),
+               !is.na(ltr_id), scraped > "2020-01-01") %>% 
+        distinct(property_ID),
+      property %>% 
+        st_drop_geometry() %>% 
+        filter(property_ID %in% FREH_2020$property_ID,
+               !is.na(ltr_id)) %>% 
+        distinct(property_ID),
+        daily %>%
+        filter(date > "2020-01-01", multi == T) %>%
+        count(property_ID) %>%
+        filter(property_ID %in% matches$ab_id) %>% 
+        select(property_ID)
+) %>% distinct(property_ID) %>% nrow() /
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_id),
+         ltr_id %in% ltr_mtl$id) %>% 
+  distinct(property_ID) %>% 
+  nrow()
+
+
+#commercial listings that matched out of all commercial listings
+rbind(property %>% 
+        st_drop_geometry() %>% 
+        filter(property_ID %in% unlist(GH$property_IDs),
+               !is.na(ltr_id), scraped > "2020-01-01") %>% 
+        distinct(property_ID),
+      property %>% 
+        st_drop_geometry() %>% 
+        filter(property_ID %in% FREH_2020$property_ID,
+               !is.na(ltr_id)) %>% 
+        distinct(property_ID),
+      daily %>%
+        filter(date > "2020-01-01", multi == T) %>%
+        count(property_ID) %>%
+        filter(property_ID %in% matches$ab_id) %>% 
+        select(property_ID)
+) %>% distinct(property_ID) %>% nrow() /
+  rbind(property %>% 
+          st_drop_geometry() %>% 
+          filter(property_ID %in% unlist(GH$property_IDs),
+                 scraped > "2020-01-01") %>% 
+          distinct(property_ID),
+        property %>% 
+          st_drop_geometry() %>% 
+          filter(property_ID %in% FREH_2020$property_ID) %>% 
+          distinct(property_ID),
+        daily %>%
+          filter(date > "2020-01-01", multi == T) %>%
+          count(property_ID) %>% 
+          select(property_ID)
+  ) %>% distinct(property_ID) %>% nrow()
