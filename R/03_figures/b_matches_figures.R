@@ -92,11 +92,12 @@ ggplot()+
   geom_smooth(aes(created, price, color = matched), se = F)+
   scale_color_manual(name = "Group",
                      values = c("#00CC66", "#FF3333"),
-                     labels = c("Matched", "Did not match"))+
+                     labels = c("Did not match", "Matched"))+
   ggtitle("Daily price of new listings")
 
 
 ### Portrait of hosts that put listings on LTR #########################
+#host_revenue
 daily %>%
   filter(housing,
          date <= key_date, date > key_date - years(1),
@@ -127,9 +128,9 @@ daily %>%
                    filter(host_rev>0) %>% 
                    arrange(-host_rev) %>% 
                    drop_na(), 
-                 aes(x = host_rev, y = ..count.. * 30),fill = "blue", alpha = 0.2)+
+                 aes(x = host_rev, y = ..count.. * 35),fill = "blue", alpha = 0.2)+
   xlim(c(0,100000)) +
-  scale_y_continuous(sec.axis = sec_axis(~ ./30, name = "Count (Match)"))+
+  scale_y_continuous(sec.axis = sec_axis(~ ./35, name = "Count (Match)"))+
   theme(axis.text.y.right = element_text(color = "blue"),
   axis.line.y.right = element_line(color = "blue"),
   axis.text.y.left = element_text(color = "red"),
@@ -139,49 +140,59 @@ daily %>%
   xlab("Host revenue")
 
 
+### Portrait of listings that went on LTR ##########################
+#last scrape date
+property %>% 
+  st_drop_geometry() %>% 
+  filter(ltr_id %in% ltr_mtl$id) %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  count(scraped) %>% 
+  arrange(scraped) %>% 
+  filter(n < "2020-01-01") %>% 
+  nrow()
+  ggplot()+
+  geom_line(aes(scraped, n))+
+  ylab("Number of listings") +
+  ggtitle("Number of listings that matched per last scraped date")
 
-### portrait of STR units going on LTR #################################
-## GH, FREH, Multi
-# 
-# GH_hosts <- 
-#   GH %>% 
-#   count(host_ID) %>% 
-#   st_drop_geometry()
-# 
-# rbind(property %>% 
-#         filter(property_ID %in% matches$ab_id,
-#                host_ID %in% GH_hosts$host_ID) %>% 
-#         st_drop_geometry() %>% 
-#         select(property_ID),
-#       daily %>% 
-#         filter(date >= "2019-03-14",
-#                multi == T) %>% 
-#         count(property_ID) %>% 
-#         filter(property_ID %in% matches$ab_id) %>% 
-#         select(property_ID),
-#       FREH %>% 
-#         filter(property_ID %in% matches$ab_id) %>% 
-#         count(property_ID) %>% 
-#         select(property_ID)
-# ) %>% distinct() %>% nrow() /
-#   rbind((kj_matches),
-#         (cl_matches)) %>% select(x_name) %>%  distinct() %>%  nrow()
-# nrow(distinct(kj_matches, x_name))
-# 
-# distinct(rbind(property %>% 
-#                  filter(property_ID %in% matches$ab_id,
-#                         host_ID %in% count(st_drop_geometry(GH), host_ID)$host_ID) %>% 
-#                  st_drop_geometry() %>% 
-#                  select(property_ID),
-#                daily %>% 
-#                  filter(date >= "2019-03-14",
-#                         multi == T) %>% 
-#                  count(property_ID) %>% 
-#                  filter(property_ID %in% matches$ab_id) %>% 
-#                  select(property_ID),
-#                FREH %>% 
-#                  filter(property_ID %in% matches$ab_id) %>% 
-#                  count(property_ID) %>% 
-#                  select(property_ID))) %>% nrow() /
-#   distinct(matches, ab_id) %>% nrow()
+
+#time listings were active
+property %>% 
+  st_drop_geometry() %>% 
+  filter(is.na(ltr_id),
+         scraped >= "2020-01-01") %>%
+  distinct(property_ID, .keep_all = T) %>% 
+  mutate(how_long_they_stay = (scraped-created) / 30) %>% 
+  ggplot()+
+  geom_histogram(aes(how_long_they_stay), fill = "red", alpha = 0.2)+
+  geom_histogram(data = property %>% 
+                   st_drop_geometry() %>% 
+                   filter(!is.na(ltr_id),
+                          scraped >= "2020-01-01") %>%
+                   distinct(property_ID, .keep_all = T) %>% 
+                   mutate(how_long_they_stay = (scraped-created) / 30),
+                 aes(x = how_long_they_stay, y = ..count.. * 15),fill = "blue", alpha = 0.2)+
+  xlim(c(0,60)) +
+  scale_y_continuous(sec.axis = sec_axis(~ ./15, name = "Count (Match)"))+
+  theme(axis.text.y.right = element_text(color = "blue"),
+        axis.line.y.right = element_line(color = "blue"),
+        axis.text.y.left = element_text(color = "red"),
+        axis.line.y.left = element_line(color = "red"))+
+  ylab("Count (Not match)")+
+  ggtitle("Since how long (months) are listings on AirBNB (scraped - created)")+
+  xlab("Months")
+  
+#time FREH_2020 listings were active
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% FREH$property_ID,
+         !is.na(ltr_id)) %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  mutate(how_long_they_stay = (scraped-created) / 30) %>% 
+  ggplot()+
+  geom_histogram(aes(how_long_they_stay), fill = "blue", alpha = 0.2)+
+  xlim(c(0,60))+
+  ylab("Count (Matched)")+
+  ggtitle("Since how long (months) are FREH_2020 listings on AirBNB (scraped - created)")+
+  xlab("Months")
 
