@@ -17,7 +17,7 @@ library(future)
 memory.limit(size = 48000)
 plan(multiprocess, workers = 4)
 
-# register_google(key = "AIzaSyDxSAajMCw_k8E7GsKCFKBMP2RhofvLMX8", write = TRUE)
+register_google(key = "AIzaSyDxSAajMCw_k8E7GsKCFKBMP2RhofvLMX8", write = TRUE)
 
 
 
@@ -108,7 +108,7 @@ matches <- rbind(kj_matches, cl_matches)
 rm(kj_matches)
 rm(cl_matches)
 
-# get created date for rclalq file
+# get created date and add kj for rclalq file
 
 rclalq$posted <- 
   str_sub(rclalq$posted, start= 16L)
@@ -118,6 +118,8 @@ rclalq$posted <-
                                               "plus d'un mois|un mois" = "30",
                                               "[:digit:]+ heures|une heure|[:digit:]+ minutes|moins d'une minute|une minute" = "0",
                                               "un" = "1")))
+rclalq$id <- 
+paste0("kj-", rclalq$id)
 
 # arrange kijiji bedrooms column as numeric
 
@@ -218,35 +220,18 @@ ltr_mtl <- ltr %>%
   st_transform(32618)
 
 # import montreal's boroughs geograhy
-boroughs <-
-  read_sf("data/shapefiles/montreal_boroughs_2019.shp") %>% 
-  select(borough = NOM) %>%
-  st_set_crs(4326) %>% 
-  st_transform(32618)
+
+# TAKE THE BOROUGHS OF STR WHICH ALREADY HAVE DWELLINGS FROM CENSUS
+# boroughs <-
+#   read_sf("data/shapefiles/montreal_boroughs_2019.shp") %>% 
+#   filter(TYPE == "Arrondissement") %>% 
+#   select(borough = NOM) %>%
+#   st_set_crs(4326) %>% 
+#   st_transform(32618)
 
 ltr_mtl <- ltr_mtl %>% 
-  st_join(boroughs)
-
-
-
-# import ensus data to LTR table
-CTs <-
-  cancensus::get_census(
-    dataset = "CA16", regions = list(CSD = c("2466023", "5915022", "3520005")), level = "CT",
-    geo_format = "sf") %>% 
-  st_transform(4326) %>% 
-  select(GeoUID, CSD_UID, Population, Dwellings) %>% 
-  set_names(c("GeoUID", "CMA_UID", "population", "dwellings", "geometry")) %>% 
-  select(GeoUID, dwellings, CMA_UID) %>% 
-  st_set_agr("constant")
-
-CTs$CMA_UID <- 
-  str_replace_all(CTs$CMA_UID, c("2466023" = "Montreal",
-                                 "3520005" = "Toronto",
-                                 "5915022" = "Vancouver"))
-
-ltr_cts <- st_join(ltr, CTs)
-
+  st_join(boroughs) %>% 
+  filter(!is.na(borough))
 
 
 
@@ -258,6 +243,29 @@ property <-
 
 ltr_mtl <- 
   left_join(ltr_mtl, rename(matches[,c("x_name", "y_name")], ab_id = x_name, id = y_name), by = "id")
+
+
+
+
+
+# import ensus data to LTR table
+CTs <-
+  cancensus::get_census(
+    dataset = "CA16", regions = list(CSD = c("2466023", "5915022", "3520005")), level = "CT",
+    geo_format = "sf") %>% 
+  st_transform(32618) %>% 
+  select(GeoUID, CSD_UID, Population, Dwellings) %>% 
+  set_names(c("GeoUID", "CMA_UID", "population", "dwellings", "geometry")) %>% 
+  select(GeoUID, dwellings, CMA_UID) %>% 
+  st_set_agr("constant")
+
+CTs$CMA_UID <- 
+  str_replace_all(CTs$CMA_UID, c("2466023" = "Montreal",
+                                 "3520005" = "Toronto",
+                                 "5915022" = "Vancouver"))
+
+ltr_mtl_cts <- ltr_mtl %>% 
+  st_join(filter(CTs, CMA_UID == "Montreal"))
 
 
 
@@ -276,15 +284,15 @@ matches <-
 
 
 
-#### save ####
+#### save ###################################################################
 
-save(ltr, ltr_mtl, ltr_cts, CTs, rclalq, matches,
+save(ltr, ltr_mtl, ltr_mtl_cts, CTs, rclalq, matches,
      file = "data/ltr_matches.Rdata")
 
 save(kj_geo,
      file = "data/kj_geo.Rdata")
 
-save(city, daily, CTs, FREH, GH, host,
+save(city, daily, CTs, FREH, FREH_2020, GH, host,
      property, end_date,
      key_date, exchange_rate, #season_start, season_end,
      boroughs, borough_geometries,
