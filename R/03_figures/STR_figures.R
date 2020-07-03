@@ -6,7 +6,7 @@ library(patchwork)
 ### Colour palette #############################################################
 
 col_palette <- 
-  c("#FF3333", "#00CC66", "#FFCC00", "#FF6600", "#66FFFF")
+  c("#FF3333", "#FFCC00", "#FF6600", "#66FFFF", "#00CC66")
 
 
 
@@ -82,26 +82,6 @@ ggsave("output/figure_1.1.pdf", plot = active_listings_graph_2019_2020, width = 
 
 ### FIGURE 2 - Montreal maps ##############################################
 
-# OSM is not working, so I uploaded a shp file of the boroughs of Mtl instead
-
-#borough <- 
-#  (getbb("Montreal") * c(1.01, 0.99, 0.99, 1.01)) %>% 
-#  opq(timeout = 200) %>% 
-#  add_osm_feature(key = "admin_level",
-#                  value = "10") %>% 
-#  osmdata_sf()
-
-#borough <-
-#  rbind(
-#    borough$osm_polygons %>% st_set_agr("constant") %>% st_cast("LINESTRING"),
-#    borough$osm_lines) %>%
-#  as_tibble() %>%
-#  st_as_sf() %>%
-#  st_transform(32618) %>%
-#  st_set_agr("constant") %>%
-#  st_intersection(city) %>%
-#  select(osm_id, name, geometry)
-
 mtl <- st_read("limadmin-shp", "LIMADMIN")
 
 mtl <- mtl %>% 
@@ -111,7 +91,6 @@ mtl_borough_census <-
   st_intersection(mtl, DAs) %>% 
   group_by(NOM) %>% 
   summarize(dwellings=sum(dwellings))
-
 
 borough_map <-
   property %>%
@@ -257,11 +236,12 @@ extrafont::embed_fonts("output/figure_4.pdf")
 
 ### FIGURE 5 - housing loss ####################################################
 
+
 housing_graph <-
   housing_loss %>% 
   mutate(`Listing type` = factor(
     `Listing type`, 
-    levels = c("Summer listings", "Private room", "Entire home/apt"))) %>% 
+    levels = c("Private room", "Entire home/apt"))) %>%  #"Summer listings", 
   ggplot(aes(`Listing type`)) +
   geom_col(aes(date, `Housing units`, fill = `Listing type`),
            lwd = 0) +
@@ -414,155 +394,7 @@ ggsave("output/figure_8.pdf", plot = pr_map, width = 8, height = 8,
 extrafont::embed_fonts("output/figure_8.pdf")
 
 
-### FIGURE 9 - scenario maps ###################################################
-
-# library(patchwork)
-
-# hotel_zones <- 
-c("C2", "C3", "MUVC", "DMU", "DMS", "DC", "M3", "WF", "MUC", "A", "PZ")
-
-#map_theme <- 
-#  theme_void() +
-#  theme(legend.position = "right",
-#        text = element_text(family = "Futura", face = "plain"),
-#        legend.title = element_text(family = "Futura", face = "bold", 
-#                                    size = 10),
-#        legend.text = element_text(family = "Futura", size = 9),
-#        plot.title = element_text(family = "Futura", face = "bold"),
-#        legend.key.height = unit(1, "cm")
-#  )
-
-#sc1 <-
-#  zones %>% 
-#  mutate(
-#    `STRs allowed` = factor(
-#      "Principal residence only, \nno apartments", 
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      ))) %>% 
-#  ggplot() +
-#  geom_sf(aes(fill = `STRs allowed`), lwd = 0, colour = "transparent") +
-#  geom_sf(data = filter(property, housing, created <= key_date, 
-#                        scraped >= key_date),
-#          size = 0.7, alpha = 0.7, stroke = 0) +
-#  scale_fill_manual(values = col_palette[2:4], drop = FALSE) +
-#  ggtitle("Scenario 1") +
-#  map_theme
-
-#sc2 <- 
-#  zones %>% 
-#  mutate(
-#    `STRs allowed` = factor(
-#      "Principal residence only, \napartments allowed",
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      ))) %>% 
-#  ggplot() +
-#  geom_sf(aes(fill = `STRs allowed`), lwd = 0, colour = "transparent") +
-#  geom_sf(data = filter(property, housing, created <= key_date, 
-#                        scraped >= key_date),
-#          size = 0.7, alpha = 0.7, stroke = 0) +
-#  scale_fill_manual(values = col_palette[2:4], drop = FALSE) +
-#  ggtitle("Scenario 2") +
-#  map_theme
-
-#sc3_zones <- 
-#  zones %>% 
-#  mutate(`STRs allowed` = case_when(
-#    ZONING %in% hotel_zones ~ factor(
-#      "Commercial operations allowed",
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      )),
-#    TRUE ~ factor(
-#      "Principal residence only, \nno apartments",
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      ))))
-
-#sc3 <- 
-#  sc3_zones %>% 
-#  ggplot() +
-#  geom_sf(aes(fill = `STRs allowed`), lwd = 0, colour = "transparent") +
-#  geom_sf(data = filter(property, housing, created <= key_date, 
-#                        scraped >= key_date),
-#          size = 0.7, alpha = 0.7, stroke = 0) +
-#  scale_fill_manual(values = col_palette[2:4], drop = FALSE) +
-#  ggtitle("Scenario 3") +
-#  map_theme
-
-#sc4 <- 
-#  zones %>% 
-#  mutate(`STRs allowed` = case_when(
-#    ZONING %in% hotel_zones ~ factor(
-#      "Commercial operations allowed",
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      )),
-#    TRUE ~ factor(
-#      "Principal residence only, \napartments allowed",
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      )))) %>% 
-#  ggplot() +
-#  geom_sf(aes(fill = `STRs allowed`), lwd = 0, colour = "transparent") +
-#  geom_sf(data = filter(property, housing, created <= key_date, 
-#                        scraped >= key_date),
-#          size = 0.7, alpha = 0.7, stroke = 0) +
-#  scale_fill_manual(values = col_palette[2:4], drop = FALSE) +
-#  ggtitle("Scenario 4") +
-#  map_theme
-
-
-#sc5_zones <-
-#  zones %>% 
-#  mutate(`STRs allowed` = case_when(
-#    ZONING %in% hotel_zones ~ factor(
-#      "Commercial operations allowed",
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      )),
-#    ZONING == "DMUN" ~ factor(
-#      "Commercial operations allowed",
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      )),
-#    TRUE ~ factor(
-#      "Principal residence only, \napartments allowed",
-#      levels = c("Principal residence only, \nno apartments",
-#                 "Principal residence only, \napartments allowed",
-#                 "Commercial operations allowed"
-#      ))))
-
-#sc5 <- 
-#  sc5_zones %>% 
-#  ggplot() +
-#  geom_sf(aes(fill = `STRs allowed`), lwd = 0, colour = "transparent") +
-#  geom_sf(data = filter(property, housing, created <= key_date,
-#                        scraped >= key_date),
-#          size = 0.7, alpha = 0.7, stroke = 0) +
-#  scale_fill_manual(values = col_palette[2:4], drop = FALSE) +
-#  ggtitle("Scenario 5") +
-#  map_theme
-
-#scenario_map <- 
-#  sc1 + sc2 + sc3 + sc4 + sc5 + guide_area() + plot_layout(guides = "collect")
-
-#ggsave("output/figure_9.pdf", plot = scenario_map, width = 8, height = 6, 
-#       units = "in", useDingbats = FALSE)
-
-#extrafont::embed_fonts("output/figure_9.pdf")
-
-
-### FIGURE 10 - ward commercial maps ###########################################
+### FIGURE 10 - Housing loss boroughs ###########################################
 
 patchwork_layout <- "
 ABCDE
@@ -581,15 +413,7 @@ housing_loss_listings <-
           group_by(ghost_ID) %>% 
           summarize(geometry = st_centroid(st_union(geometry))) %>% 
           transmute(property_ID = as.character(ghost_ID))
-  )
 
-#sc5_reallocation <- 
-#  wards %>% 
-#  mutate(area = st_area(geometry)) %>% 
-#  st_intersection(
-#    summarize(group_by(lwgeom::st_make_valid(sc5_zones), `STRs allowed`))
-#  ) %>% 
-#  mutate(dwellings = dwellings * st_area(geometry) / area)
 
 borough_loss_map <- 
   housing_loss_listings %>% 
@@ -621,9 +445,163 @@ borough_loss_map <-
                                       face = "bold"))
   }) %>% 
   wrap_plots() +
-  guide_area() #+
-#plot_layout(design = patchwork_layout, guides = "collect",
-#            heights = c(3, 3, 1))
+  guide_area()
 
 ggsave("output/figure_10.pdf", plot = borough_loss_map, width = 8, height = 8, 
-       units = "in",useDingbats = FALSE)
+       units = "in", useDingbats = FALSE)
+
+### FIGURE 11 - STR-LTR Matches by boroughs ###########################################
+
+boroughs <- st_read("shapefiles", "montreal_boroughs_2019") 
+
+boroughs <- boroughs %>% 
+  st_transform(32618) %>% 
+  rename(borough=NOM)
+
+CTs <- CTs %>% 
+  st_transform(32618)
+
+borough_ct <- 
+  st_join(boroughs, CTs) %>% 
+  select(borough, dwellings, GeoUID, geometry)
+
+ltr_bo <- 
+  st_join(borough_ct, ltr_mtl)
+
+ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ab_id)) %>% 
+  distinct(ab_id, .keep_all = TRUE) %>% 
+  group_by(borough) %>% 
+  summarize(n=n(), percentage = n()/2374)
+  
+
+View(ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ab_id)) %>% 
+  distinct(ab_id, .keep_all = TRUE) %>%
+  filter(price >=425) %>% 
+  filter(price <= quantile(price, 0.998, na.rm=TRUE), 
+         price >= quantile(price, 0.002, na.rm=TRUE)) %>% 
+  group_by(furnished, bedrooms) %>% 
+  summarize(n=n(), percentage = n()/2374, median=median(price, na.rm=TRUE)))
+
+View(ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(is.na(ab_id)) %>% 
+  distinct(id, .keep_all = TRUE) %>% 
+  filter(price >=425) %>% 
+  filter(price <= quantile(price, 0.998, na.rm=TRUE), 
+         price >= quantile(price, 0.002, na.rm=TRUE)) %>% 
+  group_by(furnished, bedrooms) %>% 
+  summarize(n=n(), percentage = n()/68819, median=median(price, na.rm=TRUE)))
+
+weekly_prices_non_matches <- ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(is.na(ab_id)) %>% 
+  arrange(scraped, .by_group=TRUE) %>% 
+  distinct(title, scraped, .keep_all = TRUE) %>% 
+  distinct(id, .keep_all = TRUE) %>% 
+  filter(price >=425) %>% 
+  filter(price <= quantile(price, 0.998, na.rm=TRUE), 
+         price >= quantile(price, 0.002, na.rm=TRUE)) %>% 
+  group_by(week=floor_date(created, "week")) %>%
+  #group_by(bedrooms) %>% 
+  summarize(n=n(), median_price=median(price, na.rm=TRUE))
+  
+weekly_prices_matches <- ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ab_id)) %>% 
+  distinct(ab_id, .keep_all = TRUE) %>% 
+  filter(price >=425) %>% 
+  filter(price <= quantile(price, 0.998, na.rm=TRUE), 
+         price >= quantile(price, 0.002, na.rm=TRUE)) %>% 
+  group_by(week=floor_date(created, "week")) %>%
+  #group_by(bedrooms) %>% 
+  summarize(n=n(), median_price=median(price, na.rm=TRUE))
+
+weekly_prices_total <- ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  arrange(scraped, .by_group=TRUE) %>% 
+  distinct(title, scraped, .keep_all = TRUE) %>% 
+  distinct(id, .keep_all = TRUE) %>% 
+  filter(price>=425) %>% 
+  filter(price <= quantile(price, 0.998, na.rm=TRUE), 
+         price >= quantile(price, 0.002, na.rm=TRUE)) %>% 
+  group_by(week=floor_date(created, "week")) %>%
+  #group_by(bedrooms) %>% 
+  summarize(n=n(), median_price=median(price, na.rm=TRUE))
+
+ggplot()+ 
+  geom_smooth(data=weekly_prices_matches, aes(week, `median_price`), colour="#FF3333", se=FALSE)+
+  geom_smooth(data=weekly_prices_non_matches, aes(week, `median_price`), colour="#FFCC00", se=FALSE)+
+  geom_smooth(data=weekly_prices_total, aes(week, `median_price`), colour="#00CC66", se=FALSE)+
+  labs(title="Median price for matches and non-matches by week in Montreal", 
+       subtitle = "Red are LTR+STR matches, yellow are non-matches, and green is the entire dataset")+
+  theme_minimal()
+  
+View(property %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, superhost, ab_host) %>% 
+  rename(ab_id=property_ID) %>% 
+  merge(., st_drop_geometry(ltr_mtl), by="ab_id") %>% 
+  distinct(ab_id, .keep_all = TRUE) %>% 
+  group_by(ab_host, superhost) %>% 
+  summarize(n=n(), percentage=n()/2374)) 
+
+property %>% 
+  st_drop_geometry() %>% 
+  group_by(superhost) %>% 
+  summarize(n=n(), percentage=n()/78744)
+
+
+View(ltr_mtl %>%
+  st_drop_geometry() %>% 
+  filter(is.na(ab_id)) %>% 
+  distinct(id, .keep_all = TRUE) %>% 
+  group_by(bedrooms) %>% 
+  summarize(n=n(), percentage = n()/68819))
+
+LTM_property %>% 
+  st_drop_geometry() %>% 
+  distinct(property_ID, .keep_all = TRUE) %>% 
+  group_by(bedrooms) %>% 
+  summarize(n=n(), percentage=n()/36026)
+
+########### PLOT TO SHOW THE DIFFERENCE IN PRICE FROM DATE CREATED TO LAST SCRAPED ###########
+
+ggplot()+
+  geom_line(data= ltr_mtl %>% 
+              st_drop_geometry() %>% 
+              group_by(created) %>% 
+              arrange(scraped) %>% 
+              distinct(id, .keep_all = TRUE) %>% 
+              filter(price>=425) %>% 
+              filter(price <= quantile(price, 0.998, na.rm=TRUE), 
+                     price >= quantile(price, 0.002, na.rm=TRUE)) %>% 
+              group_by(day=floor_date(created, "day")) %>% 
+              summarize(n = n(), `Median price of listings` = median(price, na.rm=TRUE)), 
+            aes(day, `Median price of listings`, color="Median price on date created"))+
+  geom_line(data= ltr_mtl %>% 
+              st_drop_geometry() %>% 
+              group_by(created) %>% 
+              arrange(desc(scraped)) %>% 
+              distinct(id, .keep_all = TRUE) %>% 
+              filter(price>=425) %>% 
+              filter(price <= quantile(price, 0.998, na.rm=TRUE), 
+                     price >= quantile(price, 0.002, na.rm=TRUE)) %>% 
+              group_by(day=floor_date(scraped, "day")) %>% 
+              summarize(n = n(), `Median price of listings` = median(price, na.rm=TRUE)), 
+            aes(day, `Median price of listings`, color="Median price on date last scraped"))+
+  labs(x="Date",
+       y="Median price",
+       title="Median price on date created versus on last date scraped",
+       color="Legend")+
+  scale_colour_manual(name = "Legend",
+   values = c("Median price on date created" = "blue", "Median price on date last scraped" = "red"),
+   labels = c("Median price on date created", "Median price on date last scraped"))+
+  theme_minimal()+
+  theme(legend.position = "bottom")
+  
+  
+
