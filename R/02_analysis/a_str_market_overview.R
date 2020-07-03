@@ -14,14 +14,33 @@ load("data/montreal_str_processed_a.Rdata")
 
 
 
-
+#LTM start_date and end_date
+LTM_start_date <- as.Date("2019-01-01")
+LTM_end_date <- as.Date("2019-12-31")
 ###  ####################################################
-
-
 
 ### Active daily listings ######################################################
 
 ## Active listings from property file
+
+# Average listings reserved or available / blocked in 2019
+filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
+  nrow()
+  count(date) %>% 
+  summarize(mean(n))
+  
+# Average number of hosts (taking out bloecked 365 days)
+property %>% 
+  st_drop_geometry() %>% 
+  filter(created <= LTM_end_date, scraped >= LTM_start_date,
+         !host_ID %in% (daily %>%
+                          filter(date >= LTM_start_date, date <= LTM_end_date, status == "B") %>%
+                          count(host_ID) %>%
+                          filter(n == 365))$host_ID) %>%
+  pull(host_ID) %>% 
+  unique() %>% 
+  length()
+  
 
 # Active listings
 property %>% 
@@ -295,18 +314,18 @@ daily %>%
 
 ### Housing loss ###############################################################
 
-FREH %>% 
+FREH_2020 %>% 
   filter(date == key_date) %>% 
   count()
 
-FREH %>% 
+FREH_2020 %>% 
   count(date) %>% 
   filter(date <= end_date, date >= "2020-01-01") %>% 
   ggplot() +
   geom_line(aes(date, n), colour = "black", size = 1) +
   theme_minimal() +
   scale_y_continuous(name = NULL) +
-  ggtitle("FREH listings in Montreal (in 2020)")
+  ggtitle("FREH_2020 listings in Montreal (in 2020)")
 
 GH %>% 
   st_drop_geometry() %>% 
@@ -331,7 +350,7 @@ GH_total <-
 # Housing loss numbers
 
 housing_loss <-
-  FREH %>%
+  FREH_2020 %>%
   group_by(date) %>%
   summarize(`Entire home/apt` = n()) %>%
   left_join(GH_total, by = "date") %>%
