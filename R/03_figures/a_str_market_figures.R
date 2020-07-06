@@ -2,6 +2,7 @@
 library(tidyverse)
 library(ggplot2)
 library(patchwork)
+library(data.table)
 
 memory.limit(size = 48000)
 plan(multiprocess, workers = 4)
@@ -21,19 +22,24 @@ scales::show_col(col_palette)
 
 active_listings_type <- 
   daily %>% 
-  filter(housing) %>% 
-  count(date, listing_type)
+  filter(housing, status != "B") %>% 
+  count(date, listing_type) %>% 
+  mutate(n = if_else(date <= "2017-05-31" & listing_type == "Entire home/apt",
+                     # Adjusted to account for addition of HA on 2017-06-01
+                     n + 800, as.numeric(n)))
 
 daily %>% 
-  filter(housing) %>% 
+  filter(housing, status != "B") %>% 
   count(date) %>% 
+  mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n)),
+         n = data.table::frollmean(n, 7)) %>%
   ggplot() +
   geom_line(aes(date, n), colour = "black", size = 1.5) +
   geom_line(data = active_listings_type, aes(date, n, colour = listing_type),
             size = 0.75) +
   scale_y_continuous(name = NULL, label = scales::comma) +
-  scale_x_date(name = NULL, limits = c(as.Date("2017-01-01"), NA)) +
-  scale_colour_manual(name = "", values = col_palette[1:3]) +
+  scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
+  scale_colour_manual(name = "", values = col_palette[1:4]) +
   theme_minimal() +
   theme(legend.position = "bottom",
 #        text = element_text(family = "Futura"),
@@ -65,7 +71,7 @@ property %>%
   #   alpha = 0.5,
   #   fill = alpha("white", 0.6)) +
   scale_fill_gradientn(
-    colors = col_palette[c(5,3)],
+    colors = col_palette[c(5,2,3)],
     na.value = "grey80",
     limits = c(0, 0.1),
     oob = scales::squish,
@@ -103,7 +109,7 @@ property %>%
   st_intersection(borough_geometries) %>% 
   ggplot() +
   geom_sf(aes(fill = n / dwellings), lwd = NA, colour = "white") +
-  scale_fill_gradientn(colors = col_palette[c(5, 3)],
+  scale_fill_gradientn(colors = col_palette[c(5, 2, 3)],
                        na.value = "grey80",
                        limits = c(0, 0.1),
                        oob = scales::squish,
@@ -199,6 +205,40 @@ ML_table %>%
         legend.text = element_text(family = "Futura", size = 10)
   )
 
+
+### daily variation ###################################################
+daily_variation <- 
+daily %>% 
+  filter(status != "B", date >= "2017-01-01")
+
+daily_variation_grouped <- 
+  daily_variation %>% 
+  filter(date >= "2017-01-01",
+         date <= "2017-12-31") %>% 
+  count(date) %>% 
+  rename(n2017 = n,
+         date2017 = date) %>% 
+  full_join(rename(mutate(count(filter(daily_variation, date >= "2018-01-01", date <= "2018-12-31"), date), 
+                          date2017 = date - years(1)), n2018 = n, date2018 = date), by = c("date2017")) %>% 
+  full_join(rename(mutate(count(filter(daily_variation, date >= "2019-01-01", date <= "2019-12-31"), date), 
+                          date2018 = date - years(1)), n2019 = n, date2019 = date), by = c("date2018")) %>% 
+  full_join(rename(mutate(count(filter(daily_variation, date >= "2020-01-01", date <= "2020-12-31"), date), 
+                          date2019 = date - years(1)), n2020 = n, date2020 = date), by = c("date2019")) %>% 
+  mutate(`2017-2018` = (n2018-n2017)/n2017,
+         `2018-2019` = (n2019-n2018)/n2018,
+         `2019-2020` = (n2020-n2019)/n2019)
+
+daily_variation_grouped <- 
+  rbind(rename(select(daily_variation_grouped, date2018, `2017-2018`), date = date2018, variation = `2017-2018`), 
+        rename(select(daily_variation_grouped, date2019, `2018-2019`), date = date2019,  variation = `2018-2019`), 
+        rename(select(daily_variation_grouped, date2020, `2019-2020`), date = date2020,  variation = `2019-2020`))
+
+daily_variation_grouped %>% 
+  ggplot()+
+  geom_line(aes(date, variation), se = F)+
+  ggtitle("Daily variation compared to same date one year before")+
+  xlab("Date (daily)")+
+  ylab("Variation compared to a year before")
 
 
 ### principal residence map ############################################
