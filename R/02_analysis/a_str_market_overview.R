@@ -220,6 +220,27 @@ boroughs_breakdown %>%
   fmt_number(columns = 2:3,
              decimals = 0)
 
+
+# listings per dwellings, boroughs
+
+daily_boroughs %>%
+  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
+  group_by(borough) %>% 
+  count(date, host_ID) %>%
+  count(date) %>%
+  summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
+  left_join(select(st_drop_geometry(boroughs), borough, dwellings), .) %>% 
+  mutate(percentage = `Daily active listings (average)` / dwellings,
+         `Daily active listings (average)` = round(`Daily active listings (average)`, digit=-1)) %>% 
+  arrange(desc(`Daily active listings (average)`)) %>% 
+  filter(`Daily active listings (average)`>100) %>% 
+  select(borough, `Daily active listings (average)`, dwellings, percentage) %>% 
+  gt() %>% 
+  fmt_number(columns = 2:3,
+             decimals = 0) %>% 
+  fmt_percent(columns = 4, decimals = 2)
+
+
 ### Bedroom breakdown ##########################################################
 
 LTM_property %>% 
