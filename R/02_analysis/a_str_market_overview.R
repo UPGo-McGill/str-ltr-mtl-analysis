@@ -152,10 +152,8 @@ for (i in 1:length(boroughs$borough)) { # testing a bigger loop, good one with t
       boroughs_breakdown[i,2] <- daily_boroughs %>%
         filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
                borough == boroughs$borough[[i]]) %>%
-        count(date, host_ID) %>%
-        count(date) %>%
-        summarize(`Active daily listings average` = mean(n, na.rm = T)) %>%
-        arrange(desc(`Active daily listings average`))
+        count(date) %>% 
+        summarize(mean(n))
 
       boroughs_breakdown[i,3] <- daily_boroughs %>%
         filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
@@ -182,25 +180,19 @@ for (i in 1:length(boroughs$borough)) { # testing a bigger loop, good one with t
         daily_boroughs %>%
         filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
                borough == boroughs$borough[[i]]) %>%
-        count(date, host_ID) %>%
         count(date) %>%
-        summarize(`Active daily listings average` = mean(n, na.rm = T)) %>%
-        arrange(desc(`Active daily listings average`)) -
+        summarize(mean(n, na.rm = T)) -
         daily_boroughs %>%
         filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
                borough == boroughs$borough[[i]]) %>%
-        count(date, host_ID) %>%
         count(date) %>%
-        summarize(`Active daily listings average` = mean(n, na.rm = T)) %>%
-        arrange(desc(`Active daily listings average`))
+        summarize(mean(n, na.rm = T))
         ) /
         daily_boroughs %>%
         filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
                borough == boroughs$borough[[i]]) %>%
-        count(date, host_ID) %>%
         count(date) %>%
-        summarize(`Active daily listings average` = mean(n, na.rm = T)) %>%
-        arrange(desc(`Active daily listings average`))
+        summarize(mean(n, na.rm = T))
       
 
 }
@@ -226,7 +218,6 @@ boroughs_breakdown %>%
 daily_boroughs %>%
   filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
   group_by(borough) %>% 
-  count(date, host_ID) %>%
   count(date) %>%
   summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
   left_join(select(st_drop_geometry(boroughs), borough, dwellings), .) %>% 
