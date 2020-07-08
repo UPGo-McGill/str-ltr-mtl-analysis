@@ -26,12 +26,14 @@ plan(multiprocess, workers = 4)
 end_date <- as.Date(max(daily$date))
 key_date <- as.Date("2020-03-14")
 
-exchange_rate <- 1.33868019270251
+exchange_rate <- 1.32434
+# 
+# library(fixerapi)
 # exchange_rate <-
 #  map_dbl(0:11, ~{
 #    ex_table <-
 #      fixerapi::fixer_historical(
-#        date = (end_date %m-% months(.x)), symbols = c("CAD", "USD"))
+#        date = (LTM_end_date %m-% months(.x)), symbols = c("CAD", "USD"))
 #    ex_table[1,]$value / ex_table[2,]$value
 #  }) %>% mean()
 
@@ -124,11 +126,11 @@ daily <-
   daily %>% 
   strr_multi(host)
 
-# FREH <- 
-#   daily %>% 
-#   strr_FREH("2017-01-01", end_date) %>%
-#   filter(FREH == TRUE) %>% 
-#   select(-FREH)
+FREH <-
+  daily %>%
+  strr_FREH("2017-01-01", end_date) %>%
+  filter(FREH == TRUE) %>%
+  select(-FREH)
 
 ## Short term FREH (2020)
 FREH_2020 <- 
@@ -142,6 +144,10 @@ GH <-
   strr_ghost(start_date = "2017-01-01", end_date = end_date)
 
 
+## add borough to daily df
+daily <- 
+daily %>% 
+  left_join(select(st_drop_geometry(st_join(property, boroughs)), property_ID, borough), by = "property_ID")
 
 ### Add principal residence fields #############################################
 
@@ -287,12 +293,11 @@ GH <-
 
 ### Save files #################################################################
 
-save(city, daily, CTs, #FREH, 
+save(city, daily, CTs, FREH, 
      FREH_2020, GH, host,
      property, end_date,
      key_date, exchange_rate, #season_start, season_end,
      boroughs, borough_geometries,
      file = "data/montreal_str_processed_a.Rdata")
-
 
 
