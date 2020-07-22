@@ -8,7 +8,7 @@ library(ggplot2)
 library(data.table)
 
 memory.limit(size = 48000)
-plan(multiprocess, workers = 4)
+# plan(multiprocess, workers = 4)
 
 load("data/montreal_str_processed_a.Rdata")
 
@@ -26,7 +26,7 @@ LTM_end_date <- as.Date("2019-12-31")
 # Average listings reserved or available / blocked in 2019
 filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
   count(date) %>% 
-  summarize(mean(n))
+  summarize(round(mean(n), digit=-2))
   
 # Active housing listings in 2019
 property_2019 <-
@@ -54,28 +54,45 @@ daily %>%
 sum(revenue_2019$revenue_LTM, na.rm = T)
 
 # YOY growth rate
+
 #2020-2019
-(filter(daily, housing, status != "B", date >= key_date, date <= key_date) %>% 
+(
+  filter(daily, housing, status != "B", date == LTM_start_date + years(1)) %>% 
   nrow() -
-  filter(daily, housing, status != "B", date >= key_date - years(1), date <= key_date - years(1)) %>% 
-  nrow()) /
-  filter(daily, housing, status != "B", date >= key_date - years(1), date <= key_date - years(1)) %>% 
-  nrow() *100
+  filter(daily, housing, status != "B", date == LTM_start_date) %>% 
+  nrow()
+  ) /
+  filter(daily, housing, status != "B", date == LTM_start_date) %>% 
+  nrow() * 100
 #2018-2019
-(filter(daily, housing, status != "B", date >= key_date - years(1), date <= key_date - years(1)) %>% 
+(filter(daily, housing, status != "B", date == LTM_start_date) %>% 
     nrow() -
-    filter(daily, housing, status != "B", date >= key_date - years(2), date <= key_date - years(2)) %>% 
+    filter(daily, housing, status != "B", date == LTM_start_date - years(1)) %>% 
     nrow()) /
-  filter(daily, housing, status != "B", date >= key_date - years(2), date <= key_date - years(2)) %>% 
+  filter(daily, housing, status != "B", date == LTM_start_date - years(1)) %>% 
   nrow() *100
 #2017-2018
-(filter(daily, housing, status != "B", date >= key_date - years(2), date <= key_date - years(2)) %>% 
+(filter(daily, housing, status != "B", date == LTM_start_date - years(1)) %>% 
     nrow() -
-    filter(daily, housing, status != "B", date >= key_date - years(3), date <= key_date - years(3)) %>% 
+    filter(daily, housing, status != "B", date == LTM_start_date - years(2) + 960) %>% 
     nrow()) /
-  filter(daily, housing, status != "B", date >= key_date - years(3), date <= key_date - years(3)) %>% 
+  filter(daily, housing, status != "B", date == LTM_start_date - years(2) + 960) %>% 
+  nrow() *100
+#2016-2017
+(filter(daily, housing, status != "B", date == LTM_start_date - years(2) +960) %>% 
+    nrow() -
+    filter(daily, housing, status != "B", date == LTM_start_date - years(3) + 960) %>% 
+    nrow()) /
+  filter(daily, housing, status != "B", date == LTM_start_date - years(3) + 960) %>% 
   nrow() *100
 
+
+
+filter(daily, housing, status != "B") %>%
+  count(date) %>% 
+  ggplot()+
+  geom_line(aes(date, n))+
+  ggtitle("Sum of daily active listing per day")
 
 
 
@@ -89,53 +106,104 @@ sum(revenue_2019$revenue_LTM, na.rm = T)
 
 # Airbnb and not Homeaway
 
-nrow(filter(LTM_property, !is.na(ab_property), is.na(ha_property)))
+nrow(filter(property_2019, !is.na(ab_property), is.na(ha_property)))
 
 # Homeaway and not Airbnb
-nrow(filter(LTM_property, !is.na(ha_property), is.na(ab_property)))
+nrow(filter(property_2019, !is.na(ha_property), is.na(ab_property)))
 
 # Both Airbnb and Homeaway
-nrow(filter(LTM_property, !is.na(ha_property), !is.na(ab_property)))
+nrow(filter(property_2019, !is.na(ha_property), !is.na(ab_property)))
 
-nrow(LTM_property)
+nrow(property_2019)
 
 
 ### Listing type prevalence ####################################################
 
 # Listing types for city
 
-revenue_2019 %>% 
-#  filter(housing, created <= key_date, scraped > key_date - years(1)) %>% 
-  rename(`Listing type` = listing_type) %>% 
-  st_drop_geometry() %>% 
-  group_by(`Listing type`) %>% 
-  summarize(`Number of listings` = n(),
-            `Annual revenue` = sum(revenue_LTM, na.rm = TRUE),
-            `Rev. per listing` = `Annual revenue` / n()) %>% 
-  mutate(
-    `% of all listings` = round(`Number of listings` /
-                                  sum(`Number of listings`), 3),
-    `% of all listings` = paste0(100 * `% of all listings`, "%"),
-    `% of annual revenue` = `Annual revenue` / sum(`Annual revenue`)) %>% 
-  mutate(
-    `Annual revenue` = round(`Annual revenue`),
-    `Annual revenue` = paste0("$", str_sub(`Annual revenue`, 1, -7), ".",
-                              str_sub(`Annual revenue`, -6, -6), " million"),
-    `% of annual revenue` = round(`% of annual revenue`, 3),
-    `% of annual revenue` = paste0(100 * `% of annual revenue`, "%"),
-    `Rev. per listing` = round(`Rev. per listing`),
-    `Rev. per listing` = paste0("$", str_sub(`Rev. per listing`, 1, -4),
-                                ",", str_sub(`Rev. per listing`, -3, -1))
-  ) %>% 
-  gt() %>%
+unique_listing_type <- unique(daily$listing_type)[1:3]
+
+listing_type_breakdown <- tibble(`Listing Type` = character(length = length(unique_listing_type)), 
+                             `Daily active listings (average)` = numeric(length = length(unique_listing_type)),
+                             `Annual revenue (CAD)` = numeric(length = length(unique_listing_type)),
+                             `% of all listings` = numeric(length = length(unique_listing_type)),
+                             `% of annual revenue` = numeric(length = length(unique_listing_type)),
+                             `% average daily listing growth` = numeric(length = length(unique_listing_type))
+)
+
+
+for (i in 1:length(unique_listing_type)) { # testing a bigger loop, good one with try(), does work. long, since not doing remotely.
+  
+  listing_type_breakdown[i,1] <- unique_listing_type[[i]]
+  
+  listing_type_breakdown[i,2] <- daily %>%
+    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
+           listing_type == unique_listing_type[[i]]) %>%
+    count(date) %>% 
+    summarize(mean(n))
+  
+  listing_type_breakdown[i,3] <- daily %>%
+    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
+           listing_type == unique_listing_type[[i]]) %>%
+    summarize(sum(price * exchange_rate))
+  
+  listing_type_breakdown[i,4] <- daily %>%
+    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
+           listing_type == unique_listing_type[[i]]) %>%
+    nrow() /
+    daily %>%
+    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
+    nrow()
+  
+  listing_type_breakdown[i,5] <- daily %>%
+    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
+           listing_type == unique_listing_type[[i]]) %>%
+    summarize(sum(price)) /
+    daily %>%
+    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date) %>%
+    summarize(sum(price))
+  
+  listing_type_breakdown[i,6] <- (
+    daily %>%
+      filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
+             listing_type == unique_listing_type[[i]]) %>%
+      count(date) %>%
+      summarize(mean(n, na.rm = T)) -
+      daily %>%
+      filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
+             listing_type == unique_listing_type[[i]]) %>%
+      count(date) %>%
+      summarize(mean(n, na.rm = T))
+  ) /
+    daily %>%
+    filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
+           listing_type == unique_listing_type[[i]]) %>%
+    count(date) %>%
+    summarize(mean(n, na.rm = T))
+  
+  
+}
+
+listing_type_breakdown %>% 
+  arrange(desc(`Daily active listings (average)`)) %>%
+  mutate(`Daily active listings (average)` = round(`Daily active listings (average)`, digit=-1),
+         `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
+         `Annual revenue (CAD)` = paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
+                                         str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>% 
+  rename(`% average daily listing growth (YOY)` = `% average daily listing growth`) %>% 
+  gt() %>% 
   tab_header(
-    title = "2019 revenue",
-    subtitle = glue::glue("")
+    title = "Listing type breakdown",
+    subtitle = "2019"
   ) %>%
-  opt_row_striping()
+  opt_row_striping() %>% 
+  fmt_percent(columns = 4:6, decimals = 0) %>% 
+  fmt_number(columns = 2,
+             decimals = 0)
 
 
 # By borough
+
 boroughs_breakdown <- tibble(Borough = character(length = length(boroughs$borough)), 
                              `Daily active listings (average)` = numeric(length = length(boroughs$borough)),
                              `Annual revenue (CAD)` = numeric(length = length(boroughs$borough)),
@@ -149,46 +217,46 @@ for (i in 1:length(boroughs$borough)) { # testing a bigger loop, good one with t
       
       boroughs_breakdown[i,1] <- boroughs$borough[[i]]
 
-      boroughs_breakdown[i,2] <- daily_boroughs %>%
+      boroughs_breakdown[i,2] <- daily %>%
         filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
                borough == boroughs$borough[[i]]) %>%
         count(date) %>% 
         summarize(mean(n))
 
-      boroughs_breakdown[i,3] <- daily_boroughs %>%
+      boroughs_breakdown[i,3] <- daily %>%
         filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
                borough == boroughs$borough[[i]]) %>%
-        summarize(sum(price))
+        summarize(sum(price * exchange_rate))
 
-      boroughs_breakdown[i,4] <- daily_boroughs %>%
+      boroughs_breakdown[i,4] <- daily %>%
         filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
                borough == boroughs$borough[[i]]) %>%
         nrow() /
-        daily_boroughs %>%
+        daily %>%
         filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
         nrow()
 
-      boroughs_breakdown[i,5] <- daily_boroughs %>%
+      boroughs_breakdown[i,5] <- daily %>%
         filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
                borough == boroughs$borough[[i]]) %>%
         summarize(sum(price)) /
-        daily_boroughs %>%
+        daily %>%
         filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date) %>%
         summarize(sum(price))
       
       boroughs_breakdown[i,6] <- (
-        daily_boroughs %>%
+        daily %>%
         filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
                borough == boroughs$borough[[i]]) %>%
         count(date) %>%
         summarize(mean(n, na.rm = T)) -
-        daily_boroughs %>%
+        daily %>%
         filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
                borough == boroughs$borough[[i]]) %>%
         count(date) %>%
         summarize(mean(n, na.rm = T))
         ) /
-        daily_boroughs %>%
+        daily %>%
         filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
                borough == boroughs$borough[[i]]) %>%
         count(date) %>%
@@ -201,7 +269,10 @@ boroughs_breakdown %>%
   filter(`Daily active listings (average)` > 100) %>% 
   arrange(desc(`Daily active listings (average)`)) %>%
   mutate(`Daily active listings (average)` = round(`Daily active listings (average)`, digit=-1),
-         `Annual revenue (CAD)` = round(`Annual revenue (CAD)`, digit =-5)) %>% 
+         `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
+         `Annual revenue (CAD)` = paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
+                            str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>% 
+  rename(`% average daily listing growth (YOY)` = `% average daily listing growth`) %>% 
   gt() %>% 
   tab_header(
     title = "Borough breakdown",
@@ -209,7 +280,7 @@ boroughs_breakdown %>%
   ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = 4:6, decimals = 0) %>% 
-  fmt_number(columns = 2:3,
+  fmt_number(columns = 2,
              decimals = 0)
 
 
@@ -234,11 +305,10 @@ daily_boroughs %>%
 
 ### Bedroom breakdown ##########################################################
 
-LTM_property %>% 
+property_2019 %>% 
   st_drop_geometry() %>%  
   filter(housing == TRUE,
-         listing_type == "Entire home/apt",
-         created <= key_date, scraped >= key_date) %>% 
+         listing_type == "Entire home/apt") %>% 
   count(bedrooms) %>% 
   mutate(percentage = n / sum(n)) %>% 
   group_by(bedrooms) %>% 
@@ -258,7 +328,7 @@ LTM_property %>%
 ## Host revenue percentiles
 
 daily %>%
-  filter(housing == TRUE, date < key_date, date > key_date - years(1), status == "R") %>%
+  filter(housing == TRUE, date <= LTM_end_date, date >= LTM_start_date, status == "R") %>%
   group_by(host_ID) %>%
   summarize(rev = sum(price)*exchange_rate) %>%
   filter(rev > 0) %>%
@@ -269,14 +339,14 @@ daily %>%
     `Top 20%` = sum(rev[rev > quantile(rev, c(0.80))] / sum(rev))) %>% 
   gt() %>% 
   tab_header(
-    title = "% of total STR revenue in the hand of x%  ofhosts",
+    title = "% of total STR revenue in the hand of x%  of hosts",
   ) %>%
   opt_row_striping() 
 
 
 ## Median host income
 
-LTM_revenue %>% 
+revenue_2019 %>% 
   filter(revenue_LTM > 0, !is.na(host_ID)) %>% 
   group_by(host_ID) %>% 
   summarize("host_rev" = sum(revenue_LTM)*exchange_rate) %>% 
@@ -297,7 +367,7 @@ LTM_revenue %>%
 
 
 ## Top earning host(s)
-LTM_revenue %>% 
+revenue_2019 %>% 
   st_drop_geometry() %>% 
   group_by(host_ID) %>% 
   summarize(host_rev = sum(revenue_LTM)*exchange_rate) %>% 
@@ -316,10 +386,12 @@ LTM_revenue %>%
   opt_row_striping() 
 
 
+
 ## Multilistings
 
 ML_table <- 
   daily %>% 
+  filter(status != "B") %>% 
   group_by(date) %>% 
   summarize(Listings = mean(multi),
             Revenue = sum(price * (status == "R") * multi * 
@@ -327,7 +399,8 @@ ML_table <-
               sum(price * (status == "R") * exchange_rate, na.rm = TRUE))
 
 ML_table %>% 
-  filter(date == key_date)
+  filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
+  summarize(mean(Listings), mean(Revenue))
 
 # Entire home multilistings
 
@@ -339,18 +412,30 @@ daily %>%
 
 ### Housing loss ###############################################################
 
-FREH_2020 %>% 
-  filter(date == key_date) %>% 
-  count()
+FREH %>% 
+  filter(date == LTM_end_date) %>% 
+  nrow()
 
-FREH_2020 %>% 
+FREH %>% 
   count(date) %>% 
-  filter(date <= end_date, date >= "2020-01-01") %>% 
+  filter(date <= LTM_end_date - years(1), date >= LTM_start_date - years(2)) %>% 
   ggplot() +
   geom_line(aes(date, n), colour = "black", size = 1) +
   theme_minimal() +
   scale_y_continuous(name = NULL) +
-  ggtitle("FREH_2020 listings in Montreal (in 2020)")
+  ggtitle("FREH listings in Montreal (in 2017-2018)")
+
+## how many units are part of a GH
+GH %>% 
+  st_drop_geometry() %>% 
+  filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
+  group_by(date) %>% 
+  summarize(GH_units = sum(housing_units)) %>% 
+  summarize(mean(GH_units))
+
+property %>% 
+  filter(!is.na(ha_property)) %>% 
+  arrange(scraped)
 
 GH %>% 
   st_drop_geometry() %>% 
@@ -368,14 +453,28 @@ GH_total <-
   st_drop_geometry() %>%
   group_by(date) %>%
   summarize(GH_units = sum(housing_units)) %>%
-  mutate(GH_average = frollmean(GH_units, 30, align = "right")) %>%
-  mutate(GH_average = if_else(is.na(GH_average), 8, GH_average)) %>%
+  mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198)) %>%
   select(-GH_units)
+
+# mean(GH_total[1:30,2]$GH_units) = 198.13
+
+GH_total %>% 
+  filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
+  ggplot()+
+  geom_line(aes(date, GH_units)) +
+  ggtitle("Sum of housing units, GH (without rolling average)")
+
+daily %>% 
+  filter(status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
+  count(date) %>% 
+  ggplot()+
+  geom_line(aes(date, n)) +
+  ggtitle("Daily (count of R and A)")
 
 # Housing loss numbers
 
 housing_loss <-
-  FREH_2020 %>%
+  FREH %>%
   group_by(date) %>%
   summarize(`Entire home/apt` = n()) %>%
   left_join(GH_total, by = "date") %>%
@@ -383,6 +482,18 @@ housing_loss <-
   gather(`Entire home/apt`, `Private room`, 
          key = `Listing type`, value = `Housing units`) 
 
+# housing loss variation
+(housing_loss %>% 
+  filter(date == LTM_end_date) %>% 
+  summarize(sum(`Housing units`)) - 
+  housing_loss %>% 
+  filter(date == LTM_end_date - years(1)) %>% 
+  summarize(sum(`Housing units`))
+) /
+  housing_loss %>% 
+  filter(date == LTM_end_date - years(1)) %>% 
+  summarize(sum(`Housing units`))
+  
 
 # Current housing loss figure
 sum(filter(housing_loss, date == key_date)$`Housing units`)
@@ -404,5 +515,7 @@ daily %>%
 
 
 
+
+
 ## Save files #####################################
-save.image(file = "data/montreal_str_processed_c.Rdata")
+# save.image(file = "data/montreal_str_processed_c.Rdata")
