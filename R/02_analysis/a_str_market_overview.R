@@ -74,17 +74,10 @@ sum(revenue_2019$revenue_LTM, na.rm = T)
 #2017-2018
 (filter(daily, housing, status != "B", date == LTM_start_date - years(1)) %>% 
     nrow() -
-    filter(daily, housing, status != "B", date == LTM_start_date - years(2) + 960) %>% 
-    nrow()) /
-  filter(daily, housing, status != "B", date == LTM_start_date - years(2) + 960) %>% 
-  nrow() *100
-#2016-2017
-(filter(daily, housing, status != "B", date == LTM_start_date - years(2) +960) %>% 
-    nrow() -
-    filter(daily, housing, status != "B", date == LTM_start_date - years(3) + 960) %>% 
-    nrow()) /
-  filter(daily, housing, status != "B", date == LTM_start_date - years(3) + 960) %>% 
-  nrow() *100
+    (filter(daily, housing, status != "B", date == LTM_start_date - years(2)) %>% 
+    nrow() + 960)) /
+  (filter(daily, housing, status != "B", date == LTM_start_date - years(2)) %>% 
+  nrow() + 960) *100
 
 
 
