@@ -50,18 +50,20 @@ daily %>%
 
 ### Montreal maps ###############################################################
 
-ggplot(CTs)+
-  geom_sf(aes(fill = dwellings))
 
-property %>%
-  filter(housing, created <= key_date, scraped >= key_date) %>%
-  st_join(boroughs) %>% 
-  st_drop_geometry() %>%
-  count(borough, dwellings) %>%
-  left_join(boroughs, .) %>% 
+daily %>%
+  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
+  group_by(borough) %>% 
+  count(date) %>%
+  summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
+  left_join(select(boroughs, borough, dwellings), .) %>% 
+  mutate(percentage = `Daily active listings (average)` / dwellings,
+         `Daily active listings (average)` = round(`Daily active listings (average)`, digit=-1)) %>% 
+  arrange(desc(`Daily active listings (average)`)) %>% 
+  select(borough, `Daily active listings (average)`, dwellings, percentage) %>% 
   ggplot() +
   geom_sf(
-    aes(fill = n / dwellings), 
+    aes(fill = percentage), 
     lwd = 1, 
     colour = "white") +
   # geom_sf_label(
@@ -73,10 +75,8 @@ property %>%
   scale_fill_gradientn(
     colors = col_palette[c(5,2,3)],
     na.value = "grey80",
-    limits = c(0, 0.1),
-    oob = scales::squish,
     labels = scales::percent) +
-  guides(fill = guide_colorbar(title = "STRs/dwelling")) +
+  guides(fill = guide_colorbar(title = "Daily active listing (average)/dwelling")) +
   theme_void() +
   theme(legend.position = "right",
         # text = element_text(family = "Futura", face = "plain"),
@@ -85,20 +85,32 @@ property %>%
         # legend.text = element_text(family = "Futura", size = 10)
   )
 
-property %>%
-  filter(housing, created <= key_date, scraped >= key_date) %>%
-  st_join(boroughs) %>% 
-  st_drop_geometry() %>%
-  count(borough, dwellings) %>%
-  left_join(boroughs, .) %>% 
-  mutate(percentage = n/dwellings) %>% 
-  rename(listings = n) %>% 
-  st_drop_geometry %>% 
-  arrange(desc(percentage)) %>% 
-  gt()
 
-
-
+daily %>%
+  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
+  left_join(select(st_drop_geometry(property), GeoUID, property_ID), .) %>% 
+  group_by(GeoUID) %>% 
+  count(date, GeoUID) %>% 
+  group_by(GeoUID) %>% 
+  summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
+  left_join(select(CTs, GeoUID, dwellings), .) %>% 
+  mutate(percentage = `Daily active listings (average)` / dwellings) %>% 
+  ggplot() +
+  geom_sf(aes(fill = percentage), lwd = NA, colour = "white") +
+  scale_fill_gradientn(colors = col_palette[c(5, 2, 3)],
+                       na.value = "grey80",
+                       limits = c(0, 0.03),
+                       oob = scales::squish,
+                       labels = scales::percent
+                       ) +
+  guides(fill = guide_colorbar(title = "Daily active listing (average)/dwelling")) +
+  theme_void() +
+  theme(legend.position = "right",
+        # text = element_text(family = "Futura", face = "plain"),
+        # legend.title = element_text(family = "Futura", face = "bold", 
+        #                             size = 10),
+        # legend.text = element_text(family = "Futura", size = 10)
+  )
 
 
 property %>%
@@ -123,8 +135,6 @@ property %>%
         # legend.text = element_text(family = "Futura", size = 10)
   )
 
-# listings_map <- 
-#   boroughs_map + CT_map + plot_layout(guides = "collect")
 
 
 
@@ -132,7 +142,7 @@ property %>%
 ### Host revenue percentiles graph ###########################################
 
 daily %>%
-  filter(housing == TRUE, date > key_date - years(1), date < key_date, status == "R") %>%
+  filter(housing == TRUE, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>%
   group_by(host_ID) %>%
   summarize(rev = sum(price)*exchange_rate) %>%
   filter(rev > 0) %>%
@@ -175,7 +185,7 @@ housing_loss %>%
            lwd = 0) +
   theme_minimal() +
   # scale_y_continuous(name = NULL, label = scales::comma, limits = c(0, 200)) +
-  scale_x_date(name = NULL, limits = c(as.Date("2017-01-01"), NA)) +
+  scale_x_date(name = NULL, limits = c(as.Date("2020-01-01"), NA)) +
   scale_fill_manual(values = col_palette[3:1]) +
   theme(legend.position = "bottom", 
         # text = element_text(family = "Futura", face = "plain"),
@@ -216,6 +226,7 @@ daily_variation_grouped <-
   filter(date >= "2017-01-01",
          date <= "2017-12-31") %>% 
   count(date) %>% 
+  mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n))) %>% #addition of HA
   rename(n2017 = n,
          date2017 = date) %>% 
   full_join(rename(mutate(count(filter(daily_variation, date >= "2018-01-01", date <= "2018-12-31"), date), 
@@ -234,11 +245,21 @@ daily_variation_grouped <-
         rename(select(daily_variation_grouped, date2020, `2019-2020`), date = date2020,  variation = `2019-2020`))
 
 daily_variation_grouped %>% 
+  mutate(variation = variation*100) %>% 
   ggplot()+
+  # geom_rect(aes(ymin = 0, ymax = Inf, xmin = as.Date("2018-01-01", "%Y-%m-%d"), xmax = as.Date("2020-01-01", "%Y-%m-%d")), 
+  #           alpha = 0.002, fill = "green")+
+  # geom_rect(aes(ymin = -Inf, ymax = 0, xmin = as.Date("2018-01-01", "%Y-%m-%d"), xmax = as.Date("2020-01-01", "%Y-%m-%d")),
+  #           alpha = 0.002, fill = "red")+
   geom_line(aes(date, variation), se = F)+
   ggtitle("Daily variation compared to same date one year before")+
   xlab("Date (daily)")+
-  ylab("Variation compared to a year before")
+  ylab("Variation compared to a year before (%)") +
+  scale_x_date(limits = as.Date(c("2018-01-01","2020-01-01")),
+               date_labels = "%Y (%b)")+
+  ylim(c(-20,15))+
+  geom_hline(yintercept=0, linetype="dashed", color = "black")
+
 
 
 ### principal residence map ############################################
