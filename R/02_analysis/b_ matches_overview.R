@@ -5,6 +5,7 @@ library(sf)
 library(gt)
 library(future)
 library(ggplot2)
+library(magicfor)
 
 memory.limit(size = 48000)
 plan(multiprocess, workers = 4)
@@ -13,6 +14,66 @@ load("data/montreal_str_processed_b.Rdata")
 load("data/ltr_matches.Rdata")
 
 ### Overview ##########################################################
+## What are the listings that matched before 2020-01-01 ?
+property %>%
+  filter(!is.na(ltr_id)) %>%
+  count(ltr_id) %>%
+  filter(n>1) %>%
+  arrange(desc(n)) %>%
+  View()
+
+property %>% 
+  filter(ltr_id == "cl-7102791101", property_ID %in% (daily %>% 
+                                                        filter(property_ID %in% filter(property, ltr_id == "cl-7102791101")$property_ID, status == "R",
+                                                               date == "2019-03-09") %>% 
+                                                        select(property_ID))$property_ID)
+
+property %>%
+  filter(ltr_id %in% ltr_mtl$id,
+         scraped >= "2020-03-14") %>%
+  distinct(property_ID) %>%
+  nrow() /
+  property %>%
+  filter(ltr_id %in% ltr_mtl$id) %>%
+  distinct(property_ID) %>%
+  nrow()
+
+# how to find property_IDs that could be the one represented with the LTR listing.
+
+magic_for(print, silent = TRUE) # so that i can store result from loop as a df
+
+unique_ltr <- unique(filter(property, !is.na(ltr_id))$ltr_id)
+
+for (i in 1:length(unique_ltr)) {
+  for(a in 1) {
+    try({
+  number_r <- (daily %>% 
+     filter(property_ID %in% filter(property, ltr_id == unique_ltr[[i]])$property_ID, status == "R" | status == "A") %>% 
+     count(date) %>% 
+     arrange(desc(n)))[[1,2]]
+      break
+    })
+  }
+  
+  print((property %>% st_drop_geometry() %>% 
+           filter(ltr_id == unique_ltr[[i]]) %>%
+           arrange(desc(scraped)))[1:number_r,1])
+
+}
+
+properties_fit <- magic_result_as_vector()
+properties_fit <- unlist(unique(properties_fit$`arrange(desc(scraped)))[1:number_r,1]`))
+
+property %>% 
+  filter(!property_ID %in% properties_fit,
+         ltr_id %in% ltr_mtl$id) %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  View()
+
+
+
+
+
 #unique airbnb listings that matched
 ltr_mtl %>% 
   st_drop_geometry() %>% 
@@ -252,3 +313,77 @@ rbind(property %>%
           count(property_ID) %>% 
           select(property_ID)
   ) %>% distinct(property_ID) %>% nrow()
+
+
+### the matches that left LTR platforms are still on AirBNB? ########
+ltr_mtl %>%
+  st_drop_geometry() %>%
+  filter(!is.na(ab_id),
+         scraped < max(scraped)) %>%
+  arrange(desc(scraped)) %>% 
+  distinct(ab_id, .keep_all = T) %>%
+  select(ab_id)
+
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% (ltr_mtl %>%
+           st_drop_geometry() %>%
+           filter(!is.na(ab_id),
+                  scraped < max(scraped)) %>%
+           arrange(desc(scraped)) %>% 
+           distinct(ab_id, .keep_all = T) %>%
+           select(ab_id))$ab_id,
+         scraped >= "2020-01-01") %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  filter(scraped < max(scraped)) %>% 
+  nrow() / 
+  property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% (ltr_mtl %>%
+                             st_drop_geometry() %>%
+                             filter(!is.na(ab_id),
+                                    scraped < max(scraped)) %>%
+                             arrange(desc(scraped)) %>% 
+                             distinct(ab_id, .keep_all = T) %>%
+                             select(ab_id))$ab_id,
+         scraped >= "2020-01-01") %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  nrow()
+
+#are listings both on LTR and AirBNB?
+
+
+### portrait of matched LTR listings ################################
+ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(is.na(ab_id)) %>%
+  arrange(desc(scraped)) %>% 
+  distinct(id, .keep_all = T) %>% 
+  mutate(how_long_they_stay = (scraped-created)) %>% 
+  filter(how_long_they_stay > 0) %>% 
+  summarize(mean(how_long_they_stay))
+
+ltr_mtl %>%
+  st_drop_geometry() %>%
+  filter(!is.na(ab_id)) %>%
+  arrange(desc(scraped)) %>% 
+  distinct(id, .keep_all = T) %>%
+  mutate(how_long_they_stay = (scraped-created)) %>% 
+  summarize(mean(how_long_they_stay, na.rm = T))
+
+property %>% 
+  filter(scraped == "2020-05-20")
+
+#percentages of units that matched that are long term
+ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ab_id), short_long == "long") %>% 
+  distinct(ab_id, .keep_all = T) %>% 
+  nrow() /
+  ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ab_id), !is.na(short_long)) %>% 
+  distinct(ab_id, .keep_all = T) %>% 
+  nrow()
+
+         
