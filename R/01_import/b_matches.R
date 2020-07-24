@@ -15,9 +15,9 @@ library(future)
 ### Set global variables #######################################################
 
 memory.limit(size = 48000)
-plan(multiprocess, workers = 4)
+# plan(multiprocess, workers = 4)
 
-register_google(key = "AIzaSyDxSAajMCw_k8E7GsKCFKBMP2RhofvLMX8", write = TRUE)
+# register_google(key = "AIzaSyDxSAajMCw_k8E7GsKCFKBMP2RhofvLMX8", write = TRUE)
 
 
 
@@ -31,31 +31,33 @@ load("data/ltr_matches.Rdata")
 
 # load rclalq data
 load("data/kj_r_mtl.Rdata")
-# load("data/Canada_cl_2020_06_22.Rdata") ### load new data from CL and KJ
-# load("data/Canada_kj_2020_06_22.Rdata")
+
+# # load new data from CL and KJ
+# load("data/Canada_cl_2020_07_20.Rdata")
+# load("data/Canada_kj_2020_07_20.Rdata")
 # 
 # # data on image matching
 # load("data/mtl_kj_matches_2020-06-22.Rdata")
 # load("data/mtl_cl_matches_2020-06-22.Rdata")
 
 # data for LTR weekly update and image matching
-load("data/kj_cl_update_2020_06_20.Rdata")
+load("data/kj_cl_update_2020_07_20.Rdata")
 
 # load the data already filtered with mutate_geocode(location) to have the geometry from the previous week
 load("data/kj_geo.Rdata")
 
 # rename the dfs
-kj_nogeo <- Canada_kj_2020_06_29
-cl <- Canada_cl_2020_06_29
+kj_nogeo <- Canada_kj_2020_07_20
+cl <- Canada_cl_2020_07_20
 rclalq <- kj_r_mtl
-cl_matches <- cl_match_2020_06_29
-kj_matches <- kj_match_2020_06_29
+cl_matches <- cl_match_2020_07_20
+kj_matches <- kj_match_2020_07_20
 
-rm(Canada_kj_2020_06_29)
+rm(Canada_kj_2020_07_20)
 rm(kj_r_mtl)
-rm(Canada_cl_2020_06_29)
-rm(kj_match_2020_06_29)
-rm(cl_match_2020_06_29)
+rm(Canada_cl_2020_07_20)
+rm(kj_match_2020_07_20)
+rm(cl_match_2020_07_20)
 
 
 # import data from AirDNA (already raffled, info on FREH, GH, etc.)
@@ -251,20 +253,34 @@ ltr_mtl <- ltr_mtl %>%
 
 ### add a column with matched LTR IDs to STR properties and vice versa #######
 
-property <- 
+property_nest <- 
   left_join(property, rename(matches[,c("x_name", "y_name")], property_ID = x_name, ltr_id = y_name), by = "property_ID")
 
-ltr_mtl <- 
+property <- 
+property_nest %>% 
+  st_drop_geometry() %>% 
+  group_by(property_ID) %>% 
+  summarize(ltr_id = list(ltr_id)) %>% 
+  left_join(property, .)
+
+rm(property_nest)
+
+ltr_mtl_nest <- 
   left_join(ltr_mtl, rename(matches[,c("x_name", "y_name")], ab_id = x_name, id = y_name), by = "id")
 
+ltr_mtl <-
+  ltr_mtl_nest %>% 
+  st_drop_geometry() %>% 
+  group_by(id) %>% 
+  summarize(ltr_id = list(ab_id)) %>% 
+  left_join(ltr_mtl, .)
 
 
 
-
-# import ensus data to LTR table
-CTs <-
+# import census data to LTR table
+DAs <-
   cancensus::get_census(
-    dataset = "CA16", regions = list(CSD = c("2466023", "5915022", "3520005")), level = "CT",
+    dataset = "CA16", regions = list(CSD = c("2466023", "5915022", "3520005")), level = "DA",
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
   select(GeoUID, CSD_UID, Population, Dwellings) %>% 
@@ -272,14 +288,13 @@ CTs <-
   select(GeoUID, dwellings, CMA_UID) %>% 
   st_set_agr("constant")
 
-CTs$CMA_UID <- 
-  str_replace_all(CTs$CMA_UID, c("2466023" = "Montreal",
+DAs$CMA_UID <- 
+  str_replace_all(DAs$CMA_UID, c("2466023" = "Montreal",
                                  "3520005" = "Toronto",
                                  "5915022" = "Vancouver"))
 
-ltr_mtl_cts <- ltr_mtl %>% 
-  st_join(filter(CTs, CMA_UID == "Montreal"))
-
+ltr_mtl_das <- ltr_mtl %>% 
+  st_join(filter(DAs, CMA_UID == "Montreal"))
 
 
 
@@ -295,23 +310,16 @@ matches <-
 
 
 
-
 #### save ###################################################################
 
-save(ltr, ltr_mtl, ltr_mtl_cts, CTs, rclalq, matches,
+save(ltr, ltr_mtl, ltr_mtl_das, DAs, rclalq, matches,
      file = "data/ltr_matches.Rdata")
 
 save(kj_geo,
      file = "data/kj_geo.Rdata")
 
-save(city, daily, CTs, #FREH, 
-     FREH_2020, GH, host,
-     property, end_date,
-     key_date, exchange_rate, #season_start, season_end,
-     boroughs, borough_geometries,
-     file = "data/montreal_str_processed_b.Rdata")
-
-property %>% 
-  ggplot()+
-  geom_sf(data = boroughs)+
-  geom_sf()
+save(city, daily, DAs, FREH, 
+     GH, host, property,
+     key_date, exchange_rate,
+     boroughs,
+     file = "data/montreal_str.Rdata")
