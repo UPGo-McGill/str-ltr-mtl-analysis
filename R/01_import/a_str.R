@@ -10,7 +10,7 @@ library(sf)
 library(lubridate)
 library(readxl)
 
-load("data/Montreal_2020_05.Rdata")
+load("data/new_mtl_data.Rdata")
 
 # Sys.setenv(CM_API_KEY = 'CensusMapper_3f15611c3eafd43d50e284e597cdc606')
 
@@ -21,7 +21,7 @@ load("data/Montreal_2020_05.Rdata")
 ### Set global variables #######################################################
 
 memory.limit(size = 48000)
-plan(multiprocess, workers = 4)
+# plan(multiprocess, workers = 4)
 
 end_date <- as.Date(max(daily$date))
 key_date <- as.Date("2020-03-14")
@@ -53,9 +53,9 @@ city <-
 
 ### Census import ##############################################################
 
-CTs <-
+DAs <-
   cancensus::get_census(
-    dataset = "CA16", regions = list(CSD = "2466023"), level = "CT",
+    dataset = "CA16", regions = list(CSD = "2466023"), level = "DA",
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
   select(GeoUID, CSD_UID, Population, Dwellings) %>% 
@@ -84,7 +84,7 @@ boroughs <-
 # Add population data from the census
 
 boroughs <-
-  st_join(boroughs, CTs) %>%
+  st_join(boroughs, DAs) %>%
   group_by(borough) %>%
   summarize(dwellings=sum(dwellings))
 
@@ -104,11 +104,11 @@ borough_geometries <-
 
 ### Process the property file ##################################################
 
-## Spatial join or run the raffle to assign a CT to each listing
+## Spatial join or run the raffle to assign a DA to each listing
 
 property <-
   property %>% 
-  strr_raffle(CTs, GeoUID, dwellings, seed = 1)
+  strr_raffle(DAs, GeoUID, dwellings, seed = 1)
 
 ## Spatial join to only keep the properties inside the city of Mtl
 property <- 
@@ -120,7 +120,7 @@ daily <-
 
 
 
-### Process multilistings, alculate FREH and GH listings #######################
+### Process multilistings, calculate FREH and GH listings #######################
 
 daily <- 
   daily %>% 
@@ -132,12 +132,6 @@ FREH <-
   filter(FREH == TRUE) %>%
   select(-FREH)
 
-## Short term FREH (2020)
-FREH_2020 <- 
-daily %>% 
-  filter(housing, date >= "2020-01-01") %>% 
-  strr_FREH(start_date = "2020-01-01", end_date = key_date,
-            n_days = 73, r_cut = 18, ar_cut = 37)
 
 GH <- 
   property %>% 
@@ -293,8 +287,8 @@ daily %>%
 
 ### Save files #################################################################
 
-save(city, daily, CTs, FREH, 
-     FREH_2020, GH, host,
+save(city, daily, DAs, FREH, 
+     GH, host,
      property, end_date,
      key_date, exchange_rate, #season_start, season_end,
      boroughs, borough_geometries,
