@@ -93,7 +93,7 @@ daily %>%
   count(date, GeoUID) %>% 
   group_by(GeoUID) %>% 
   summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
-  left_join(select(CTs, GeoUID, dwellings), .) %>% 
+  left_join(select(DAs, GeoUID, dwellings), .) %>% 
   mutate(percentage = `Daily active listings (average)` / dwellings) %>% 
   ggplot() +
   geom_sf(aes(fill = percentage), lwd = NA, colour = "white") +
@@ -117,7 +117,7 @@ property %>%
   filter(housing, created <= key_date, scraped >= key_date) %>%
   st_drop_geometry() %>%
   count(GeoUID) %>%
-  left_join(CTs, .) %>%
+  left_join(DAs, .) %>%
   st_intersection(borough_geometries) %>% 
   ggplot() +
   geom_sf(aes(fill = n / dwellings), lwd = NA, colour = "white") +
@@ -284,3 +284,33 @@ property_pr %>%
     # legend.title = element_text(family = "Futura", face = "bold", size = 10),
     # legend.text = element_text(family = "Futura", size = 10)
   )
+
+
+### borough FREH YOY growth neighborhood breakdown ####################
+
+boroughs_FREH_breakdown %>% 
+  left_join(rename(boroughs, Borough = borough), .) %>% 
+  ggplot()+
+  geom_sf(aes(fill = Variation),
+          lwd = 1, 
+          colour = "white") +
+  # geom_sf_label(
+  #   aes(label = borough), 
+  #   size = 1.8, 
+  #   # family = "Futura",
+  #   alpha = 0.5,
+  #   fill = alpha("white", 0.6)) +
+  scale_fill_gradientn(
+    colors = col_palette[c(5,2,3)],
+    na.value = "grey80",
+    labels = scales::percent) +
+  guides(fill = guide_colorbar(title = "2018-2019 FREH YOY growth")) +
+  theme_void() +
+  theme(legend.position = "right",
+        # text = element_text(family = "Futura", face = "plain"),
+        # legend.title = element_text(family = "Futura", face = "bold", 
+        #                             size = 10),
+        # legend.text = element_text(family = "Futura", size = 10)
+  )
+
+
