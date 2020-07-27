@@ -627,16 +627,15 @@ GH %>%
   filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
   group_by(date) %>% 
   summarize(GH_units = sum(housing_units)) %>% 
-  summarize(mean(GH_units))
+  summarize(round(mean(GH_units), digit=-1))
 
-property %>% 
-  filter(!is.na(ha_property)) %>% 
-  arrange(scraped)
 
 GH %>% 
   st_drop_geometry() %>% 
   group_by(date) %>% 
   summarize(GH_units = sum(housing_units)) %>%
+  filter(date >= "2020-01-01") %>% 
+  View()
   ggplot() +
   geom_line(aes(date, GH_units), colour = "black", size = 1) +
   theme_minimal() +
@@ -649,10 +648,8 @@ GH_total <-
   st_drop_geometry() %>%
   group_by(date) %>%
   summarize(GH_units = sum(housing_units)) %>%
-  mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198)) %>%
-  select(-GH_units)
+  mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
 
-# mean(GH_total[1:30,2]$GH_units) = 198.13
 
 GH_total %>% 
   filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
@@ -660,12 +657,59 @@ GH_total %>%
   geom_line(aes(date, GH_units)) +
   ggtitle("Sum of housing units, GH (without rolling average)")
 
+
+# exploring the drop in the end of january 2020
 daily %>% 
-  filter(status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
-  count(date) %>% 
-  ggplot()+
-  geom_line(aes(date, n)) +
-  ggtitle("Daily (count of R and A)")
+  filter(date == "2020-01-29",
+         property_ID %in% (GH %>% 
+                             filter(date == "2020-01-29") %>% 
+                             unnest(property_IDs) %>% 
+                             filter(!property_IDs %in% unnest(filter(GH, date == "2020-01-30"), property_IDs)$property_IDs))$property_IDs) %>% 
+  count(host_ID) %>% 
+  arrange(desc(n))
+
+
+# Different years for housing loss (FREH + GH)
+# 2018
+(rbind( 
+  daily_pred %>% 
+    filter(date >= "2018-12-01", date < "2019-01-01",
+           FREH_later == T) %>% 
+    distinct(property_ID),
+  FREH %>% 
+    filter(date == LTM_end_date - years(1)) %>% 
+    distinct(property_ID)
+) %>% 
+    distinct(property_ID) %>% 
+    nrow() +
+    GH %>% 
+    st_drop_geometry() %>% 
+    filter(date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+    group_by(date) %>% 
+    summarize(GH_units = sum(housing_units)) %>% 
+    summarize(mean(GH_units))) %>% 
+  round(digit = -2)
+
+# 2017
+(rbind( 
+  daily_pred %>% 
+    filter(date >= "2017-12-01", date < "2018-01-01",
+           FREH_later == T) %>% 
+    distinct(property_ID),
+  FREH %>% 
+    filter(date == LTM_end_date - years(2)) %>% 
+    distinct(property_ID)
+) %>% 
+    distinct(property_ID) %>% 
+    nrow() +
+    GH %>% 
+    st_drop_geometry() %>% 
+    filter(date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
+    group_by(date) %>% 
+    summarize(GH_units = sum(housing_units)) %>% 
+    summarize(mean(GH_units))) %>% 
+  round(digit = -2)
+
 
 # Housing loss numbers
 
@@ -693,19 +737,6 @@ housing_loss <-
 
 # Current housing loss figure
 sum(filter(housing_loss, date == key_date)$`Housing units`)
-
-## Daily graphs:
-
-GH %>% 
-  filter(date == key_date) %>% 
-  count()
-
-
-## Total nights "R"
-daily %>%
-  filter(housing, date > key_date - years(1), date < key_date, status == "R") %>%
-  count(date) %>% 
-  summarize(sum(n))
 
 
 
