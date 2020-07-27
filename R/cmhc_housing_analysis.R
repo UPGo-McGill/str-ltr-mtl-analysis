@@ -399,10 +399,25 @@ save(total_vac_rate_2018, file = "output/tot_vacrate_2018.Rdata")
   #                               `% average daily listing growth` = numeric(length = length(unique_listing_type))
 #)
 
-bedroom_breakdown <- matrix(c("3.0 %", "13.3 %", "16.4 %", "10.3 %", 
-                              "42.0 %", "45.2 %", "35.6 %", "35.6 %", 
-                              "37.0 %", "27.2 %", "25.0 %", "32.5 %",
-                              "18.0 %", "10.6 %", "22.8 %", "20.5 %"),ncol=4,byrow=TRUE)
-colnames(bedroom_breakdown) <- c("Island of Montreal","STRs in Montreal","Matches", "Non-matches")
-rownames(bedroom_breakdown) <- c("Studios","1-Bedroom","2-Bedrooms", "3-Bedrooms and more")
-grid.table(bedroom_breakdown1)
+vac_rate_bd_breakdown <- matrix(c("3.3 %", "1.6 %", "1.5 %", "0.8 %", 
+                              "1.4 %", "2.2 %", "2.8 %", "N/A", 
+                              "N/A", "1.3 %", "0.7 %", "0.3 %"),ncol=4,byrow=TRUE)
+colnames(vac_rate_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms and more")
+rownames(vac_rate_bd_breakdown) <- c("City of Montreal","Downtown/Iles-des-soeurs","Plateau-Mont-Royal")
+grid.table(vac_rate_bd_breakdown)
+
+
+ggsave("output/vac_rate_bd_breakdown.pdf", plot = vac_rate_bd_breakdown) #, width = 8,
+     #  height = 5, units = "in", useDingbats = FALSE)
+
+
+avg_rent_bd_breakdown <- matrix(c("3.3 %", "1.6 %", "1.5 %", "0.8 %", 
+                                  "1.4 %", "2.2 %", "2.8 %", "N/A", 
+                                  "N/A", "1.3 %", "0.7 %", "0.3 %"),ncol=4,byrow=TRUE)
+colnames(vac_rate_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms and more")
+rownames(vac_rate_bd_breakdown) <- c("City of Montreal","Downtown/Iles-des-soeurs","Plateau-Mont-Royal")
+grid.table(vac_rate_bd_breakdown)
+
+
+ggsave("output/vac_rate_bd_breakdown.pdf", plot = vac_rate_bd_breakdown, width = 8,
+       height = 5, units = "in", useDingbats = FALSE)
