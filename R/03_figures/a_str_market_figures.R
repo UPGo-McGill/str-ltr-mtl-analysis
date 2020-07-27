@@ -4,10 +4,8 @@ library(ggplot2)
 library(patchwork)
 library(data.table)
 
-memory.limit(size = 48000)
-plan(multiprocess, workers = 4)
 
-load("data/montreal_str_processed_c.Rdata")
+load("data/str_montreal_overview.Rdata")
 
 
 ### Colour palette #############################################################
@@ -46,7 +44,11 @@ daily %>%
   )
 
 
-
+daily %>% 
+  filter(housing, date >= "2020-01-01", status == "A") %>% 
+  count(date) %>% 
+  ggplot()+
+  geom_line(aes(date, n))
 
 ### Montreal maps ###############################################################
 

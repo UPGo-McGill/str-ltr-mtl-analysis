@@ -11,18 +11,6 @@ library(future)
 
 
 
-
-### Set global variables #######################################################
-
-memory.limit(size = 48000)
-# plan(multiprocess, workers = 4)
-
-# register_google(key = "AIzaSyDxSAajMCw_k8E7GsKCFKBMP2RhofvLMX8", write = TRUE)
-
-
-
-
-
 ### Load data #############################################################
 
 #### load data to prepare LTR weekly update ####
@@ -30,7 +18,16 @@ memory.limit(size = 48000)
 load("data/ltr_matches.Rdata")
 
 # load rclalq data
-load("data/kj_r_mtl.Rdata")
+kj_rclalq <- readxl::read_excel("data/Total2020-04-22.xlsx") %>% 
+  filter(location == "VilledeMontréal")
+
+load("data/kj_r_mtl.Rdata") # data with lat/lon coordinate, mutate_geocode already ran.
+
+kj_rclalq <- 
+kj_rclalq %>% 
+  left_join(select(kj_r_mtl, id, lat, lon), .)
+
+
 
 # # load new data from CL and KJ
 # load("data/Canada_cl_2020_07_20.Rdata")
@@ -49,19 +46,17 @@ load("data/kj_geo.Rdata")
 # rename the dfs
 kj_nogeo <- Canada_kj_2020_07_20
 cl <- Canada_cl_2020_07_20
-rclalq <- kj_r_mtl
 cl_matches <- cl_match_2020_07_20
 kj_matches <- kj_match_2020_07_20
 
 rm(Canada_kj_2020_07_20)
-rm(kj_r_mtl)
 rm(Canada_cl_2020_07_20)
 rm(kj_match_2020_07_20)
 rm(cl_match_2020_07_20)
 
 
 # import data from AirDNA (already raffled, info on FREH, GH, etc.)
-load("data/montreal_str_processed_a.Rdata")
+load("data/montreal_str_processed.Rdata")
 
 
 
@@ -123,18 +118,18 @@ matches <- rbind(select(rename(matches, x_name = ab_id, y_name = ltr_id), x_name
 rm(kj_matches)
 rm(cl_matches)
 
-# get created date and add kj for rclalq file
+# get created date and add kj for kj_rclalq file
 
-rclalq$posted <- 
-  str_sub(rclalq$posted, start= 16L)
+kj_rclalq$posted <- 
+  str_sub(kj_rclalq$posted, start= 16L)
 
-rclalq$posted <- 
-  as.numeric(str_replace_all(rclalq$posted, c("jours|jour" = "", 
+kj_rclalq$posted <- 
+  as.numeric(str_replace_all(kj_rclalq$posted, c("jours|jour" = "", 
                                               "plus d'un mois|un mois" = "30",
                                               "[:digit:]+ heures|une heure|[:digit:]+ minutes|moins d'une minute|une minute" = "0",
                                               "un" = "1")))
-rclalq$id <- 
-paste0("kj-", rclalq$id)
+kj_rclalq$id <- 
+paste0("kj-", kj_rclalq$id)
 
 # arrange kijiji bedrooms column as numeric
 
@@ -183,7 +178,7 @@ kj <- kj %>%
          bathrooms = as.numeric(bathrooms),
          kj = T)
 
-rclalq <- rclalq %>% 
+kj_rclalq <- kj_rclalq %>% 
   filter(location == "VilledeMontréal") %>% 
   mutate(city = "Montreal",
          scraped = as.Date(date, tryFormats = c("%m/%d/%Y")),
@@ -200,14 +195,14 @@ rclalq <- rclalq %>%
   select(id, short_long, created, scraped, price, city, location, bedrooms, bathrooms, furnished, lat, lon, title, kj, text)
 
 
-# merge kj with rclalq
+# merge kj with kj_rclalq
 
 kj <- 
-  rclalq %>% 
+  kj_rclalq %>% 
   filter(!id %in% !!kj$id) %>% 
   rbind(kj)
 
-kj <- left_join(kj, rclalq[,c("id", "bedrooms", "price")], by = "id")
+kj <- left_join(kj, kj_rclalq[,c("id", "bedrooms", "price")], by = "id")
 
 kj <- kj %>% 
   mutate(bedrooms = if_else(is.na(bedrooms.x), bedrooms.y, bedrooms.x),
@@ -312,7 +307,7 @@ matches <-
 
 #### save ###################################################################
 
-save(ltr, ltr_mtl, ltr_mtl_das, DAs, rclalq, matches,
+save(ltr, ltr_mtl, ltr_mtl_das, DAs, kj_rclalq, matches,
      file = "data/ltr_matches.Rdata")
 
 save(kj_geo,

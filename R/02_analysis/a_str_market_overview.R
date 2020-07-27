@@ -7,15 +7,9 @@ library(future)
 library(ggplot2)
 library(data.table)
 
-memory.limit(size = 48000)
-# plan(multiprocess, workers = 4)
 
-load("data/montreal_str_processed_a.Rdata")
+load("data/str_montreal.Rdata")
 
-# # load the data that already passed through here
-# load("data/montreal_str_processed_c.Rdata")
-# 
-# 
 # # load data about FREH predictions of newer listings
 # load("data/daily_pred.Rdata")
 
@@ -695,4 +689,4 @@ daily %>%
 
 
 ## Save files #####################################
-save.image(file = "data/montreal_str_processed_c.Rdata")
+save.image(file = "data/str_montreal_overview.Rdata")
