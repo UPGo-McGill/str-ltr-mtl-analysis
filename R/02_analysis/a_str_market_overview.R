@@ -10,38 +10,63 @@ library(data.table)
 
 load("data/str_montreal.Rdata")
 
-# # load data about FREH predictions of newer listings
-# load("data/daily_pred.Rdata")
+# load data about FREH predictions of newer listings
+load("data/daily_pred.Rdata")
 
 
 
 #LTM start_date and end_date
 LTM_start_date <- as.Date("2019-01-01")
 LTM_end_date <- as.Date("2019-12-31")
+
 ###  ####################################################
 
 ### Active daily listings ######################################################
 
-## Active listings from property file
-
-# Average listings reserved or available / blocked in 2019
+# Average active daily listings in 2019
 filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
   count(date) %>% 
   summarize(round(mean(n), digit=-2))
-  
-# Active housing listings in 2019
-property_2019 <-
-  property %>%
-  filter(housing, property_ID %in% filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date)$property_ID) %>% 
-  filter(created <= LTM_end_date)
-  
+
+
+# Average listings blocked for reservations in 2019
+filter(daily, housing, status == "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
+  count(date) %>% 
+  summarize(round(mean(n), digit=-2))
+
 
 # Average number of hosts (taking out blocked 365 days)
 daily %>% 
   filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
   count(date, host_ID) %>% 
   count(date) %>% 
-  summarize(mean(n))
+  summarize(round(mean(n), digit=-2))
+
+
+# How many active listings out of housing
+daily %>% 
+  filter(housing == F, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
+  count(date) %>% 
+  summarize(round(mean(n), digit=-2))
+
+
+# Highest sum of daily listing activity
+daily %>% 
+  filter(housing, status != "B") %>% 
+  count(date) %>% 
+  summarize(round(max(n), digit =-2))
+
+daily %>% 
+  filter(housing, status != "B") %>% 
+  count(date) %>% 
+  filter(n >= 12300)
+    
+
+# Active housing listings in 2019
+property_2019 <-
+  property %>%
+  filter(housing, property_ID %in% filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date)$property_ID) %>% 
+  filter(created <= LTM_end_date)
 
 
 # 2019 revenue
@@ -55,6 +80,8 @@ daily %>%
   inner_join(property, .)
 
 sum(revenue_2019$revenue_LTM, na.rm = T)
+
+
 
 # YOY growth rate
 
@@ -82,13 +109,6 @@ sum(revenue_2019$revenue_LTM, na.rm = T)
   (filter(daily, housing, status != "B", date == LTM_start_date - years(2)) %>% 
   nrow() + 960) *100
 
-
-
-filter(daily, housing, status != "B") %>%
-  count(date) %>% 
-  ggplot()+
-  geom_line(aes(date, n))+
-  ggtitle("Sum of daily active listing per day")
 
 
 
@@ -186,7 +206,7 @@ listing_type_breakdown %>%
          `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
          `Annual revenue (CAD)` = paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
                                          str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>% 
-  rename(`% average daily listing growth (YOY)` = `% average daily listing growth`) %>% 
+  rename(`% average daily listing growth (YOY 2018-2019)` = `% average daily listing growth`) %>% 
   gt() %>% 
   tab_header(
     title = "Listing type breakdown",
@@ -281,27 +301,12 @@ boroughs_breakdown %>%
   gt() %>% 
   tab_header(
     title = "Borough breakdown",
-    subtitle = "2019"
+    subtitle = "Boroughs with more than 100 daily active listings average, 2019"
   ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = 4:6, decimals = 1) %>% 
   fmt_number(columns = 2,
              decimals = 0)
-
-
-# listings per dwellings, boroughs
-
-daily %>%
-  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
-  group_by(borough) %>% 
-  count(date) %>%
-  summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
-  left_join(select(st_drop_geometry(boroughs), borough, dwellings), .) %>% 
-  mutate(percentage = `Daily active listings (average)` / dwellings)
-         `Daily active listings (average)` = round(`Daily active listings (average)`, digit=-1)) %>% 
-  arrange(desc(`Daily active listings (average)`)) %>% 
-  filter(`Daily active listings (average)`>100) %>% 
-  select(borough, `Daily active listings (average)`, dwellings, percentage)
 
 
 ### Bedroom breakdown ##########################################################
@@ -376,8 +381,7 @@ revenue_2019 %>%
   summarize("host_rev" = sum(revenue_LTM) * exchange_rate) %>% 
   arrange(-host_rev) %>% 
   drop_na() %>% 
-  filter(host_rev >= 500000)  %>% 
-  nrow()
+  filter(host_rev >= 500000) %>% 
   gt() %>% 
   tab_header(
     title = "Hosts that made at least half a million",
@@ -427,6 +431,7 @@ FREH %>%
   filter(date == LTM_end_date) %>% 
   nrow()
 
+
 # adding newer listings with FREH pattern to the number
 dec2019_freh_properties <- 
 rbind( 
@@ -440,6 +445,7 @@ rbind(
 ) %>% 
   distinct(property_ID)
 
+
 # look at every single listings that weren't considered as FREH, but added with the statistical model
 daily_pred %>% 
   filter(date >= "2019-12-01", date < "2020-01-01",
@@ -447,6 +453,26 @@ daily_pred %>%
          !property_ID %in% filter(FREH, date == LTM_end_date)$property_ID, 
          FREH_later)
 
+
+# bedrooms breakdown of FREH listings
+property_2019 %>% 
+  st_drop_geometry() %>%  
+  filter(housing == TRUE,
+         listing_type == "Entire home/apt",
+         property_ID %in% dec2019_freh_properties$property_ID) %>% 
+  count(bedrooms) %>% 
+  mutate(percentage = n / sum(n)) %>% 
+  group_by(bedrooms) %>% 
+  summarize(`Percentage of listings` = sum(percentage)) %>% 
+  filter(bedrooms >= 2) %>% 
+  summarize(sum(`Percentage of listings`))
+  filter(`Percentage of listings` > 0.01) %>% 
+  gt() %>% 
+  tab_header(
+    title = "LTM active properties, entire home/apt",
+  ) %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = 2)
 
 
 
