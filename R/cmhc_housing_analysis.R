@@ -1174,4 +1174,3 @@ city_vac_rate$Year <- as.numeric(city_vac_rate$Year)
 save(city_vac_rate, file = "output/montreal_yoy_vac_rate.Rdata")
 
 
-save(vacancy_rates_2018_2019, mtl_neighbourhoods, avg_rent_2018_2019, tot_vacancy_2018_2019, city_vac_rate, file = "output/housing_impacts_all.Rdata")
