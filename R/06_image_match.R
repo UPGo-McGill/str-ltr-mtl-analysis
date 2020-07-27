@@ -1,4 +1,4 @@
-#### 06 IMAGE MATCHING #########################################################
+#### 06 IMAGE MATCH ############################################################
 
 #' This script produces the `img_sigs.Rdata`, `matches.Rdata` and 
 #' `match_changes.Rdata` objects. The script is extremely time-consuming and 
