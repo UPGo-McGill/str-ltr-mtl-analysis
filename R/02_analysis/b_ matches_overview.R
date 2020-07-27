@@ -169,6 +169,16 @@ average_rent %>%
   fmt_number(columns = c(2, 4),
              decimals = 0)
 
+#matches and non-matches distribution by number of bedrooms compared to the island of Mtl and the entire STR listings population
+
+bedroom_breakdown <- matrix(c("3.0 %", "13.3 %", "16.4 %", "10.3 %", 
+                              "42.0 %", "45.2 %", "35.6 %", "35.6 %", 
+                              "37.0 %", "27.2 %", "25.0 %", "32.5 %",
+                              "18.0 %", "10.6 %", "22.8 %", "20.5 %"),ncol=4,byrow=TRUE)
+colnames(bedroom_breakdown) <- c("Island of Montreal","STRs in Montreal","Matches", "Non-matches")
+rownames(bedroom_breakdown) <- c("Studios","1-Bedroom","2-Bedrooms", "3-Bedrooms and more")
+grid.table(bedroom_breakdown)
+
 #unique airbnb listings that matched
 ltr_mtl %>% 
   st_drop_geometry() %>% 
