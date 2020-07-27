@@ -1,15 +1,9 @@
 #### 07 LTR LISTING MATCH ######################################################
 
-#' This script produces the TKTK objects. The script is extremely time-consuming and 
-#' memory-intensive to run, so it should only be rerun when image matching needs 
-#' to be rebuilt from scratch. In addition, the script downloads hundreds of 
-#' thousands of photos to a specified folder, so it requires approximately 50 GB 
-#' of free storage space.
-
-#' External dependencies:
-#' - Access to the UPGo database
-#' - Listings scraped from Kijiji and Craigslist with upgo::upgo_scrape_kj and
-#'   upgo::upgo_scrape_cl
+#' This script produces the `str_processed.Rdata` and `matches_processed.Rdata` 
+#' objects, and updates the `ltr.Rdata` object. The script runs relatively
+#' quickly, and should be rerun anytime the raw STR, LTR or image matching data
+#' changes.
 
 source("R/01_startup.R")
 
@@ -18,13 +12,11 @@ source("R/01_startup.R")
 
 load("data/str_raw.Rdata")
 
-load("data/matches.Rdata")
+load("data/matches_raw.Rdata")
 
 load("data/ltr.Rdata")
 
 dl_location <- "/Volumes/Data/Scrape photos/mtl"
-
-rm(daily, host)
 
 
 # Clean up matches --------------------------------------------------------
@@ -34,7 +26,7 @@ cl_matches <-
   filter(confirmation == "match") %>%
   mutate(
     x_name = str_replace_all(x_name, paste0(dl_location, "/ab/|.jpg"), ""),
-    y_name = str_replace_all(x_name, 
+    y_name = str_replace_all(y_name, 
                              paste0(dl_location, "/cl/|-[:digit:]+.jpg"), "")
     )
 
@@ -43,7 +35,7 @@ kj_matches <-
   filter(confirmation == "match") %>% 
   mutate(
     x_name = str_replace_all(x_name, paste0(dl_location, "/ab/|.jpg"), ""),
-    y_name = str_replace_all(x_name, 
+    y_name = str_replace_all(y_name, 
                              paste0(dl_location, "/kj/|-[:digit:]+.jpg"), "")
     )
 
@@ -83,46 +75,8 @@ ltr <-
 rm(property_nest, ltr_nest)
 
 
-
-### Clean matches df ######################################################
-ab_matches$x_name <- 
-  str_replace_all(ab_matches$x_name, c("/Volumes/Data/Scrape photos/mtl/ab/|.jpg" = ""))
-
-ab_matches$y_name <- 
-  str_replace_all(ab_matches$y_name, c("/Volumes/Data/Scrape photos/mtl/ab/|.jpg" = ""))
-
-ab_matches <- 
-  ab_matches %>% 
-  select(x_name, y_name)
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Save output -------------------------------------------------------------
 
-save(property, ltr, matches)
-
-
-#### save ###################################################################
-
-save(ltr, ltr_mtl, ltr_mtl_das, DAs, kj_rclalq, matches,
-     file = "data/ltr_matches.Rdata")
-
-save(kj_geo,
-     file = "data/kj_geo.Rdata")
-
-save(city, daily, DAs, FREH, 
-     GH, host, property,
-     key_date, exchange_rate,
-     boroughs,
-     file = "data/str_montreal.Rdata")
-
+save(property, daily, host, file = "data/str_processed.Rdata")
+save(ltr, file = "data/ltr.Rdata")
+save(matches, ab_matches, file = "data/matches_processed.Rdata")
