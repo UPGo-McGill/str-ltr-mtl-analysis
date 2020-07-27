@@ -38,11 +38,11 @@ exchange_rate <- 1.32434
 
 ## Montreal CSD
 
-city <-
-  cancensus::get_census(dataset = "CA16", regions = list(CSD = "2466023"),
-                        level = "CSD", geo_format = "sf") %>% 
-  st_transform(32618) %>% 
-  st_set_agr("constant")
+# city <-
+#   cancensus::get_census(dataset = "CA16", regions = list(CSD = "2466023"),
+#                         level = "CSD", geo_format = "sf") %>% 
+#   st_transform(32618) %>% 
+#   st_set_agr("constant")
 
 
 
@@ -84,7 +84,7 @@ boroughs <-
   summarize(dwellings=sum(dwellings))
 
 
-borough_geometries <- 
+city <- 
   boroughs %>% 
   st_combine() %>% 
   st_union() %>% 
