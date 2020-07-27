@@ -1,6 +1,6 @@
 #### 04 KJ/CL DATA IMPORT ######################################################
 
-#' This script produces the `ltr.Rdata` object. It should only be rerun when
+#' This script produces the `ltr_raw.Rdata` object. It should only be rerun when
 #' KJ/CL data needs to be rebuilt from scratch.
 
 #' External dependencies:
@@ -232,4 +232,4 @@ rm(boroughs, city, DA)
 
 # Save output -------------------------------------------------------------
 
-save(ltr, file = "data/ltr.Rdata")
+save(ltr, file = "data/ltr_raw.Rdata")

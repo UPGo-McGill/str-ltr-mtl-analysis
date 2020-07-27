@@ -1,6 +1,6 @@
 #### 06 IMAGE MATCH ############################################################
 
-#' This script produces the `img_sigs.Rdata`, `matches.Rdata` and 
+#' This script produces the `img_sigs.Rdata`, `matches_raw.Rdata` and 
 #' `match_changes.Rdata` objects. The script is extremely time-consuming and 
 #' memory-intensive to run, so it should only be rerun when image matching needs 
 #' to be rebuilt from scratch. In addition, the script downloads hundreds of 
@@ -21,7 +21,7 @@ library(furrr)
 
 load("data/str_raw.Rdata")
 
-load("data/ltr.Rdata")
+load("data/ltr_raw.Rdata")
 
 rm(daily, host)
 
