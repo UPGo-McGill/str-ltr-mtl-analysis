@@ -113,7 +113,7 @@ kj <-
 
 kj <- 
   kj %>% 
-  select(id, short_long:furnished, lat, lon, title, text) %>% 
+  select(id, short_long:furnished, lat, lon, title, text, photos) %>% 
   mutate(kj = TRUE)
 
 kj <- 
@@ -127,7 +127,7 @@ kj <-
 
 cl <-
   cl %>% 
-  select(id, created:furnished, title, text) %>% 
+  select(id, created:furnished, title, text, photos) %>% 
   separate(location, c("lon", "lat"), sep = ";") %>% 
   mutate(city = "Montreal",
          bedrooms = as.numeric(bedrooms),
@@ -170,9 +170,10 @@ rclalq <-
          bathrooms = NA,
          furnished = NA,
          text = NA,
+         photos = map(1:n(), ~NA),
          kj = TRUE) %>% 
   select(id, short_long, created, scraped, price, city, location, bedrooms, 
-         bathrooms, furnished, lat, lon, title, kj, text)
+         bathrooms, furnished, lat, lon, title, kj, text, photos)
 
 rclalq <- 
   rclalq %>% 
@@ -197,10 +198,14 @@ kj <-
   select(-c(price.x, price.y, bedrooms.x, bedrooms.y)) %>% 
     select(id:scraped, price, city, location, bedrooms, bathrooms:geometry)
 
+rm(rclalq)
+
 
 # Rbind into one table ----------------------------------------------------
 
 ltr <- rbind(kj, cl)
+
+rm(kj, cl)
 
 
 # Add boroughs ------------------------------------------------------------
@@ -212,7 +217,12 @@ ltr <- st_transform(ltr, 32618)
 ltr <- 
   ltr %>% 
   st_join(boroughs) %>% 
-  filter(!is.na(borough))
+  filter(!is.na(borough)) %>% 
+  select(-dwellings)
+
+ltr <- ltr %>% as_tibble() %>% st_as_sf()
+
+rm(boroughs, city, DA)
 
 
 # Save output -------------------------------------------------------------
