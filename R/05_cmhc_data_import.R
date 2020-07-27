@@ -1,3 +1,24 @@
+#### 05 CMHC DATA IMPORT #######################################################
+
+#' This script produces the `cmhc.Rdata` object. It should only be rerun when
+#' CMHC data needs to be rebuilt from scratch.
+
+#' External dependencies:
+#' - `shapefiles/cmhc.shp`: CMHC neighbourhood shapefile
+#' - `TKTK`: rental market report
+
+source("R/01_startup.R")
+
+# Import raw files --------------------------------------------------------
+
+
+
+
+
+
+
+
+
 #-----------------------------------# cmhc private apartment data 2018 / 2019 -------------------------------
 
 library(tidyverse)
@@ -1172,6 +1193,6 @@ city_vac_rate$Year <- as.numeric(city_vac_rate$Year)
 
 
 save(city_vac_rate, file = "output/montreal_yoy_vac_rate.Rdata")
- 
+
 
 

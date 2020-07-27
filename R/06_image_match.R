@@ -28,7 +28,7 @@ rm(daily, host)
 
 # Specify location on drive to download photos ----------------------------
 
-download_location <- "/Volumes/Data/Scrape photos/mtl"
+dl_location <- "/Volumes/Data/Scrape photos/mtl"
 
 
 # Get image URLs ----------------------------------------------------------
@@ -83,19 +83,19 @@ rm(property, ltr)
 
 # Make download subfolders ------------------------------------------------
 
-if (!dir.exists(download_location)) dir.create(download_location, 
+if (!dir.exists(dl_location)) dir.create(dl_location, 
                                                recursive = TRUE)
 
-if (!dir.exists(paste0(download_location, "/ab"))) {
-  dir.create(paste0(download_location, "/ab"))
+if (!dir.exists(paste0(dl_location, "/ab"))) {
+  dir.create(paste0(dl_location, "/ab"))
 }
 
-if (!dir.exists(paste0(download_location, "/cl"))) {
-  dir.create(paste0(download_location, "/cl"))
+if (!dir.exists(paste0(dl_location, "/cl"))) {
+  dir.create(paste0(dl_location, "/cl"))
 }
 
-if (!dir.exists(paste0(download_location, "/kj"))) {
-  dir.create(paste0(download_location, "/kj"))
+if (!dir.exists(paste0(dl_location, "/kj"))) {
+  dir.create(paste0(dl_location, "/kj"))
 }
 
 
@@ -103,27 +103,27 @@ if (!dir.exists(paste0(download_location, "/kj"))) {
 
 future_map2(ab_urls, ab_ids, ~{
   try(download.file(.x, paste0(
-    download_location, "/ab/", .y, "-", seq_along(.x), ".jpg")))
+    dl_location, "/ab/", .y, "-", seq_along(.x), ".jpg")))
 })
 
 future_map2(cl_urls, cl_ids, ~{
   try(download.file(.x, paste0(
-    download_location, "/cl/", .y, "-", seq_along(.x), 
+    dl_location, "/cl/", .y, "-", seq_along(.x), 
 })
 
 future_map2(kj_urls, kj_ids, ~{
   try(download.file(.x, paste0(
-    download_location, "/kj/", .y, "-", seq_along(.x), 
+    dl_location, "/kj/", .y, "-", seq_along(.x), 
 })
 
 
 # Get new paths -----------------------------------------------------------
 
-ab_paths <- list.files(paste0(download_location, "/ab"), full.names = TRUE)
-cl_paths <- list.files(paste0(download_location, "/cl"), full.names = TRUE)
-kj_paths <- list.files(paste0(download_location, "/kj"), full.names = TRUE)
+ab_paths <- list.files(paste0(dl_location, "/ab"), full.names = TRUE)
+cl_paths <- list.files(paste0(dl_location, "/cl"), full.names = TRUE)
+kj_paths <- list.files(paste0(dl_location, "/kj"), full.names = TRUE)
 
-rm(download_location, ab_urls, ab_ids, cl_urls, cl_ids, kj_urls, kj_ids)
+rm(dl_location, ab_urls, ab_ids, cl_urls, cl_ids, kj_urls, kj_ids)
 
 
 # Get signatures ----------------------------------------------------------

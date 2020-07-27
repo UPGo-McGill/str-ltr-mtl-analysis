@@ -208,7 +208,7 @@ ltr <- rbind(kj, cl)
 rm(kj, cl)
 
 
-# Add boroughs ------------------------------------------------------------
+# Add geometry ------------------------------------------------------------
 
 load("data/geometry.Rdata")
 
@@ -220,7 +220,12 @@ ltr <-
   filter(!is.na(borough)) %>% 
   select(-dwellings)
 
-ltr <- ltr %>% as_tibble() %>% st_as_sf()
+ltr <-
+  ltr %>% 
+  st_join(DA) %>% 
+  as_tibble() %>% 
+  st_as_sf() %>% 
+  select(-CMA_UID, -population)
 
 rm(boroughs, city, DA)
 
