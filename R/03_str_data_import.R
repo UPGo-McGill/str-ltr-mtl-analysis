@@ -89,7 +89,22 @@ daily <-
   left_join(daily, ., by = "property_ID")
 
 
+# Fix April plateau -------------------------------------------------------
+
+# Problem dates are 2020-04-03 to 2020-04-17, and the actual bad results have 
+# booked_date 2020-04-04, 2020-04-14, 2020-04-15. So we change those status
+# values from R to B.
+
+daily <- 
+  daily %>% 
+  as_tibble() %>% 
+  mutate(status = if_else(
+    booked_date %in% c(as.Date("2020-04-04"), as.Date("2020-04-14"), 
+                       as.Date("2020-04-15")) & 
+      date < "2020-04-18" &
+      status == "R", "B", status))
+
+
 # Save output -------------------------------------------------------------
 
 save(property, daily, host, file = "data/str_raw.Rdata")
-
