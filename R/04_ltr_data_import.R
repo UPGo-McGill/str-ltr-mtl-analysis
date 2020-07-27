@@ -217,4 +217,4 @@ ltr <-
 
 # Save output -------------------------------------------------------------
 
-save(ltr, file = "ltr.Rdata")
+save(ltr, file = "data/ltr.Rdata")
