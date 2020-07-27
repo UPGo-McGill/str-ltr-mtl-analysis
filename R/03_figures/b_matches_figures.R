@@ -6,10 +6,8 @@ library(gt)
 library(future)
 library(ggplot2)
 
-memory.limit(size = 48000)
-plan(multiprocess, workers = 4)
 
-load("data/montreal_str_processed_b.Rdata")
+load("data/str_montreal.Rdata")
 load("data/ltr_matches.Rdata")
 
 ### Colour palette #############################################################
@@ -52,13 +50,13 @@ ltr_mtl %>%
 
 
 
-# Per CTs
+# Per DAs
 ltr_mtl_cts %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ab_id)) %>% 
   distinct(ab_id, .keep_all = T) %>% 
   count(GeoUID) %>% 
-  left_join(filter(CTs, CMA_UID == "Montreal"), .) %>% 
+  left_join(filter(DAs, CMA_UID == "Montreal"), .) %>% 
   mutate(perc = n / sum(n, na.rm = T)) %>% 
   ggplot()+
   geom_sf(aes(fill = perc),
@@ -181,18 +179,87 @@ property %>%
   ylab("Count (Not match)")+
   ggtitle("Since how long (months) are listings on AirBNB (scraped - created)")+
   xlab("Months")
-  
+
 #time FREH_2020 listings were active
 property %>% 
   st_drop_geometry() %>% 
   filter(property_ID %in% FREH$property_ID,
-         !is.na(ltr_id)) %>% 
+         is.na(ltr_id)) %>% 
   distinct(property_ID, .keep_all = T) %>% 
   mutate(how_long_they_stay = (scraped-created) / 30) %>% 
   ggplot()+
-  geom_histogram(aes(how_long_they_stay), fill = "blue", alpha = 0.2)+
-  xlim(c(0,60))+
-  ylab("Count (Matched)")+
+  geom_histogram(aes(how_long_they_stay), fill = "red", alpha = 0.2)+
+  geom_histogram(data = property %>% 
+                   st_drop_geometry() %>% 
+                   filter(property_ID %in% FREH$property_ID,
+                          !is.na(ltr_id)) %>% 
+                   distinct(property_ID, .keep_all = T) %>% 
+                   mutate(how_long_they_stay = (scraped-created) / 30),
+                 aes(x = how_long_they_stay, y = ..count.. * 15),fill = "blue", alpha = 0.2)+
+  xlim(c(0,60)) +
+  scale_y_continuous(sec.axis = sec_axis(~ ./15, name = "Count (Match)"))+
+  theme(axis.text.y.right = element_text(color = "blue"),
+        axis.line.y.right = element_line(color = "blue"),
+        axis.text.y.left = element_text(color = "red"),
+        axis.line.y.left = element_line(color = "red"))+
+  ylab("Count (Not matched)")+
   ggtitle("Since how long (months) are FREH_2020 listings on AirBNB (scraped - created)")+
   xlab("Months")
 
+
+
+ggplot()+
+  geom_line(data= ltr_mtl %>% 
+              st_drop_geometry() %>% 
+              # filter(!is.na(ab_id)) %>% 
+              group_by(created) %>% 
+              arrange(scraped) %>% 
+              distinct(id, .keep_all = TRUE) %>% 
+              group_by(day=floor_date(created, "day")) %>% 
+              summarize(n = n(), `Median price of listings` = median(price, na.rm=TRUE)), 
+            aes(day, `Median price of listings`, color="Median price on date created"))+
+  geom_line(data= ltr_mtl %>% 
+              st_drop_geometry() %>%
+              # filter(!is.na(ab_id)) %>% 
+              group_by(created) %>% 
+              arrange(desc(scraped)) %>% 
+              distinct(id, .keep_all = TRUE) %>% 
+              group_by(day=floor_date(scraped, "day")) %>% 
+              summarize(n = n(), `Median price of listings` = median(price, na.rm=TRUE)), 
+            aes(day, `Median price of listings`, color="Median price on date last scraped"))+
+  labs(x="Date",
+       y="Median price",
+       title="Median price on date created versus on last date scraped",
+       color="Legend")+
+  scale_colour_manual(name = "Legend",
+                      values = c("Median price on date created" = "blue", "Median price on date last scraped" = "red"),
+                      labels = c("Median price on date created", "Median price on date last scraped"))+
+  theme_minimal()
+
+
+#time LTR listings were active, match vs no match
+ltr_mtl %>% 
+  st_drop_geometry() %>% 
+  filter(is.na(ab_id)) %>%
+  arrange(desc(scraped)) %>% 
+  distinct(id, .keep_all = T) %>% 
+  mutate(how_long_they_stay = (scraped-created)) %>% 
+  filter(how_long_they_stay > 0) %>% 
+  ggplot()+
+  geom_histogram(aes(how_long_they_stay), fill = "red", alpha = 0.2)+
+  geom_histogram(data = ltr_mtl %>%
+                   st_drop_geometry() %>%
+                   filter(!is.na(ab_id)) %>%
+                   arrange(desc(scraped)) %>% 
+                   distinct(id, .keep_all = T) %>%
+                   mutate(how_long_they_stay = (scraped-created)),
+                 aes(x = how_long_they_stay, y = ..count.. * 15),fill = "blue", alpha = 0.2)+
+  xlim(c(0,60)) +
+  scale_y_continuous(sec.axis = sec_axis(~ ./15, name = "Count (Match)"))+
+  theme(axis.text.y.right = element_text(color = "blue"),
+        axis.line.y.right = element_line(color = "blue"),
+        axis.text.y.left = element_text(color = "red"),
+        axis.line.y.left = element_line(color = "red"))+
+  ylab("Count (Not match)")+
+  ggtitle("How long LTR listings stayed online (scraped - created)")+
+  xlab("Days")

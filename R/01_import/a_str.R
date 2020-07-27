@@ -12,16 +12,11 @@ library(readxl)
 
 load("data/new_mtl_data.Rdata")
 
-# Sys.setenv(CM_API_KEY = 'CensusMapper_3f15611c3eafd43d50e284e597cdc606')
-
 
 
 
 
 ### Set global variables #######################################################
-
-memory.limit(size = 48000)
-# plan(multiprocess, workers = 4)
 
 end_date <- as.Date(max(daily$date))
 key_date <- as.Date("2020-03-14")
@@ -292,6 +287,6 @@ save(city, daily, DAs, FREH,
      property, end_date,
      key_date, exchange_rate, #season_start, season_end,
      boroughs, borough_geometries,
-     file = "data/montreal_str_processed_a.Rdata")
+     file = "data/montreal_str_processed.Rdata")
 
 
