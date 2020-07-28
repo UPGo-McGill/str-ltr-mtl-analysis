@@ -14,13 +14,23 @@ load("data/ltr_matches.Rdata")
 
 ### Overview #################################################################
 
+# distinct LTR listings
+unique_ltr <- 
+  ltr %>% 
+  st_drop_geometry() %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(id, .keep_all = T)
+
+unique_ltr %>% 
+  nrow()
+
 # number of unique STR listings that matched in 2020
 property %>% 
   filter(!is.na(ltr_id), scraped >= "2020-01-01")
 
 
 #unique matching ab_id locations using street address
-unique_ab_id <- 
+ltr_unique_ab_id <- 
 ltr %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ab_id)) %>% 
@@ -29,47 +39,114 @@ ltr %>%
   arrange(desc(scraped)) %>% 
   distinct(ab_id) %>% 
   inner_join(unnest(ltr, ab_id), by = "ab_id") %>% 
+  arrange(desc(scraped)) %>% 
   distinct(ab_id, .keep_all = T)
-
 #by boroughs
-unique(unique_ab_id$ab_id)
+ltr_unique_ab_id %>% 
+  count(borough) %>% 
+  mutate(perc = n/sum(n)) %>% 
+  arrange(desc(perc))
+
+
+### Market comparison ########################################################
+
+perc_size_units <- tibble(`Number of bedrooms` = numeric(length = 4), 
+                          `Island of Montreal` = numeric(length = 4),
+                          `STR market (2019)` = numeric(length = 4),
+                          `LTR matches` = numeric(length = 4),
+                          `LTR non-matches` = numeric(length = 4)
+)
+
+perc_size_units$`Number of bedrooms` <- 
+  c(0, 1, 2, 3)
+
+perc_size_units$`Island of Montreal` <- 
+  c(0.03, 0.133, 0.164, 0.103)
+
+for(i in 1:length(perc_size_units$`Number of bedrooms`)) {
+  
+  perc_size_units[i,3] <- 
+    (property %>% 
+       st_drop_geometry() %>% 
+       filter(property_ID %in% filter(daily, housing, status != "B", date >= "2019-01-01", date <= "2019-12-31")$property_ID) %>% 
+       mutate(bedrooms = ifelse(bedrooms >= 3, 3, bedrooms)) %>% 
+       count(bedrooms) %>% 
+       mutate(perc = n/sum(n)))[i,3] %>% 
+    pull()
+  
+  
+  perc_size_units[i, 4] <- ltr_unique_ab_id %>%
+    mutate(bedrooms = ifelse(bedrooms >= 3, 3, bedrooms)) %>% 
+    filter(bedrooms == perc_size_units$`Number of bedrooms`[[i]]) %>% 
+    nrow() / ltr_unique_ab_id %>% nrow()
+  
+  perc_size_units[i, 5] <- ltr %>%
+    st_drop_geometry() %>% 
+    distinct(id, .keep_all = T) %>% 
+    mutate(bedrooms = ifelse(bedrooms >= 3, 3, bedrooms)) %>% 
+    filter(bedrooms == perc_size_units$`Number of bedrooms`[[i]]) %>% 
+    nrow() / 
+    ltr %>%
+    st_drop_geometry() %>% 
+    distinct(id) %>% nrow()
+  
+}
+
+perc_size_units$`Number of bedrooms`[4] <- c("3+")
+perc_size_units$`Number of bedrooms`[1] <- c("Studio")
+
+perc_size_units %>%
+  gt() %>% 
+  tab_header(
+    title = "Market comparison",
+    subtitle = "Bedroom breakdown"
+  ) %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = c(2:5), decimals = 1)
 
 
 
-#unique listings that matched
-ltr_mtl %>% 
-  st_drop_geometry() %>% 
+### Amenities ###################################################################
+
+# furnished?
+unique_ltr %>% 
+  filter(!is.na(furnished)) %>% 
+  count(furnished) %>% 
+  mutate(perc = n/sum(n))
+
+unique_ltr %>% 
   filter(!is.na(ab_id)) %>% 
-  distinct(id) %>% 
-  nrow()
-
-#unique listings that did not match
-ltr_mtl %>% 
-  st_drop_geometry() %>% 
-  filter(is.na(ab_id)) %>% 
-  distinct(id) %>% 
-  nrow()
-
-#furnsihed listings that did not match vs matched
-ltr_mtl %>% 
-  st_drop_geometry() %>% 
-  filter(is.na(ab_id),
-         is.na(furnished)) %>% 
-  distinct(id) %>% 
   nrow() /
-  ltr_mtl %>% 
-  st_drop_geometry() %>% 
-  filter(is.na(ab_id)) %>% 
-  distinct(id) %>% 
+  unique_ltr %>% 
   nrow()
 
-#number of bedrooms
-ltr_mtl %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(ab_id),
-         !is.na(bedrooms)) %>% 
-  distinct(id, .keep_all = T) %>% 
-  summarize(mean(bedrooms))
+unique_ltr %>% 
+  filter(!is.na(ab_id)) %>% 
+  filter(!is.na(furnished)) %>% 
+  count(furnished) %>% 
+  mutate(perc = n/sum(n))
+
+unique_ltr %>% 
+  filter(is.na(ab_id)) %>% 
+  filter(!is.na(furnished)) %>% 
+  count(furnished) %>% 
+  mutate(perc = n/sum(n))
+
+#short or long term?
+unique_ltr %>% 
+  filter(!is.na(ab_id)) %>% 
+  filter(!is.na(short_long)) %>% 
+  nrow() / 
+  unique_ltr %>% 
+  filter(!is.na(ab_id)) %>% 
+  nrow()
+
+unique_ltr %>% 
+  filter(!is.na(ab_id)) %>% 
+  filter(!is.na(short_long)) %>% 
+  count(short_long) %>% 
+  mutate(perc = n/sum(n))
+
 
 ### typical unit that  went on the LTR market ###################################
 # % of units that went on LTR for all hosts that put at least 1 listing on LTR
@@ -404,15 +481,3 @@ average_rent %>%
 
 
 
-
-
-#matches and non-matches distribution by number of bedrooms compared to the island of Mtl and the entire STR listings population
-
-bedroom_breakdown <- matrix(c("3.0 %", "13.3 %", "16.4 %", "10.3 %", 
-                              "42.0 %", "45.2 %", "35.6 %", "35.6 %", 
-                              "37.0 %", "27.2 %", "25.0 %", "32.5 %",
-                              "18.0 %", "10.6 %", "22.8 %", "20.5 %"),ncol=4,byrow=TRUE)
-colnames(bedroom_breakdown) <- c("Island of Montreal","STRs in Montreal","Matches", "Non-matches")
-rownames(bedroom_breakdown) <- c("Studios","1-Bedroom","2-Bedrooms", "3-Bedrooms and more")
-grid.table(bedroom_breakdown)
-         
