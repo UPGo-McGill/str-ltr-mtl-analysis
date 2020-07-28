@@ -12,6 +12,25 @@ load("data/str_montreal.Rdata")
 load("data/ltr_matches.Rdata")
 
 
+# # questions for later:
+
+# # 24% of all airbnb that matched in 2020 were last scraped on Airbnb on january 29th.
+# property %>% 
+#   st_drop_geometry() %>% 
+#   filter(ltr_id %in% ltr$id) %>% 
+#   filter(scraped == "2020-01-29") %>% 
+#   nrow() / 
+#   property %>% 
+#   st_drop_geometry() %>% 
+#   filter(ltr_id %in% ltr$id) %>% 
+#   filter(scraped >= "2020-01-01") %>% 
+#   nrow()
+
+# Some property_ID from homeaway have a scraped date prior to their created date.
+
+
+
+
 ### Overview #################################################################
 
 # distinct LTR listings
@@ -61,7 +80,9 @@ perc_size_units$`Number of bedrooms` <-
   c(0, 1, 2, 3)
 
 perc_size_units$`Island of Montreal` <- 
-  c(0.03, 0.133, 0.164, 0.103)
+  c(0.099, 0.272, 0.525, 0.103)
+
+
 
 for(i in 1:length(perc_size_units$`Number of bedrooms`)) {
   
@@ -146,6 +167,59 @@ unique_ltr %>%
   filter(!is.na(short_long)) %>% 
   count(short_long) %>% 
   mutate(perc = n/sum(n))
+
+
+### Asking rent #################################################################
+
+unique_ltr %>% 
+  filter(price >425, price <8000) %>% 
+  mutate(matched = if_else(!is.na(ab_id), TRUE, FALSE)) %>% 
+  group_by(matched) %>%
+  summarize(avg_price = mean(price))
+
+
+### Typical STR units going to LTR #####################################
+
+# Age of listings
+
+property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_id),
+         scraped >= "2020-01-01") %>%
+  summarize(mean(scraped-created, na.rm = T))
+
+# FREH
+
+ltr_unique_ab_id %>% 
+  filter(ab_id %in% filter(FREH, date >= "2020-01-01")$property_ID) %>% 
+  nrow() /
+  ltr_unique_ab_id %>% 
+  nrow()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### typical unit that  went on the LTR market ###################################
