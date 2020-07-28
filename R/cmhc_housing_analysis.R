@@ -391,33 +391,41 @@ save(total_vac_rate_2018, file = "output/tot_vacrate_2018.Rdata")
 ########making tables for the report ##### 
 
 #vac_rate_table <- tibble(`Listing Type` = character(length = length(tot_vacancy_2018_2019$bedroom_type)))
- #                        , 
- #                                `Daily active listings (average)` = numeric(length = length(unique_listing_type)),
- #                                `Annual revenue (CAD)` = numeric(length = length(unique_listing_type)),
-  #                               `% of all listings` = numeric(length = length(unique_listing_type)),
-   #                              `% of annual revenue` = numeric(length = length(unique_listing_type)),
-  #                               `% average daily listing growth` = numeric(length = length(unique_listing_type))
+#                        , 
+#                                `Daily active listings (average)` = numeric(length = length(unique_listing_type)),
+#                                `Annual revenue (CAD)` = numeric(length = length(unique_listing_type)),
+#                               `% of all listings` = numeric(length = length(unique_listing_type)),
+#                              `% of annual revenue` = numeric(length = length(unique_listing_type)),
+#                               `% average daily listing growth` = numeric(length = length(unique_listing_type))
 #)
 
 vac_rate_bd_breakdown <- matrix(c("3.3 %", "1.6 %", "1.5 %", "0.8 %", 
-                              "1.4 %", "2.2 %", "2.8 %", "N/A", 
-                              "N/A", "1.3 %", "0.7 %", "0.3 %"),ncol=4,byrow=TRUE)
-colnames(vac_rate_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms and more")
-rownames(vac_rate_bd_breakdown) <- c("City of Montreal","Downtown/Iles-des-soeurs","Plateau-Mont-Royal")
+                                  "1.4 %", "2.2 %", "2.8 %", "N/A", 
+                                  "N/A", "1.3 %", "0.7 %", "0.3 %"),ncol=4,byrow=TRUE)
+colnames(vac_rate_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms or more")
+rownames(vac_rate_bd_breakdown) <- c("City of Montreal","Downtown/Îles-des-Sœurs","Plateau-Mont-Royal")
 grid.table(vac_rate_bd_breakdown)
 
 
 ggsave("output/vac_rate_bd_breakdown.pdf", plot = vac_rate_bd_breakdown) #, width = 8,
-     #  height = 5, units = "in", useDingbats = FALSE)
+# height = 5, units = "in", useDingbats = FALSE)
 
 
-avg_rent_bd_breakdown <- matrix(c("3.3 %", "1.6 %", "1.5 %", "0.8 %", 
-                                  "1.4 %", "2.2 %", "2.8 %", "N/A", 
-                                  "N/A", "1.3 %", "0.7 %", "0.3 %"),ncol=4,byrow=TRUE)
-colnames(vac_rate_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms and more")
-rownames(vac_rate_bd_breakdown) <- c("City of Montreal","Downtown/Iles-des-soeurs","Plateau-Mont-Royal")
-grid.table(vac_rate_bd_breakdown)
+avg_rent_bd_breakdown <- matrix(c("$660", "$752", "$851", "$1,118", 
+                                  "$910", "$1,167", "$1,571", "$1,631", 
+                                  "$747", "$907", "$1,035", "1,601"),ncol=4,byrow=TRUE)
+colnames(avg_rent_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms or more")
+rownames(avg_rent_bd_breakdown) <- c("City of Montreal","Downtown/Îles-des-Sœurs","Plateau-Mont-Royal")
+grid.table(avg_rent_bd_breakdown)
 
 
-ggsave("output/vac_rate_bd_breakdown.pdf", plot = vac_rate_bd_breakdown, width = 8,
+ggsave("~Desktop/RA/str-ltr-mtl-analysis/output/avg_rent_bd_breakdown.pdf", plot = avg_rent_bd_breakdown, width = 8,
        height = 5, units = "in", useDingbats = FALSE)
+
+
+rent_change_bd_breakdown <-matrix(c("4.3 %", "4.2 %", "3.7 %", "3.5 %", 
+                                    "5.0 %", "4.5 %", "3.3 %", "2.2 %", 
+                                    "5.6 %", "5.1 %", "5.6 %", "N/A"),ncol=4,byrow=TRUE)
+colnames(rent_change_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms or more")
+rownames(rent_change_bd_breakdown) <- c("City of Montreal","Downtown/Îles-des-Sœurs","Plateau-Mont-Royal")
+grid.table(rent_change_bd_breakdown)
