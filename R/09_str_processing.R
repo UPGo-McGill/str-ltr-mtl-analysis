@@ -53,7 +53,7 @@ with_progress({
     GH %>% 
     mutate(status = furrr::future_map2_chr(date, property_IDs, ~{
       pb()
-      status <- unique(daily_GH[date == x & property_ID %in% y, status])
+      status <- unique(daily_GH[date == .x & property_ID %in% .y, status])
       status <- case_when(
         "R" %in% status ~ "R",
         "A" %in% status ~ "A",
