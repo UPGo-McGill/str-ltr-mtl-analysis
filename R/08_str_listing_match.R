@@ -27,6 +27,8 @@ ab_matches <-
   ) %>% 
   select(x_name, y_name)
 
+rm(dl_location, matches)
+
 
 # Identify groupings ------------------------------------------------------
 

@@ -19,6 +19,7 @@ library(upgo)
 library(strr)
 library(sf)
 library(future)
+library(progressr)
 
 
 # Set global variables ----------------------------------------------------
