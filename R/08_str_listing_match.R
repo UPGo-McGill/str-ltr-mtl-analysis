@@ -172,4 +172,4 @@ host <- strr_host(daily)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, file = "str_processed.Rdata")
+save(property, daily, host, file = "data/str_processed.Rdata")
