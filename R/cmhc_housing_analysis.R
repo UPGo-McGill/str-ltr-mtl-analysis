@@ -413,7 +413,7 @@ ggsave("output/vac_rate_bd_breakdown.pdf", plot = vac_rate_bd_breakdown) #, widt
 
 avg_rent_bd_breakdown <- matrix(c("$660", "$752", "$851", "$1,118", 
                                   "$910", "$1,167", "$1,571", "$1,631", 
-                                  "$747", "$907", "$1,035", "1,601"),ncol=4,byrow=TRUE)
+                                  "$747", "$907", "$1,035", "$1,601"),ncol=4,byrow=TRUE)
 colnames(avg_rent_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms or more")
 rownames(avg_rent_bd_breakdown) <- c("City of Montreal","Downtown/Îles-des-Sœurs","Plateau-Mont-Royal")
 grid.table(avg_rent_bd_breakdown)
@@ -429,3 +429,27 @@ rent_change_bd_breakdown <-matrix(c("4.3 %", "4.2 %", "3.7 %", "3.5 %",
 colnames(rent_change_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms or more")
 rownames(rent_change_bd_breakdown) <- c("City of Montreal","Downtown/Îles-des-Sœurs","Plateau-Mont-Royal")
 grid.table(rent_change_bd_breakdown)
+
+
+#### try this later 
+
+perc_size_units <- tibble(`Number of bedrooms` = numeric(length = 4), 
+                          `Island of Montreal` = numeric(length = 4),
+                          `STR market (2019)` = numeric(length = 4),
+                          `LTR matches` = numeric(length = 4),
+                          `LTR non-matches` = numeric(length = 4)
+)
+perc_size_units$`Number of bedrooms` <- 
+  c(0, 1, 2, 3)
+perc_size_units$`Island of Montreal` <- 
+  c(0.03, 0.133, 0.164, 0.103)
+perc_size_units$`Number of bedrooms`[4] <- c("3+")
+perc_size_units$`Number of bedrooms`[1] <- c("Studio")
+perc_size_units %>%
+  gt() %>% 
+  tab_header(
+    title = "Market comparison",
+    subtitle = "Bedroom breakdown"
+  ) %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = c(2:5), decimals = 1)
