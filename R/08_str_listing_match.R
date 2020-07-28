@@ -1,42 +1,37 @@
 #### 08 STR LISTING MATCH ######################################################
 
-#' This script produces the TKTK objects. The script is extremely time-consuming and 
-#' memory-intensive to run, so it should only be rerun when image matching needs 
-#' to be rebuilt from scratch. In addition, the script downloads hundreds of 
-#' thousands of photos to a specified folder, so it requires approximately 50 GB 
-#' of free storage space.
-
-#' External dependencies:
-#' - Access to the UPGo database
-#' - Listings scraped from Kijiji and Craigslist with upgo::upgo_scrape_kj and
-#'   upgo::upgo_scrape_cl
+#' This script updates the `str_processed.Rdata` object. The script is 
+#' moderately time-consuming to run, and should be rerun when STR data or image 
+#' data has changed.
 
 source("R/01_startup.R")
 
 
 # Load previous data ------------------------------------------------------
 
+load("data/str_processed.Rdata")
+
+load("data/matches_processed.Rdata")
+
+dl_location <- "/Volumes/Data/Scrape photos/mtl"
 
 
+# Clean up ab_matches -----------------------------------------------------
 
-
-# Load image match results ------------------------------------------------
-
-# NOT REPRODUCIBLE: Load pre-computed set of matches
-load("~/Documents/Academic/Code/image-recognition/data/mtl_ab_matches.Rdata")
-
-# Clean up
-mtl_ab_matches <- 
-  mtl_ab_matches %>% 
-  filter(confirmation == "match") %>% 
-  select(x_name, y_name) %>% 
-  mutate(across(c(x_name, y_name), str_extract, '(?<=ab.).*(?=.jpg)'))
+ab_matches <-
+  ab_matches %>% 
+  filter(confirmation == "match") %>%
+  mutate(
+    x_name = str_replace_all(x_name, paste0(dl_location, "/ab/|.jpg"), ""),
+    y_name = str_replace_all(y_name, paste0(dl_location, "/ab/|.jpg"), "")
+  ) %>% 
+  select(x_name, y_name)
 
 
 # Identify groupings ------------------------------------------------------
 
 # Convert to list of pairs
-pair_list <- map2(mtl_ab_matches$x_name, mtl_ab_matches$y_name, ~c(.x, .y))
+pair_list <- pmap(ab_matches, c)
 pair_list <- map(pair_list, list)
 
 # Helper functions to merge lists
@@ -56,7 +51,7 @@ reduce_fun <- function(pairs) {
 # Merge lists
 groupings <- reduce_fun(pair_list)
 
-rm(mtl_ab_changes, mtl_ab_matches, pair_list)
+rm(ab_matches, pair_list)
 
 
 # Modify host_ID from groupings -------------------------------------------
@@ -100,7 +95,7 @@ rm(host_change_table, host_IDs, can_merge, merge_fun, reduce_fun)
 
 # Get matches -------------------------------------------------------------
 
-matches <- 
+group_matches <- 
   groupings %>% 
   map(~{
     property %>% 
@@ -109,11 +104,11 @@ matches <-
              scraped - created >= 7)
   })
 
-matches <- matches[map_int(matches, nrow) > 0]
-matches <- matches %>% map(arrange, created)
+group_matches <- group_matches[map_int(group_matches, nrow) > 0]
+group_matches <- group_matches %>% map(arrange, created)
 
-matches <- 
-  matches %>%
+group_matches <- 
+  group_matches %>%
   map(~{
     next_created <- c(.x$created, NA)
     # Drop the first element to shift all created dates up a row
@@ -123,7 +118,7 @@ matches <-
       filter(scraped < next_created | is.na(next_created)) 
   })
 
-matches <- matches[map_int(matches, nrow) > 1]
+group_matches <- group_matches[map_int(group_matches, nrow) > 1]
 
 rm(groupings)
 
@@ -131,7 +126,7 @@ rm(groupings)
 # Collapse property_IDs ---------------------------------------------------
 
 property_change_table <- 
-  map_dfr(matches, 
+  map_dfr(group_matches, 
           ~tibble(
             property_ID = .x$property_ID, 
             new_PID = 
@@ -166,10 +161,15 @@ property <-
          scraped = if_else(!is.na(new_scraped), new_scraped, scraped)) %>% 
   select(-new_created, -new_scraped)
 
-rm(matches, property_change_collapsed, property_change_table, 
+rm(group_matches, property_change_collapsed, property_change_table, 
    property_to_delete)
 
 
 # Recalculate host table --------------------------------------------------
 
 host <- strr_host(daily)
+
+
+# Save output -------------------------------------------------------------
+
+save(property, daily, host, file = "str_processed.Rdata")
