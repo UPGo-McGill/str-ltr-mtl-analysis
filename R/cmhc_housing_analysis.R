@@ -460,3 +460,28 @@ avg_rent_percent_change_tbl %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(2:5), decimals = 1)
 
+vac_rate_bd_breakdown2 <- tibble(`Number of bedrooms` = numeric(length = 4), 
+                                      `City of Montreal` = numeric(length = 4),
+                                      `Downtown/Îles-des-Sœurs` = numeric(length = 4),
+                                      `Plateau-Mont-Royal` = numeric(length = 4)
+)
+
+vac_rate_bd_breakdown2$`Number of bedrooms` <- 
+  c(0, 1, 2, 3)
+vac_rate_bd_breakdown2$`City of Montreal` <- 
+  c('3.3%', '1.6%', '1.5%', '0.8%')
+vac_rate_bd_breakdown2$`Downtown/Îles-des-Sœurs` <- 
+  c('1.4%', '2.2%', '2.8%', 'N/A')
+vac_rate_bd_breakdown2$`Plateau-Mont-Royal` <- 
+  c('N/A', '1.3%', '0.7%', '0.3%')
+vac_rate_bd_breakdown2$`Number of bedrooms`[4] <- c("3+")
+vac_rate_bd_breakdown2$`Number of bedrooms`[1] <- c("Studio or Bachelor")
+
+vac_rate_bd_breakdown2 %>%
+  gt() %>% 
+  tab_header(
+    title = "2019 Vacancy rates by unit size in selected CMHC zones",
+    subtitle = "Bedroom breakdown"
+  ) %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = c(2:5), decimals = 1)
