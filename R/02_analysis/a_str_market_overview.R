@@ -389,7 +389,7 @@ daily %>%
 
 revenue_2019 %>% 
   st_drop_geometry() %>% 
-  filter(revenue_LTM > 0, !is.na(host_ID)) %>% 
+  filter(revenue_LTM > 0) %>% 
   group_by(host_ID) %>% 
   summarize("host_rev" = sum(revenue_LTM)) %>% 
   pull(host_rev) %>%
@@ -409,6 +409,8 @@ revenue_2019 %>%
 
 
 ## Top earning host(s)
+
+
 revenue_2019 %>% 
   st_drop_geometry() %>% 
   filter(!is.na(host_ID)) %>% 
@@ -771,14 +773,31 @@ housing_loss <-
   
 
 # Current housing loss figure
-sum(filter(housing_loss, date == key_date)$`Housing units`)
+sum(filter(housing_loss, date == "2019-12-31")$`Housing units`)
+
+
+# housing loss of family size units.
+property %>% 
+  filter(property_ID %in% filter(FREH, date == "2019-12-31")$property_ID,
+         bedrooms >= 2)
+
+GH %>% 
+  View()
+  st_drop_geometry() %>% 
+  filter(status != "B",
+         date >= LTM_start_date,
+         date <= LTM_end_date) %>% 
+  count(ghost_ID) %>% View()
+  count(date, housing_units) %>% 
+  group_by(date) %>% 
+  summarize(housing_loss = sum(housing_units * n)) %>% 
+  summarize(mean(housing_loss))
+  count(ghost_ID, housing_units) %>% 
+  View()
 
 
 
 
-
-
-
-
+  
 ## Save files #####################################
 save.image(file = "data/str_montreal_overview.Rdata")
