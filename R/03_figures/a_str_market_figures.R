@@ -44,12 +44,6 @@ daily %>%
   )
 
 
-daily %>% 
-  filter(housing, date >= "2020-01-01", status == "A") %>% 
-  count(date) %>% 
-  ggplot()+
-  geom_line(aes(date, n))
-
 ### Montreal maps ###############################################################
 
 
@@ -101,7 +95,7 @@ daily %>%
   geom_sf(aes(fill = percentage), lwd = NA, colour = "white") +
   scale_fill_gradientn(colors = col_palette[c(5, 2, 3)],
                        na.value = "grey80",
-                       limits = c(0, 0.03),
+                       limits = c(0, 0.05),
                        oob = scales::squish,
                        labels = scales::percent
                        ) +
@@ -112,7 +106,11 @@ daily %>%
         # legend.title = element_text(family = "Futura", face = "bold", 
         #                             size = 10),
         # legend.text = element_text(family = "Futura", size = 10)
-  )
+  )+
+  coord_sf( ##### Raffle brang me outside the city of Mtl. 
+    xlim = sf::st_bbox(city)[c(1,3)],
+    ylim = sf::st_bbox(city)[c(2,4)],
+    expand = FALSE)
 
 
 property %>%
@@ -173,6 +171,28 @@ daily %>%
         # legend.position = "none"
         )
 
+## Revenue concentration
+
+revenue_2019 %>% 
+  st_drop_geometry %>%
+  group_by(host_ID) %>% 
+  summarize(revenue_LTM = sum(revenue_LTM)) %>% 
+  mutate(rev_percentile = round(percent_rank(revenue_LTM) * 100)) %>% 
+  group_by(rev_percentile) %>% 
+  summarize(sum = sum(revenue_LTM)) %>% 
+  mutate(perc = sum/sum(sum)) %>% 
+  ggplot()+
+  geom_rect(aes(ymin = -Inf, ymax = Inf, xmin = 90, xmax = 100),
+            alpha = 0.002)+
+  geom_line(aes(rev_percentile, perc)) +
+  scale_x_continuous(breaks = round(seq(0, 100, by = 10),1)) +
+  # xlim(rev(c(0,100))) +
+  xlab("Hosts percentile") +
+  ylab("% of total host revenue")+
+  ggtitle("Revenue concentration")+
+  scale_y_continuous(labels = scales::percent)+
+  geom_text(aes(x=90, label="70.9% of total revenue", y=0.2), colour="black", angle=90, vjust = 1.2)
+
 
 
 
@@ -187,7 +207,7 @@ housing_loss %>%
            lwd = 0) +
   theme_minimal() +
   # scale_y_continuous(name = NULL, label = scales::comma, limits = c(0, 200)) +
-  scale_x_date(name = NULL, limits = c(as.Date("2020-01-01"), NA)) +
+  scale_x_date(name = NULL, limits = c(as.Date("2017-01-01"), NA)) +
   scale_fill_manual(values = col_palette[3:1]) +
   theme(legend.position = "bottom", 
         # text = element_text(family = "Futura", face = "plain"),
@@ -208,7 +228,7 @@ ML_table %>%
               method = "loess", span = 0.25) +
   theme_minimal() +
   scale_y_continuous(name = NULL, label = scales::percent) +
-  scale_x_date(name = NULL, limits = c(as.Date("2016-06-01"), NA)) +
+  scale_x_date(name = NULL, limits = c(as.Date("2017-06-01"), NA)) +
   scale_colour_manual(values = col_palette[c(1, 3)]) +
   theme(legend.position = "bottom", 
         text = element_text(family = "Futura", face = "plain"),
@@ -247,7 +267,6 @@ daily_variation_grouped <-
         rename(select(daily_variation_grouped, date2020, `2019-2020`), date = date2020,  variation = `2019-2020`))
 
 daily_variation_grouped %>% 
-  mutate(variation = variation*100) %>% 
   ggplot()+
   # geom_rect(aes(ymin = 0, ymax = Inf, xmin = as.Date("2018-01-01", "%Y-%m-%d"), xmax = as.Date("2020-01-01", "%Y-%m-%d")), 
   #           alpha = 0.002, fill = "green")+
@@ -257,10 +276,69 @@ daily_variation_grouped %>%
   ggtitle("Daily variation compared to same date one year before")+
   xlab("Date (daily)")+
   ylab("Variation compared to a year before (%)") +
-  scale_x_date(limits = as.Date(c("2018-01-01","2020-01-01")),
+  scale_x_date(limits = as.Date(c("2018-01-01","2020-05-31")),
                date_labels = "%Y (%b)")+
-  ylim(c(-20,15))+
-  geom_hline(yintercept=0, linetype="dashed", color = "black")
+  # ylim(c(-20,15))+
+  geom_hline(yintercept=0, linetype="dashed", color = "black")+
+  scale_y_continuous(labels = scales::percent)
+
+
+###  Listings in 2020 and COVID ####################################
+
+
+ggplot()+
+  geom_line(data = daily %>% 
+              filter(housing, date >= "2017-12-29", status == "R") %>% 
+              count(date, status) %>% 
+              mutate(n = data.table::frollmean(n, 7)),
+            aes(date, n, color = status), alpha = 0.4)+
+  geom_smooth(data = daily %>% 
+                filter(housing, date >= "2017-12-29", status == "R") %>% 
+                count(date, status) %>% 
+                mutate(n = data.table::frollmean(n, 7)),
+              aes(date, n, color = status), se = F)+
+  geom_line(data = daily %>% 
+              filter(housing, date >= "2017-12-29", status == "A") %>% 
+              count(date, status) %>% 
+              mutate(n = data.table::frollmean(n, 7)),
+            aes(date, n, color = status), alpha = 0.4)+
+  geom_smooth(data = daily %>% 
+                filter(housing, date >= "2017-12-29", status == "A") %>% 
+                count(date, status) %>% 
+                mutate(n = data.table::frollmean(n, 7)),
+              aes(date, n, color = status), se = F)+
+  ggtitle("Reserved and available listings (Frollmean 7)")
+
+
+
+ggplot()+
+  geom_line(data = daily %>% 
+              filter(housing, date >= "2019-12-29", status == "R") %>% 
+              count(date, status) %>% 
+              mutate(n = data.table::frollmean(n, 7)),
+            aes(date, n, color = status))+
+  stat_smooth(geom='line', data = daily %>% 
+                filter(housing, date >= "2019-12-29", status == "R") %>% 
+                count(date, status) %>% 
+                mutate(n = data.table::frollmean(n, 7)),
+              aes(date, n, color = status), se = F, alpha = 0.5)+
+  geom_line(data = daily %>% 
+              filter(housing, date >= "2019-12-29", status == "A") %>% 
+              count(date, status) %>% 
+              mutate(n = data.table::frollmean(n, 7)),
+            aes(date, n, color = status))+
+  stat_smooth(geom='line', data = daily %>% 
+                filter(housing, date >= "2019-12-29", status == "A") %>% 
+                count(date, status) %>% 
+                mutate(n = data.table::frollmean(n, 7)),
+              aes(date, n, color = status), se = F, alpha = 0.5)+
+  ggtitle("Reserved and available listings (2020, Frollmean 7)")
+
+
+
+
+
+
 
 
 
