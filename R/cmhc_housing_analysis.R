@@ -8,6 +8,7 @@ library(ggplot2)
 library(tidyr)
 library(stringr)
 library(gridExtra)
+library(gt)
 #-----------------------
 
 
@@ -433,23 +434,29 @@ grid.table(rent_change_bd_breakdown)
 
 #### try this later 
 
-perc_size_units <- tibble(`Number of bedrooms` = numeric(length = 4), 
-                          `Island of Montreal` = numeric(length = 4),
-                          `STR market (2019)` = numeric(length = 4),
-                          `LTR matches` = numeric(length = 4),
-                          `LTR non-matches` = numeric(length = 4)
+avg_rent_percent_change_tbl <- tibble(`Number of bedrooms` = numeric(length = 4), 
+                          `City of Montreal` = character(length = 4),
+                          `Downtown/Îles-des-Sœurs` = character(length = 4),
+                          `Plateau-Mont-Royal` = character(length = 4)
 )
-perc_size_units$`Number of bedrooms` <- 
+
+avg_rent_percent_change_tbl$`Number of bedrooms` <- 
   c(0, 1, 2, 3)
-perc_size_units$`Island of Montreal` <- 
-  c(0.03, 0.133, 0.164, 0.103)
-perc_size_units$`Number of bedrooms`[4] <- c("3+")
-perc_size_units$`Number of bedrooms`[1] <- c("Studio")
-perc_size_units %>%
+avg_rent_percent_change_tbl$`City of Montreal` <- 
+  c('4.3% ($660)', '4.2% ($752)', '3.7% ($851)', '3.5% ($1,118)')
+avg_rent_percent_change_tbl$`Downtown/Îles-des-Sœurs` <- 
+  c('5.0% ($910)', '4.5% ($1,167)', '3.3% ($1,571)', '2.2% ($1,631)')
+avg_rent_percent_change_tbl$`Plateau-Mont-Royal` <- 
+  c('5.6% ($747)', '5.1% ($907)', '5.6% ($1,035)', 'N/A ($1,601)')
+avg_rent_percent_change_tbl$`Number of bedrooms`[4] <- c("3+")
+avg_rent_percent_change_tbl$`Number of bedrooms`[1] <- c("Studio or Bachelor")
+
+avg_rent_percent_change_tbl %>%
   gt() %>% 
   tab_header(
-    title = "Market comparison",
+    title = "Change in rent by unit size in selected CMHC zones (2018-2019), with 2019 average rents",
     subtitle = "Bedroom breakdown"
   ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(2:5), decimals = 1)
+
