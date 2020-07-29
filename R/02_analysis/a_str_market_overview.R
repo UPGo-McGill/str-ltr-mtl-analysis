@@ -8,11 +8,12 @@ library(ggplot2)
 library(data.table)
 
 
-load("data/str_montreal.Rdata")
+# load("data/str_montreal.Rdata")
+load("data/str_processed.Rdata")
+load("data/geometry.Rdata")
 
 # load data about FREH predictions of newer listings
 load("data/daily_pred.Rdata")
-
 
 
 #LTM start_date and end_date
@@ -76,7 +77,7 @@ daily %>%
          date <= LTM_end_date, date >= LTM_start_date,
          status == "R") %>%
   group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price) * exchange_rate) %>% 
+  summarize(revenue_LTM = sum(price) ) %>% 
   inner_join(property, .)
 
 sum(revenue_2019$revenue_LTM, na.rm = T)
@@ -85,6 +86,7 @@ sum(revenue_2019$revenue_LTM, na.rm = T)
 
 # YOY growth rate
 
+#number of active daily listings on jan 1st
 #2020-2019
 (
   filter(daily, housing, status != "B", date == LTM_start_date + years(1)) %>% 
@@ -109,6 +111,39 @@ sum(revenue_2019$revenue_LTM, na.rm = T)
   (filter(daily, housing, status != "B", date == LTM_start_date - years(2)) %>% 
   nrow() + 960) *100
 
+
+
+# YOY growth of average daily active listings
+# 2019 to 2020
+(filter(daily, housing, status != "B", date >= LTM_start_date + years(1), date <= max(date)) %>% 
+    count(date) %>% 
+    summarize(mean(n)) - 
+    filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
+    count(date) %>% 
+    summarize(mean(n))) /
+  filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
+  count(date) %>% 
+  summarize(mean(n))
+# 2018 to 2019
+(filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
+    count(date) %>% 
+    summarize(mean(n)) - 
+    filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+    count(date) %>% 
+    summarize(mean(n))) /
+  filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+  count(date) %>% 
+  summarize(mean(n))
+# 2017 to 2019
+(filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+    count(date) %>% 
+    summarize(mean(n)) - 
+    filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
+    count(date) %>% 
+    summarize(mean(n)) + 960) /
+  filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
+  count(date) %>% 
+  summarize(mean(n) + 960)
 
 
 
@@ -161,7 +196,7 @@ for (i in 1:length(unique_listing_type)) { # testing a bigger loop, good one wit
   listing_type_breakdown[i,3] <- daily %>%
     filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
            listing_type == unique_listing_type[[i]]) %>%
-    summarize(sum(price * exchange_rate))
+    summarize(sum(price ))
   
   listing_type_breakdown[i,4] <- daily %>%
     filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
@@ -242,7 +277,7 @@ for (i in 1:length(boroughs$borough)) { # testing a bigger loop, good one with t
       boroughs_breakdown[i,3] <- daily %>%
         filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
                borough == boroughs$borough[[i]]) %>%
-        summarize(sum(price * exchange_rate))
+        summarize(sum(price ))
 
       boroughs_breakdown[i,4] <- daily %>%
         filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
@@ -356,7 +391,7 @@ revenue_2019 %>%
   st_drop_geometry() %>% 
   filter(revenue_LTM > 0, !is.na(host_ID)) %>% 
   group_by(host_ID) %>% 
-  summarize("host_rev" = sum(revenue_LTM)*exchange_rate) %>% 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
   pull(host_rev) %>%
   quantile() %>% 
   as.list() %>% 
@@ -378,7 +413,7 @@ revenue_2019 %>%
   st_drop_geometry() %>% 
   filter(!is.na(host_ID)) %>% 
   group_by(host_ID) %>% 
-  summarize("host_rev" = sum(revenue_LTM) * exchange_rate) %>% 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
   arrange(-host_rev) %>% 
   drop_na() %>% 
   filter(host_rev >= 500000) %>% 
@@ -411,7 +446,7 @@ ML_table <-
   summarize(Listings = mean(multi),
             Revenue = sum(price * (status == "R") * multi * 
                             exchange_rate, na.rm = TRUE) / 
-              sum(price * (status == "R") * exchange_rate, na.rm = TRUE))
+              sum(price * (status == "R") , na.rm = TRUE))
 
 ML_table %>% 
   filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
