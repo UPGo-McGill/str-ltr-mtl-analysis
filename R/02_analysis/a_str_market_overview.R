@@ -683,6 +683,7 @@ GH %>%
 GH_total <-
   GH %>%
   st_drop_geometry() %>%
+  filter(status != "B") %>% 
   group_by(date) %>%
   summarize(GH_units = sum(housing_units)) %>%
   mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
@@ -779,7 +780,7 @@ sum(filter(housing_loss, date == "2019-12-31")$`Housing units`)
 # housing loss of family size units.
 property %>% 
   filter(property_ID %in% filter(FREH, date == "2019-12-31")$property_ID,
-         bedrooms >= 2)
+         bedrooms == 2)
 
 GH %>% 
   View()
@@ -794,8 +795,16 @@ GH %>%
   summarize(mean(housing_loss))
   count(ghost_ID, housing_units) %>% 
   View()
-
-
+  
+(daily %>% 
+    filter(date >= LTM_start_date, date <= LTM_end_date, status == "R") %>% 
+    nrow() -
+    daily %>% 
+    filter(date >= LTM_start_date -years(1), date <= LTM_end_date-years(1), status == "R") %>% 
+    nrow()) /
+    daily %>% 
+    filter(date >= LTM_start_date -years(1), date <= LTM_end_date-years(1), status == "R") %>% 
+    nrow()
 
 
   
