@@ -8,6 +8,7 @@ library(ggplot2)
 library(tidyr)
 library(stringr)
 library(gridExtra)
+library(gt)
 #-----------------------
 
 
@@ -413,7 +414,7 @@ ggsave("output/vac_rate_bd_breakdown.pdf", plot = vac_rate_bd_breakdown) #, widt
 
 avg_rent_bd_breakdown <- matrix(c("$660", "$752", "$851", "$1,118", 
                                   "$910", "$1,167", "$1,571", "$1,631", 
-                                  "$747", "$907", "$1,035", "1,601"),ncol=4,byrow=TRUE)
+                                  "$747", "$907", "$1,035", "$1,601"),ncol=4,byrow=TRUE)
 colnames(avg_rent_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms or more")
 rownames(avg_rent_bd_breakdown) <- c("City of Montreal","Downtown/Îles-des-Sœurs","Plateau-Mont-Royal")
 grid.table(avg_rent_bd_breakdown)
@@ -429,3 +430,58 @@ rent_change_bd_breakdown <-matrix(c("4.3 %", "4.2 %", "3.7 %", "3.5 %",
 colnames(rent_change_bd_breakdown) <- c("Studio and Bachelors","1-Bedroom","2-Bedrooms", "3-Bedrooms or more")
 rownames(rent_change_bd_breakdown) <- c("City of Montreal","Downtown/Îles-des-Sœurs","Plateau-Mont-Royal")
 grid.table(rent_change_bd_breakdown)
+
+
+#### try this later 
+
+avg_rent_percent_change_tbl <- tibble(`Number of bedrooms` = numeric(length = 4), 
+                          `City of Montreal` = character(length = 4),
+                          `Downtown/Îles-des-Sœurs` = character(length = 4),
+                          `Plateau-Mont-Royal` = character(length = 4)
+)
+
+avg_rent_percent_change_tbl$`Number of bedrooms` <- 
+  c(0, 1, 2, 3)
+avg_rent_percent_change_tbl$`City of Montreal` <- 
+  c('4.3% ($660)', '4.2% ($752)', '3.7% ($851)', '3.5% ($1,118)')
+avg_rent_percent_change_tbl$`Downtown/Îles-des-Sœurs` <- 
+  c('5.0% ($910)', '4.5% ($1,167)', '3.3% ($1,571)', '2.2% ($1,631)')
+avg_rent_percent_change_tbl$`Plateau-Mont-Royal` <- 
+  c('5.6% ($747)', '5.1% ($907)', '5.6% ($1,035)', 'N/A ($1,601)')
+avg_rent_percent_change_tbl$`Number of bedrooms`[4] <- c("3+")
+avg_rent_percent_change_tbl$`Number of bedrooms`[1] <- c("Studio or Bachelor")
+
+avg_rent_percent_change_tbl %>%
+  gt() %>% 
+  tab_header(
+    title = "Change in rent by unit size in selected CMHC zones (2018-2019), with 2019 average rents",
+    subtitle = "Bedroom breakdown"
+  ) %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = c(2:5), decimals = 1)
+
+vac_rate_bd_breakdown2 <- tibble(`Number of bedrooms` = numeric(length = 4), 
+                                      `City of Montreal` = numeric(length = 4),
+                                      `Downtown/Îles-des-Sœurs` = numeric(length = 4),
+                                      `Plateau-Mont-Royal` = numeric(length = 4)
+)
+
+vac_rate_bd_breakdown2$`Number of bedrooms` <- 
+  c(0, 1, 2, 3)
+vac_rate_bd_breakdown2$`City of Montreal` <- 
+  c('3.3%', '1.6%', '1.5%', '0.8%')
+vac_rate_bd_breakdown2$`Downtown/Îles-des-Sœurs` <- 
+  c('1.4%', '2.2%', '2.8%', 'N/A')
+vac_rate_bd_breakdown2$`Plateau-Mont-Royal` <- 
+  c('N/A', '1.3%', '0.7%', '0.3%')
+vac_rate_bd_breakdown2$`Number of bedrooms`[4] <- c("3+")
+vac_rate_bd_breakdown2$`Number of bedrooms`[1] <- c("Studio or Bachelor")
+
+vac_rate_bd_breakdown2 %>%
+  gt() %>% 
+  tab_header(
+    title = "2019 Vacancy rates by unit size in selected CMHC zones",
+    subtitle = "Bedroom breakdown"
+  ) %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = c(2:5), decimals = 1)

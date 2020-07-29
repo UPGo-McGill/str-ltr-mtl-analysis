@@ -794,3 +794,7 @@ save(city_vac_rate, file = "output/montreal_yoy_vac_rate.Rdata")
 
 
 
+
+
+
+
