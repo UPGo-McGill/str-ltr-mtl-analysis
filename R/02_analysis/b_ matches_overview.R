@@ -8,7 +8,8 @@ library(ggplot2)
 library(magicfor)
 
 
-load("data/str_montreal.Rdata")
+load("data/str_processed.Rdata")
+load("data/geometry.Rdata")
 load("data/ltr_matches.Rdata")
 
 
@@ -60,6 +61,7 @@ ltr %>%
   inner_join(unnest(ltr, ab_id), by = "ab_id") %>% 
   arrange(desc(scraped)) %>% 
   distinct(ab_id, .keep_all = T)
+
 #by boroughs
 ltr_unique_ab_id %>% 
   count(borough) %>% 
@@ -131,7 +133,7 @@ perc_size_units %>%
 
 # furnished?
 unique_ltr %>% 
-  filter(!is.na(furnished)) %>% 
+  # filter(!is.na(furnished)) %>% 
   count(furnished) %>% 
   mutate(perc = n/sum(n))
 
@@ -143,7 +145,7 @@ unique_ltr %>%
 
 unique_ltr %>% 
   filter(!is.na(ab_id)) %>% 
-  filter(!is.na(furnished)) %>% 
+  # filter(!is.na(furnished)) %>% 
   count(furnished) %>% 
   mutate(perc = n/sum(n))
 
@@ -155,8 +157,8 @@ unique_ltr %>%
 
 #short or long term?
 unique_ltr %>% 
-  filter(!is.na(ab_id)) %>% 
-  filter(!is.na(short_long)) %>% 
+  filter(!is.na(ab_id)) %>%
+  filter(!is.na(short_long)) %>%
   nrow() / 
   unique_ltr %>% 
   filter(!is.na(ab_id)) %>% 
@@ -164,7 +166,7 @@ unique_ltr %>%
 
 unique_ltr %>% 
   filter(!is.na(ab_id)) %>% 
-  filter(!is.na(short_long)) %>% 
+  # filter(!is.na(short_long)) %>% 
   count(short_long) %>% 
   mutate(perc = n/sum(n))
 
@@ -196,66 +198,92 @@ ltr_unique_ab_id %>%
   ltr_unique_ab_id %>% 
   nrow()
 
+# GH
 
+# ltr_unique_ab_id %>% 
+#   filter(ab_id %in% (GH %>% 
+#                       st_drop_geometry() %>% 
+#                       group_by(ghost_ID) %>% 
+#                       unnest(property_IDs) %>% 
+#                       pull(property_IDs))) %>% 
+#   nrow()
 
+# multilistings
+ltr_unique_ab_id %>% 
+  filter(ab_id %in% filter(daily, multi == T)$property_ID)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### typical unit that  went on the LTR market ###################################
-# % of units that went on LTR for all hosts that put at least 1 listing on LTR
-property %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_id)) %>% 
-  distinct(property_ID, .keep_all = T) %>% 
+# commercial operations
+(rbind(
+ltr_unique_ab_id %>% 
+  filter(ab_id %in% filter(daily, multi == T)$property_ID),
+ltr_unique_ab_id %>% 
+  filter(ab_id %in% FREH$property_ID),
+ltr_unique_ab_id %>% 
+  filter(ab_id %in% unlist(GH$property_IDs))) %>% 
+  distinct(ab_id)) %>% 
   nrow() /
-  property %>% 
-  st_drop_geometry() %>% 
-  filter(host_ID %in% filter(property, !is.na(ltr_id))$host_ID,
-         scraped >= "2020-01-01") %>% 
-  distinct(property_ID, .keep_all = T) %>% 
+  ltr_unique_ab_id %>% 
   nrow()
 
-### Who are the hosts that put listings on LTR ##################################
-#list of all the hosts that matched
-ltr_hosts_id <- 
+
+
+### STR units which matched #######################################################
+# commercial operations
+rbind(
+  property %>% 
+    filter(property_ID %in% filter(daily, multi == T)$property_ID, !is.na(ltr_ID)),
+  property %>% 
+    filter(property_ID %in% FREH$property_ID, !is.na(ltr_ID))) %>% 
+  nrow() /
+  property %>% 
+  filter(created <= max(scraped), scraped >= "2020-01-01") %>% 
+  nrow()
+
+# number of hosts
+
+property %>%
+  filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+  count(host_ID) %>% 
+  nrow() /
+  property %>%
+  filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+  nrow()
+
 property %>%
   st_drop_geometry() %>% 
-  filter(!is.na(ltr_id)) %>%
-  distinct(host_ID)
+  filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+  count(host_ID) %>% 
+  filter(n > 1) %>% 
+  arrange(desc(n))
 
-#median host income
-daily %>%
-  filter(housing,
-         date <= key_date, date > key_date - years(1),
-         status == "R", host_ID %in% ltr_hosts_id$host_ID) %>%
-  group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price) * exchange_rate) %>% 
-  left_join(property, .) %>% 
-  distinct(.keep_all = T) %>% 
-  filter(revenue_LTM > 0, !is.na(host_ID)) %>% 
+
+# percentage of hosts properties which made the switch from STR to LTR
+
+property %>%
+  filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+  nrow() /
+property %>% 
+  st_drop_geometry() %>% 
+  filter(host_ID %in% (property %>%
+                       st_drop_geometry() %>% 
+                       filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+                       pull(host_ID)), scraped >= "2020-01-01") %>% 
+  nrow()
+
+
+
+### type of hosts ############ #########################################
+# run revenue_2019 from a_str_market_overview.R script first
+
+revenue_2019 %>% 
+  st_drop_geometry() %>%
+  filter(revenue_LTM > 0) %>%
+  filter(host_ID %in% (property %>%
+                                  st_drop_geometry() %>%
+                                  filter(property_ID %in% ltr_unique_ab_id$ab_id) %>%
+                                  pull(host_ID))) %>%
   group_by(host_ID) %>% 
-  summarize("host_rev" = sum(revenue_LTM)*exchange_rate) %>% 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
   pull(host_rev) %>%
   quantile() %>% 
   as.list() %>% 
@@ -269,228 +297,84 @@ daily %>%
   tab_header(
     title = "Host income",
   ) %>%
-  opt_row_striping() 
+  opt_row_striping()
 
 
-#top earning hosts
-daily %>%
-  filter(housing,
-         date <= key_date, date > key_date - years(1),
-         status == "R", host_ID %in% ltr_hosts_id$host_ID) %>%
-  group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price) * exchange_rate) %>% 
-  left_join(property, .) %>% 
-  distinct(.keep_all = T) %>% 
-  st_drop_geometry() %>% 
+half_mil_ltr <- revenue_2019 %>% # host that matched and made more than 500k
+  st_drop_geometry() %>%
+  filter(revenue_LTM > 0) %>%
+  filter(host_ID %in% (property %>%
+                         st_drop_geometry() %>%
+                         filter(property_ID %in% ltr_unique_ab_id$ab_id) %>%
+                         pull(host_ID))) %>%
   group_by(host_ID) %>% 
-  summarize(host_rev = sum(revenue_LTM)*exchange_rate) %>% 
-  filter(host_rev>0) %>% 
-  arrange(-host_rev) %>% 
-  drop_na() %>% 
-  filter(host_rev >= 500000)  %>% 
-  gt() %>% 
-  tab_header(
-    title = "Hosts that made at least half a million",
-    subtitle = glue::glue("2019-03-14 to 2020-03-14")
-  ) %>%
-  fmt_number(columns = 2,
-             sep_mark = " ",
-             decimals = 0) %>% 
-  opt_row_striping() 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
+  filter(host_rev > 500000) %>% 
+  pull(host_ID) 
 
 
+property %>% # how many listings matched for the top earning hosts that matched
+  st_drop_geometry() %>% 
+  filter(host_ID %in% half_mil_ltr, 
+         !is.na(ltr_ID), 
+         scraped >= "2020-01-01") %>%
+  count(host_ID) %>% 
+  summarize(mean(n))
 
-
-
-### portrait of STR units going on LTR #################################
-## GH, FREH, Multi
-
-#GH
 property %>% 
   st_drop_geometry() %>% 
-  filter(property_ID %in% unlist(GH$property_IDs),
-         !is.na(ltr_id), scraped > "2020-01-01") %>% 
-  distinct(property_ID, .keep_all = T) %>% 
-  nrow() /
-property %>% 
-  st_drop_geometry() %>% 
-  filter(property_ID %in% unlist(GH$property_IDs),
-         scraped > "2020-01-01") %>% 
-  distinct(property_ID, .keep_all = T) %>% 
-  nrow()
+  filter(host_ID %in% (property %>%
+                         st_drop_geometry() %>% 
+                         filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+                         pull(host_ID)), !is.na(ltr_ID), scraped >= "2020-01-01") %>%
+  count(host_ID) %>% 
+  summarize(mean(n))
 
-#FREH
-property %>% 
-  st_drop_geometry() %>% 
-  filter(property_ID %in% FREH_2020$property_ID,
-         !is.na(ltr_id)) %>% 
-  distinct(property_ID, .keep_all = T) %>% 
+
+#super host status
+
+property %>% # listings from hosts that matched
+  filter(host_ID %in% (property %>%
+                         st_drop_geometry() %>% 
+                         filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+                         pull(host_ID)), scraped > "2020-01-01", superhost == T) %>% 
   nrow() /
   property %>% 
-  st_drop_geometry() %>% 
-  filter(property_ID %in% unlist(FREH_2020$property_ID),
-         scraped > "2020-01-01") %>% 
-  distinct(property_ID, .keep_all = T) %>% 
+  filter(host_ID %in% (property %>%
+                         st_drop_geometry() %>% 
+                         filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+                         pull(host_ID)), scraped > "2020-01-01") %>% 
   nrow()
 
-#multi
-daily %>%
-  filter(date > "2020-01-01", multi == T) %>%
-  count(property_ID) %>%
-  filter(property_ID %in% matches$ab_id) %>% 
-  select(property_ID) %>% 
+
+property %>% # listings from hosts that matched
+  filter(scraped > "2020-01-01", superhost == T) %>% 
   nrow() /
-daily %>%
-  filter(date >= "2020-01-01",
-         multi == T) %>%
-  count(property_ID) %>%
-  nrow() 
-
-
-#how many of these FREH on all matches
-property %>% 
-  st_drop_geometry() %>% 
-  filter(property_ID %in% FREH_2020$property_ID,
-         !is.na(ltr_id)) %>% 
-  distinct(property_ID, .keep_all = T) %>% 
-  nrow()/
-property %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_id),
-         ltr_id %in% ltr_mtl$id) %>% 
-  distinct(property_ID) %>% 
-  nrow()
-
-
-### all commercial operations
-#commercial listings that matched out of all matches
-rbind(property %>% 
-        st_drop_geometry() %>% 
-        filter(property_ID %in% unlist(GH$property_IDs),
-               !is.na(ltr_id), scraped > "2020-01-01") %>% 
-        distinct(property_ID),
-      property %>% 
-        st_drop_geometry() %>% 
-        filter(property_ID %in% FREH_2020$property_ID,
-               !is.na(ltr_id)) %>% 
-        distinct(property_ID),
-        daily %>%
-        filter(date > "2020-01-01", multi == T) %>%
-        count(property_ID) %>%
-        filter(property_ID %in% matches$ab_id) %>% 
-        select(property_ID)
-) %>% distinct(property_ID) %>% nrow() /
   property %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_id),
-         ltr_id %in% ltr_mtl$id) %>% 
-  distinct(property_ID) %>% 
+  filter(scraped > "2020-01-01") %>% 
   nrow()
 
 
-#commercial listings that matched out of all commercial listings
-rbind(property %>% 
-        st_drop_geometry() %>% 
-        filter(property_ID %in% unlist(GH$property_IDs),
-               !is.na(ltr_id), scraped > "2020-01-01") %>% 
-        distinct(property_ID),
-      property %>% 
-        st_drop_geometry() %>% 
-        filter(property_ID %in% FREH_2020$property_ID,
-               !is.na(ltr_id)) %>% 
-        distinct(property_ID),
-      daily %>%
-        filter(date > "2020-01-01", multi == T) %>%
-        count(property_ID) %>%
-        filter(property_ID %in% matches$ab_id) %>% 
-        select(property_ID)
-) %>% distinct(property_ID) %>% nrow() /
-  rbind(property %>% 
-          st_drop_geometry() %>% 
-          filter(property_ID %in% unlist(GH$property_IDs),
-                 scraped > "2020-01-01") %>% 
-          distinct(property_ID),
-        property %>% 
-          st_drop_geometry() %>% 
-          filter(property_ID %in% FREH_2020$property_ID) %>% 
-          distinct(property_ID),
-        daily %>%
-          filter(date > "2020-01-01", multi == T) %>%
-          count(property_ID) %>% 
-          select(property_ID)
-  ) %>% distinct(property_ID) %>% nrow()
-
-
-### the matches that left LTR platforms are still on AirBNB? ########
-ltr_mtl %>%
-  st_drop_geometry() %>%
-  filter(!is.na(ab_id),
-         scraped < max(scraped)) %>%
-  arrange(desc(scraped)) %>% 
-  distinct(ab_id, .keep_all = T) %>%
-  select(ab_id)
-
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% (ltr_mtl %>%
-           st_drop_geometry() %>%
-           filter(!is.na(ab_id),
-                  scraped < max(scraped)) %>%
-           arrange(desc(scraped)) %>% 
-           distinct(ab_id, .keep_all = T) %>%
-           select(ab_id))$ab_id,
-         scraped >= "2020-01-01") %>% 
-  distinct(property_ID, .keep_all = T) %>% 
-  filter(scraped < max(scraped)) %>% 
-  nrow() / 
-  property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% (ltr_mtl %>%
-                             st_drop_geometry() %>%
-                             filter(!is.na(ab_id),
-                                    scraped < max(scraped)) %>%
-                             arrange(desc(scraped)) %>% 
-                             distinct(ab_id, .keep_all = T) %>%
-                             select(ab_id))$ab_id,
-         scraped >= "2020-01-01") %>% 
-  distinct(property_ID, .keep_all = T) %>% 
-  nrow()
-
-#are listings both on LTR and AirBNB?
-
-
-### portrait of matched LTR listings ################################
-ltr_mtl %>% 
-  st_drop_geometry() %>% 
-  filter(is.na(ab_id)) %>%
-  arrange(desc(scraped)) %>% 
-  distinct(id, .keep_all = T) %>% 
-  mutate(how_long_they_stay = (scraped-created)) %>% 
-  filter(how_long_they_stay > 0) %>% 
-  summarize(mean(how_long_they_stay))
-
-ltr_mtl %>%
-  st_drop_geometry() %>%
-  filter(!is.na(ab_id)) %>%
-  arrange(desc(scraped)) %>% 
-  distinct(id, .keep_all = T) %>%
-  mutate(how_long_they_stay = (scraped-created)) %>% 
+### LTR listings exposure ######################################################
+unique_ltr %>% 
+  mutate(how_long_they_stay = scraped-created) %>% 
+  arrange(desc(how_long_they_stay)) %>% 
+  mutate(matched = if_else(!is.na(ab_id), TRUE, FALSE)) %>% 
+  group_by(matched) %>% 
   summarize(mean(how_long_they_stay, na.rm = T))
 
-property %>% 
-  filter(scraped == "2020-05-20")
 
-#percentages of units that matched that are long term
-ltr_mtl %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(ab_id), short_long == "long") %>% 
-  distinct(ab_id, .keep_all = T) %>% 
-  nrow() /
-  ltr_mtl %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(ab_id), !is.na(short_long)) %>% 
-  distinct(ab_id, .keep_all = T) %>% 
-  nrow()
+### Remaining presence of STR listings on STR platforms ########################
+
+
+
+
+
+
+
+
+
+
 
 
 
