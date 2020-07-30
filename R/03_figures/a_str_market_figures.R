@@ -243,47 +243,86 @@ ML_table %>%
 
 ### daily variation ###################################################
 daily_variation <- 
-daily %>% 
-  filter(status != "B", date >= "2017-01-01")
-
-daily_variation_grouped <- 
-  daily_variation %>% 
-  filter(date >= "2017-01-01",
-         date <= "2017-12-31") %>% 
+left_join(
+  (daily %>% 
+  filter(housing, status == "R", date >= "2017-01-01") %>% 
+  group_by(date) %>% 
+  summarize(daily_rev = sum(price)) %>% 
+  mutate(rev_var = as.numeric(NA)) %>% 
+  filter(date != "2020-02-29")),
+  (daily %>% 
+  filter(status != "B", date >= "2017-01-01") %>% 
   count(date) %>% 
-  mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n))) %>% #addition of HA
-  rename(n2017 = n,
-         date2017 = date) %>% 
-  full_join(rename(mutate(count(filter(daily_variation, date >= "2018-01-01", date <= "2018-12-31"), date), 
-                          date2017 = date - years(1)), n2018 = n, date2018 = date), by = c("date2017")) %>% 
-  full_join(rename(mutate(count(filter(daily_variation, date >= "2019-01-01", date <= "2019-12-31"), date), 
-                          date2018 = date - years(1)), n2019 = n, date2019 = date), by = c("date2018")) %>% 
-  full_join(rename(mutate(count(filter(daily_variation, date >= "2020-01-01", date <= "2020-12-31"), date), 
-                          date2019 = date - years(1)), n2020 = n, date2020 = date), by = c("date2019")) %>% 
-  mutate(`2017-2018` = (n2018-n2017)/n2017,
-         `2018-2019` = (n2019-n2018)/n2018,
-         `2019-2020` = (n2020-n2019)/n2019)
+  mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n)),
+         n_var = as.numeric(NA)) %>% 
+  filter(date != "2020-02-29")), by = "date")
 
-daily_variation_grouped <- 
-  rbind(rename(select(daily_variation_grouped, date2018, `2017-2018`), date = date2018, variation = `2017-2018`), 
-        rename(select(daily_variation_grouped, date2019, `2018-2019`), date = date2019,  variation = `2018-2019`), 
-        rename(select(daily_variation_grouped, date2020, `2019-2020`), date = date2020,  variation = `2019-2020`))
 
-daily_variation_grouped %>% 
+for(i in 366:length(daily_variation$date)) {
+    year1_n <- 
+    daily_variation %>% 
+    filter(date == daily_variation$date[[i]] - years(1)) %>% 
+    pull(n)
+    
+    year2_n <- 
+    daily_variation %>% 
+    filter(date == daily_variation$date[[i]]) %>% 
+    pull(n)
+    
+    daily_variation$n_var[[i]] <- as.numeric((year2_n - year1_n) / year1_n)
+    
+    
+    
+    
+    year1_rev <- 
+      daily_variation %>% 
+      filter(date == daily_variation$date[[i]] - years(1)) %>% 
+      pull(daily_rev)
+    
+    year2_rev <- 
+      daily_variation %>% 
+      filter(date == daily_variation$date[[i]]) %>% 
+      pull(daily_rev)
+    
+    daily_variation$rev_var[[i]] <- as.numeric((year2_rev - year1_rev) / year1_rev)
+
+}
+
+daily_variation <- 
+rbind(
+daily_variation %>% 
+  rename(variation = rev_var) %>% 
+  mutate(group = "Revenue") %>% 
+  select(date, variation, group),
+
+daily_variation %>% 
+  rename(variation = n_var) %>% 
+  mutate(group = "Active Listings") %>% 
+  select(date, variation, group)
+) %>% 
+  filter(date >= "2018-01-01")
+
+
+daily_variation %>% 
+  mutate(variation = data.table::frollmean(variation, 14)) %>% 
   ggplot()+
   # geom_rect(aes(ymin = 0, ymax = Inf, xmin = as.Date("2018-01-01", "%Y-%m-%d"), xmax = as.Date("2020-01-01", "%Y-%m-%d")), 
   #           alpha = 0.002, fill = "green")+
   # geom_rect(aes(ymin = -Inf, ymax = 0, xmin = as.Date("2018-01-01", "%Y-%m-%d"), xmax = as.Date("2020-01-01", "%Y-%m-%d")),
   #           alpha = 0.002, fill = "red")+
-  geom_line(aes(date, variation), se = F)+
-  ggtitle("Daily variation compared to same date one year before")+
-  xlab("Date (daily)")+
+  geom_line(aes(date, variation, color = group))+
+  # geom_smooth(aes(date, variation, color = group), se = F)+
+  ggtitle("Bi-weekly variation compared to same date one year before (Frollmean 14)")+
+  xlab("Date (Bi-weekly)")+
   ylab("Variation compared to a year before (%)") +
-  scale_x_date(limits = as.Date(c("2018-01-01","2020-05-31")),
+  scale_x_date(limits = as.Date(c("2018-01-12","2020-05-31")),
                date_labels = "%Y (%b)")+
   # ylim(c(-20,15))+
   geom_hline(yintercept=0, linetype="dashed", color = "black")+
   scale_y_continuous(labels = scales::percent)
+  # scale_color_manual(name = "Group",
+  #                    values = c("#00CC66", "#FF3333"),
+  #                    labels = c("Active listings", "Revenue"))
 
 
 ###  Listings in 2020 and COVID ####################################
