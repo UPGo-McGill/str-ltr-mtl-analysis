@@ -364,15 +364,88 @@ unique_ltr %>%
   summarize(mean(how_long_they_stay, na.rm = T))
 
 
-### Remaining presence of STR listings on STR platforms ########################
+### Disappeareance of STR units on STR platforms ###############################
+
+# on STR platforms
+property %>%
+  st_drop_geometry() %>% 
+  filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+  filter(scraped >= "2020-06-01") %>% 
+  nrow() /
+  property %>%
+  st_drop_geometry() %>% 
+  filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+  nrow()
 
 
+# remaining presence on LTR platforms
+unique_ltr %>%
+  unnest(ab_id) %>%
+  filter(ab_id %in% (property %>%
+           st_drop_geometry() %>% 
+           filter(property_ID %in% ltr_unique_ab_id$ab_id) %>% 
+           filter(scraped >= "2020-06-01") %>% 
+           pull(property_ID))) %>%
+  filter(scraped < max(scraped)) %>% 
+  pull(ab_id) %>% 
+  unique()
+  
 
 
+### looking at units that were rented as LTR ##################################
+# breakdown by boroughs
+property %>% 
+  filter(property_ID %in% ltr_unique_ab_id$ab_id,
+         scraped < "2020-06-01") %>% 
+  st_join(boroughs) %>% 
+  count(borough) %>% 
+  st_drop_geometry() %>% 
+  mutate(perc = n/sum(n)) %>% 
+  arrange(desc(perc)) %>% 
+  filter(n < 20) %>% 
+  summarize(sum(n))
 
+# host revenue of these listings
+revenue_2019 %>% 
+  st_drop_geometry() %>% 
+  filter(host_ID %in% (property %>%
+                             st_drop_geometry() %>%
+                             filter(property_ID %in% ltr_unique_ab_id$ab_id) %>%
+                             filter(scraped < "2020-06-01"))$host_ID) %>%
+  group_by(host_ID) %>% 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
+  pull(host_rev) %>%
+  quantile() %>% 
+  as.list() %>% 
+  as_tibble() %>% 
+  select(-`0%`) %>% 
+  set_names(c("25th percentile", "Median", "75th percentile", 
+              "100th percentile")) %>% 
+  mutate_all(round, -2) %>% 
+  drop_na() %>% 
+  gt() %>% 
+  tab_header(
+    title = "Host income",
+  ) %>%
+  opt_row_striping() 
 
+# FREH?
+property %>% 
+  filter(property_ID %in% ltr_unique_ab_id$ab_id,
+         scraped < "2020-06-01",
+         property_ID %in% FREH$property_ID) 
 
+# how old were these listings compared to plateform
+property %>% 
+  filter(property_ID %in% ltr_unique_ab_id$ab_id,
+         scraped < "2020-06-01") %>%
+  mutate(how_old = scraped-created) %>% 
+  summarize(mean(how_old, na.rm = T) /30)
 
+property %>% 
+  filter(scraped >= "2020-01-01") %>% 
+  mutate(how_old = scraped-created) %>% 
+  summarize(mean(how_old, na.rm = T) /30)
 
 
 
