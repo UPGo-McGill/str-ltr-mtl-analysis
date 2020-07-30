@@ -70,181 +70,70 @@ ggplot()+
 
 ### Portrait of listings that went on LTR ##########################
 
-#time listings were active
+#time STR listings were active
 property %>% 
   st_drop_geometry() %>% 
-  filter(scraped >= "2020-01-01") %>% 
-  mutate(how_long_they_stay = round((scraped-created) / 30)) %>% 
-  mutate(matched = if_else(!is.na(ltr_id), TRUE, FALSE)) %>% 
+  filter(scraped >= "2020-01-01",
+        property_ID %in% filter(daily, housing, status != "B", date >= "2020-01-01")$property_ID) %>% 
+  mutate(how_long_they_stay = round((scraped-created) / 30) /12) %>% 
+  arrange(desc(how_long_they_stay)) %>% 
+  mutate(matched = if_else(!is.na(ltr_ID), TRUE, FALSE)) %>% 
   count(how_long_they_stay, matched) %>% 
   group_by(matched) %>% 
   mutate(perc = n/sum(n)) %>% 
   ggplot()+
   geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3)+
   geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F)+
-  xlab("Number of months of activity")+
+  xlab("Years of activity")+
   ylab("% of all listings within the group")+
   scale_y_continuous(labels = scales::percent)+
   scale_color_manual(name = "Group",
                      values = c("#00CC66", "#FF3333"),
                      labels = c("Did not match", "Matched")) +
-  ggtitle("How old are matching Airbnb listings")
+  ggtitle("How old are STR listings (active in 2020)")
 
 
-# property %>% 
-#   st_drop_geometry() %>% 
-#   filter(is.na(ltr_id),
-#          scraped >= "2020-01-01") %>%
-#   distinct(property_ID, .keep_all = T) %>% 
-#   mutate(how_long_they_stay = (scraped-created) / 30) %>% 
-#   ggplot()+
-#   geom_histogram(aes(how_long_they_stay), fill = "red", alpha = 0.2)+
-#   geom_histogram(data = property %>% 
-#                    st_drop_geometry() %>% 
-#                    filter(!is.na(ltr_id),
-#                           scraped >= "2020-01-01") %>%
-#                    distinct(property_ID, .keep_all = T) %>% 
-#                    mutate(how_long_they_stay = (scraped-created) / 30),
-#                  aes(x = how_long_they_stay, y = ..count.. * 15),fill = "blue", alpha = 0.2)+
-#   xlim(c(0,60)) +
-#   scale_y_continuous(sec.axis = sec_axis(~ ./15, name = "Count (Match)"))+
-#   theme(axis.text.y.right = element_text(color = "blue"),
-#         axis.line.y.right = element_line(color = "blue"),
-#         axis.text.y.left = element_text(color = "red"),
-#         axis.line.y.left = element_line(color = "red"))+
-#   ylab("Count (Not match)")+
-#   ggtitle("Since how long (months) are listings on AirBNB (scraped - created)")+
-#   xlab("Months")
-
-#time FREH_2020 listings were active
-property %>% 
+# host revenue distribution match vs did not match
+revenue_2019 %>% # still a lot of more work to do on that!!!!!
   st_drop_geometry() %>% 
-  filter(property_ID %in% FREH$property_ID,
-         is.na(ltr_id)) %>% 
-  distinct(property_ID, .keep_all = T) %>% 
-  mutate(how_long_they_stay = (scraped-created) / 30) %>% 
+  filter(revenue_LTM > 0) %>%
+  mutate(matched = if_else(host_ID %in% (property %>%
+                                        st_drop_geometry() %>%
+                                        filter(property_ID %in% ltr_unique_ab_id$ab_id) %>%
+                                        pull(host_ID)), TRUE, FALSE)) %>%
+  group_by(host_ID, matched) %>% 
+  summarize("host_rev" = round(sum(revenue_LTM), digit = -3)) %>% 
+  count(host_rev, matched) %>% 
+  ungroup() %>% 
+  mutate(perc = host_rev/sum(host_rev) )%>%
+  group_by(matched) %>% 
   ggplot()+
-  geom_histogram(aes(how_long_they_stay), fill = "red", alpha = 0.2)+
-  geom_histogram(data = property %>% 
-                   st_drop_geometry() %>% 
-                   filter(property_ID %in% FREH$property_ID,
-                          !is.na(ltr_id)) %>% 
-                   distinct(property_ID, .keep_all = T) %>% 
-                   mutate(how_long_they_stay = (scraped-created) / 30),
-                 aes(x = how_long_they_stay, y = ..count.. * 15),fill = "blue", alpha = 0.2)+
-  xlim(c(0,60)) +
-  scale_y_continuous(sec.axis = sec_axis(~ ./15, name = "Count (Match)"))+
-  theme(axis.text.y.right = element_text(color = "blue"),
-        axis.line.y.right = element_line(color = "blue"),
-        axis.text.y.left = element_text(color = "red"),
-        axis.line.y.left = element_line(color = "red"))+
-  ylab("Count (Not matched)")+
-  ggtitle("Since how long (months) are FREH_2020 listings on AirBNB (scraped - created)")+
-  xlab("Months")
+  geom_line(aes(host_rev, perc, color = matched), alpha = 0.3)+
+  geom_smooth(aes(host_rev, perc, color = matched), se = F)+
+  xlab("Hosts revenue")+
+  ylab("% of all hosts within the group")+
+  scale_y_continuous(labels = scales::percent)+
+  scale_color_manual(name = "Group",
+                     values = c("#00CC66", "#FF3333"),
+                     labels = c("Did not match", "Matched")) +
+  ggtitle("Revenue distribution of hosts")
 
 
-
-ggplot()+
-  geom_line(data= ltr_mtl %>% 
-              st_drop_geometry() %>% 
-              # filter(!is.na(ab_id)) %>% 
-              group_by(created) %>% 
-              arrange(scraped) %>% 
-              distinct(id, .keep_all = TRUE) %>% 
-              group_by(day=floor_date(created, "day")) %>% 
-              summarize(n = n(), `Median price of listings` = median(price, na.rm=TRUE)), 
-            aes(day, `Median price of listings`, color="Median price on date created"))+
-  geom_line(data= ltr_mtl %>% 
-              st_drop_geometry() %>%
-              # filter(!is.na(ab_id)) %>% 
-              group_by(created) %>% 
-              arrange(desc(scraped)) %>% 
-              distinct(id, .keep_all = TRUE) %>% 
-              group_by(day=floor_date(scraped, "day")) %>% 
-              summarize(n = n(), `Median price of listings` = median(price, na.rm=TRUE)), 
-            aes(day, `Median price of listings`, color="Median price on date last scraped"))+
-  labs(x="Date",
-       y="Median price",
-       title="Median price on date created versus on last date scraped",
-       color="Legend")+
-  scale_colour_manual(name = "Legend",
-                      values = c("Median price on date created" = "blue", "Median price on date last scraped" = "red"),
-                      labels = c("Median price on date created", "Median price on date last scraped"))+
-  theme_minimal()
-
-
-#time LTR listings were active, match vs no match
-ltr_mtl %>% 
-  st_drop_geometry() %>% 
-  filter(is.na(ab_id)) %>%
-  arrange(desc(scraped)) %>% 
-  distinct(id, .keep_all = T) %>% 
-  mutate(how_long_they_stay = (scraped-created)) %>% 
-  filter(how_long_they_stay > 0) %>% 
+# time LTR listings were active
+unique_ltr %>% 
+  mutate(how_long_they_stay = scraped-created) %>% 
+  arrange(desc(how_long_they_stay)) %>% 
+  mutate(matched = if_else(!is.na(ab_id), TRUE, FALSE)) %>% 
+  count(how_long_they_stay, matched) %>% 
+  group_by(matched) %>% 
+  mutate(perc = n/sum(n)) %>% 
   ggplot()+
-  geom_histogram(aes(how_long_they_stay), fill = "red", alpha = 0.2)+
-  geom_histogram(data = ltr_mtl %>%
-                   st_drop_geometry() %>%
-                   filter(!is.na(ab_id)) %>%
-                   arrange(desc(scraped)) %>% 
-                   distinct(id, .keep_all = T) %>%
-                   mutate(how_long_they_stay = (scraped-created)),
-                 aes(x = how_long_they_stay, y = ..count.. * 15),fill = "blue", alpha = 0.2)+
-  xlim(c(0,60)) +
-  scale_y_continuous(sec.axis = sec_axis(~ ./15, name = "Count (Match)"))+
-  theme(axis.text.y.right = element_text(color = "blue"),
-        axis.line.y.right = element_line(color = "blue"),
-        axis.text.y.left = element_text(color = "red"),
-        axis.line.y.left = element_line(color = "red"))+
-  ylab("Count (Not match)")+
-  ggtitle("How long LTR listings stayed online (scraped - created)")+
-  xlab("Days")
-
-
-
-### Portrait of hosts that put listings on LTR #########################
-
-
-# 
-# 
-# #host_revenue
-# daily %>%
-#   filter(housing,
-#          date <= key_date, date > key_date - years(1),
-#          status == "R") %>%
-#   group_by(property_ID) %>%
-#   summarize(revenue_LTM = sum(price) * exchange_rate) %>% 
-#   left_join(property, .) %>% 
-#   distinct(.keep_all = T) %>% 
-#   st_drop_geometry() %>% 
-#   group_by(host_ID) %>% 
-#   summarize(host_rev = sum(revenue_LTM)*exchange_rate) %>% 
-#   filter(host_rev>0) %>% 
-#   arrange(-host_rev) %>% 
-#   drop_na() %>% 
-#   ggplot()+
-#   geom_histogram(aes(host_rev),fill = "red", alpha = 0.2)+
-#   geom_histogram(data = daily %>%
-#                    filter(housing,
-#                           date <= key_date, date > key_date - years(1),
-#                           status == "R", host_ID %in% ltr_hosts_id$host_ID) %>%
-#                    group_by(property_ID) %>%
-#                    summarize(revenue_LTM = sum(price) * exchange_rate) %>% 
-#                    left_join(property, .) %>% 
-#                    distinct(.keep_all = T) %>% 
-#                    st_drop_geometry() %>% 
-#                    group_by(host_ID) %>% 
-#                    summarize(host_rev = sum(revenue_LTM)*exchange_rate) %>% 
-#                    filter(host_rev>0) %>% 
-#                    arrange(-host_rev) %>% 
-#                    drop_na(), 
-#                  aes(x = host_rev, y = ..count.. * 35),fill = "blue", alpha = 0.2)+
-#   xlim(c(0,100000)) +
-#   scale_y_continuous(sec.axis = sec_axis(~ ./35, name = "Count (Match)"))+
-#   theme(axis.text.y.right = element_text(color = "blue"),
-#   axis.line.y.right = element_line(color = "blue"),
-#   axis.text.y.left = element_text(color = "red"),
-#   axis.line.y.left = element_line(color = "red"))+
-#   ylab("Count (Not match)")+
-#   ggtitle("Host revenue histogram")+
-#   xlab("Host revenue")
+  # geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3)+
+  geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F)+
+  xlab("Days online")+
+  ylab("% of all listings within the group")+
+  scale_y_continuous(labels = scales::percent)+
+  scale_color_manual(name = "Group",
+                     values = c("#00CC66", "#FF3333"),
+                     labels = c("Did not match", "Matched")) +
+  ggtitle("How old are LTR listings")
