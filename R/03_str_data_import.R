@@ -5,8 +5,25 @@
 
 #' External dependencies:
 #' - Access to the UPGo database
+#' - Municipal evaluation data shapefile
 
 source("R/01_startup.R")
+load("data/geometry.Rdata")
+
+
+# Load parcel data --------------------------------------------------------
+
+uef <- 
+  read_sf("data/shapefiles/uniteevaluationfonciere.shp") %>% 
+  st_transform(32618) %>% 
+  filter(!is.na(NOMBRE_LOG))
+
+# Remove duplicates
+uef <- 
+  uef %>% 
+  as_tibble() %>% 
+  distinct(ID_UEV, .keep_all = TRUE) %>% 
+  st_as_sf()
 
 
 # Get data ----------------------------------------------------------------
@@ -60,15 +77,20 @@ rm(exchange_rates)
 
 # Process the property and daily files ------------------------------------
 
+# Spatial join to only keep the properties inside the city of Mtl
+property <- 
+  property %>% 
+  st_intersection(city)
+
 # Run raffle to assign a DA to each listing
 property <-
   property %>% 
   strr_raffle(DA, GeoUID, dwellings, seed = 1)
 
-# Spatial join to only keep the properties inside the city of Mtl
-property <- 
+# Run raffle to assign a parcel to each listing
+property <-
   property %>% 
-  st_intersection(city)
+  strr_raffle(uef, ID_UEV, NOMBRE_LOG, seed = 1)
 
 # Trim daily file
 daily <- 
