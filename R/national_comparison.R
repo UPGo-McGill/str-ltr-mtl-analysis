@@ -11,8 +11,8 @@ CSD <-
   slice(1:10) %>% 
   mutate(name = str_extract(name, '.*(?= )'),
          name = stringi::stri_trans_general(name, "Latin-ASCII")) %>% 
-  st_drop_geometry() %>% 
-  as_tibble()
+  as_tibble() %>% 
+  st_as_sf()
 
 
 # Get STR data for same cities --------------------------------------------
@@ -22,15 +22,16 @@ upgo_connect()
 property <- 
   property_all %>% 
   filter(country == "Canada", city %in% !!CSD$name) %>% 
-  collect()
+  collect() %>% 
+  strr_as_sf() %>%
+  st_filter(CSD)
 
 daily <- 
   daily_all %>% 
-  filter(country == "Canada", city %in% !!CSD$name, start_date >= "2019-01-01",
+  filter(property_ID %in% !!property$property_ID, start_date >= "2019-01-01",
          start_date <= "2019-12-31") %>% 
   collect() %>% 
   strr_expand()
-
 
 
 # Calculate figures -------------------------------------------------------
@@ -40,7 +41,8 @@ national_comparison <-
   filter(status != "B", housing) %>% 
   group_by(city) %>% 
   summarize(active_daily_listings = n() / 365) %>% 
-  left_join(select(CSD, name, Households), by = c("city" = "name")) %>% 
+  left_join(select(st_drop_geometry(CSD), name, Households), 
+            by = c("city" = "name")) %>% 
   mutate(listings_per_1000 = 1000 * active_daily_listings / Households) %>% 
   select(-Households)
 
