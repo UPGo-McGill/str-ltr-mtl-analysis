@@ -393,6 +393,13 @@ unique_ltr %>%
 
 
 ### looking at units that were rented as LTR ##################################
+# how many hosts?
+property %>% 
+  filter(property_ID %in% ltr_unique_ab_id$ab_id,
+         scraped < "2020-06-01") %>% 
+  count(host_ID) %>% 
+  nrow()
+
 # breakdown by boroughs
 property %>% 
   filter(property_ID %in% ltr_unique_ab_id$ab_id,
@@ -405,7 +412,7 @@ property %>%
   filter(n < 20) %>% 
   summarize(sum(n))
 
-# host revenue of these listings
+# median host revenue of these listings
 revenue_2019 %>% 
   st_drop_geometry() %>% 
   filter(host_ID %in% (property %>%
@@ -428,6 +435,18 @@ revenue_2019 %>%
     title = "Host income",
   ) %>%
   opt_row_striping() 
+
+# average host revenue of these listings
+revenue_2019 %>% 
+  st_drop_geometry() %>% 
+  filter(host_ID %in% (property %>%
+                         st_drop_geometry() %>%
+                         filter(property_ID %in% ltr_unique_ab_id$ab_id) %>%
+                         filter(scraped < "2020-06-01"))$host_ID) %>%
+  group_by(host_ID) %>% 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
+  summarize(mean(host_rev))
+
 
 # FREH?
 property %>% 
