@@ -102,10 +102,16 @@ host <-
   host %>% 
   filter(host_ID %in% property$host_ID)
 
+# Add borough to property file
+property <- 
+  property %>% 
+  st_join(boroughs) %>% 
+  select(-dwellings)
+
+
 # Add borough to daily file
 daily <- 
   property %>% 
-  st_join(boroughs) %>% 
   st_drop_geometry() %>% 
   select(property_ID, borough) %>% 
   left_join(daily, ., by = "property_ID")
