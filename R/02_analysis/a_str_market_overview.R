@@ -81,6 +81,16 @@ daily %>%
   inner_join(property, .)
 
 sum(revenue_2019$revenue_LTM, na.rm = T)
+mean(revenue_2019$revenue_LTM, na.rm = T)
+
+# average revenue by host
+revenue_2019 %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(host_ID)) %>% 
+  group_by(host_ID) %>% 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
+  summarize(mean(host_rev))
+  
 
 
 
@@ -418,7 +428,7 @@ revenue_2019 %>%
   summarize("host_rev" = sum(revenue_LTM)) %>% 
   arrange(-host_rev) %>% 
   drop_na() %>% 
-  filter(host_rev >= 500000) %>% 
+  filter(host_rev >= 500000) %>%
   gt() %>% 
   tab_header(
     title = "Hosts that made at least half a million",
@@ -796,16 +806,7 @@ GH %>%
   count(ghost_ID, housing_units) %>% 
   View()
   
-(daily %>% 
-    filter(date >= LTM_start_date, date <= LTM_end_date, status == "R") %>% 
-    nrow() -
-    daily %>% 
-    filter(date >= LTM_start_date -years(1), date <= LTM_end_date-years(1), status == "R") %>% 
-    nrow()) /
-    daily %>% 
-    filter(date >= LTM_start_date -years(1), date <= LTM_end_date-years(1), status == "R") %>% 
-    nrow()
-
+  
 
   
 ## Save files #####################################
