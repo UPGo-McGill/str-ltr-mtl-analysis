@@ -9,15 +9,14 @@ magic_value <- 0.00651547619
 # Table for entire city ---------------------------------------------------
 
 # Create table with number of listings created each year
-rent_increase <- 
+rent_increase <-
   property %>% 
   st_drop_geometry() %>% 
   count(year_created = substr(created, 1, 4)) %>% 
   filter(!is.na(year_created)) %>% 
-  mutate(collapse = if_else(year_created <= "2015", "old", year_created)) %>%
-  group_by(collapse) %>% 
+  mutate(year_created = if_else(year_created <= "2015", "old", year_created)) %>%
+  group_by(year_created) %>% 
   summarize(n = sum(n)) %>% 
-  rename(year_created = collapse) %>% 
   slice(n(), 1:(n() - 1)) %>% 
   mutate(rent_increase = NA_real_)
 
@@ -33,13 +32,12 @@ for (i in 2:6) rent_increase[i,]$rent_increase <-
 rent_increase_zone <- 
   property %>% 
   st_drop_geometry() %>% 
-  group_by(borough) %>% 
+  group_by(zone) %>% 
   count(year_created = substr(created, 1, 4)) %>% 
   filter(!is.na(year_created)) %>% 
-  mutate(collapse = if_else(year_created <= "2015", "old", year_created)) %>%
-  group_by(borough, collapse) %>% 
+  mutate(year_created = if_else(year_created <= "2015", "old", year_created)) %>%
+  group_by(zone, year_created) %>% 
   summarize(n = sum(n)) %>% 
-  rename(year_created = collapse) %>% 
   slice(n(), 1:(n() - 1)) %>% 
   mutate(rent_increase = NA_real_)
 
@@ -51,4 +49,8 @@ rent_increase_zone <-
         magic_value * .x[i,]$n / sum(.x[seq_len(i - 1),]$n)
     .x
   })
+
+
+
+
 
