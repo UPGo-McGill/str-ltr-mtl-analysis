@@ -74,7 +74,7 @@ active_borough <- daily %>%
                        oob = scales::squish,
                        labels = scales::percent
   )  +
-  guides(fill = guide_colorbar(title = "Daily active listing (average)/dwelling")) +
+  guides(fill = guide_colorbar(title = "Percentage of daily active listings\n(average) out of total dwellings")) +
   theme_void() +
   theme(legend.position = "right",
         # text = element_text(family = "Futura", face = "plain"),
@@ -101,7 +101,7 @@ active_DA <- daily %>%
                        oob = scales::squish,
                        labels = scales::percent
                        ) +
-  guides(fill = guide_colorbar(title = "Daily active listing (average)/dwelling")) +
+  guides(fill = guide_colorbar(title = "Percentage of daily active listings\n(average) out of total dwellings")) +
   theme_void() +
   theme(legend.position = "right",
         # text = element_text(family = "Futura", face = "plain"),
@@ -114,7 +114,7 @@ active_DA <- daily %>%
     ylim = sf::st_bbox(city)[c(2,4)],
     expand = FALSE)
 
-active_DA + active_borough + plot_layout(ncol=1) + plot_layout(guides = 'collect') & theme(legend.position="bottom")
+active_DA + active_borough + plot_layout(ncol=1) + plot_layout(guides = 'collect') & theme(legend.position="right")
 
 property %>%
   filter(housing, created <= key_date, scraped >= key_date) %>%
