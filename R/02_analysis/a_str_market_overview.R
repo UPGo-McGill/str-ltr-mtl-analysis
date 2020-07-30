@@ -258,7 +258,7 @@ listing_type_breakdown %>%
     subtitle = "2019"
   ) %>%
   opt_row_striping() %>% 
-  fmt_percent(columns = 4:6, decimals = 0) %>% 
+  fmt_percent(columns = 4:6, decimals = 1) %>% 
   fmt_number(columns = 2,
              decimals = 0)
 
@@ -381,7 +381,7 @@ property_2019 %>%
 daily %>%
   filter(housing == TRUE, date <= LTM_end_date, date >= LTM_start_date, status == "R") %>%
   group_by(host_ID) %>%
-  summarize(rev = sum(price)*exchange_rate) %>%
+  summarize(rev = sum(price)) %>%
   filter(rev > 0) %>%
   summarize(
     `Top 1%`  = sum(rev[rev > quantile(rev, c(0.99))] / sum(rev)),
@@ -699,12 +699,6 @@ GH_total <-
   mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
 
 
-GH_total %>% 
-  filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
-  ggplot()+
-  geom_line(aes(date, GH_units)) +
-  ggtitle("Sum of housing units, GH (without rolling average)")
-
 
 # exploring the drop in the end of january 2020
 daily %>% 
@@ -792,20 +786,6 @@ property %>%
   filter(property_ID %in% filter(FREH, date == "2019-12-31")$property_ID,
          bedrooms == 2)
 
-GH %>% 
-  View()
-  st_drop_geometry() %>% 
-  filter(status != "B",
-         date >= LTM_start_date,
-         date <= LTM_end_date) %>% 
-  count(ghost_ID) %>% View()
-  count(date, housing_units) %>% 
-  group_by(date) %>% 
-  summarize(housing_loss = sum(housing_units * n)) %>% 
-  summarize(mean(housing_loss))
-  count(ghost_ID, housing_units) %>% 
-  View()
-  
   
 
   
