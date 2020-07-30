@@ -60,8 +60,8 @@ active_borough <- daily %>%
   ggplot() +
   geom_sf(
     aes(fill = percentage), 
-    lwd = 1, 
-    colour = "white") +
+    lwd= 0,
+    colour = NA) +
   # geom_sf_label(
   #   aes(label = borough), 
   #   size = 1.8, 
@@ -114,7 +114,7 @@ active_DA <- daily %>%
     ylim = sf::st_bbox(city)[c(2,4)],
     expand = FALSE)
 
-active_DA + active_borough + plot_layout(guides = 'collect')
+active_DA + active_borough + plot_layout(ncol=1) + plot_layout(guides = 'collect') & theme(legend.position="bottom")
 
 property %>%
   filter(housing, created <= key_date, scraped >= key_date) %>%
