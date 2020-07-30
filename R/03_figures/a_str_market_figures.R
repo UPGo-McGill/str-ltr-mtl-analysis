@@ -47,7 +47,7 @@ daily %>%
 ### Montreal maps ###############################################################
 
 
-daily %>%
+active_borough <- daily %>%
   filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
   group_by(borough) %>% 
   count(date) %>%
@@ -68,10 +68,12 @@ daily %>%
   #   # family = "Futura",
   #   alpha = 0.5,
   #   fill = alpha("white", 0.6)) +
-  scale_fill_gradientn(
-    colors = col_palette[c(5,2,3)],
-    na.value = "grey80",
-    labels = scales::percent) +
+  scale_fill_gradientn(colors = col_palette[c(5, 2, 3)],
+                       na.value = "grey80",
+                       limits = c(0, 0.05),
+                       oob = scales::squish,
+                       labels = scales::percent
+  )  +
   guides(fill = guide_colorbar(title = "Daily active listing (average)/dwelling")) +
   theme_void() +
   theme(legend.position = "right",
@@ -82,7 +84,7 @@ daily %>%
   )
 
 
-daily %>%
+active_DA <- daily %>%
   filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
   left_join(select(st_drop_geometry(property), GeoUID, property_ID), .) %>% 
   group_by(GeoUID) %>% 
@@ -112,6 +114,7 @@ daily %>%
     ylim = sf::st_bbox(city)[c(2,4)],
     expand = FALSE)
 
+active_DA + active_borough + plot_layout(guides = 'collect')
 
 property %>%
   filter(housing, created <= key_date, scraped >= key_date) %>%
