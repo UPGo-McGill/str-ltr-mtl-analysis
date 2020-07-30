@@ -1198,6 +1198,9 @@ rent_city <-
 rent_total <- bind_rows(rent_total, rent_city)
 
 
+save(rent_total, file = "output/rent_total.Rdata")
+
+
 
 
 
