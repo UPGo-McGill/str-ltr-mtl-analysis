@@ -787,6 +787,116 @@ property %>%
          bedrooms == 2)
 
   
+# raffle for STRs in condos
+
+###### GET CENSUS INFORMATION FOR OWNERSHIP TYPE AND CONDO  ########################################################
+View(cancensus::list_census_vectors("CA16"))
+DAs_raffle <-
+  cancensus::get_census(
+    dataset = "CA16", regions = list(CSD = c("2466023")), level = "DA",
+    vectors = c("v_CA16_4840", "v_CA16_4841", "v_CA16_4842", "v_CA16_4836", "v_CA16_4837", "v_CA16_4838"),
+    geo_format = "sf") %>% 
+  st_transform(32618) %>% 
+  select(GeoUID, CSD_UID, Population, Dwellings, "v_CA16_4840: Total - Occupied private dwellings by condominium status - 25% sample data",
+         "v_CA16_4841: Condominium", "v_CA16_4842: Not condominium", "v_CA16_4836: Total - Private households by tenure - 25% sample data", 
+         "v_CA16_4837: Owner", "v_CA16_4838: Renter") %>% 
+  set_names(c("GeoUID", "CMA_UID", "population", "dwellings", "parent_condo", "condo", "not_condo", "parent_tenure",
+              "owner", "renter", "geometry")) %>% 
+  mutate(p_condo = condo/parent_condo,
+         p_not_condo = not_condo/parent_condo,
+         p_owner = owner/parent_tenure,
+         p_renter = renter/parent_tenure) %>% 
+  select(GeoUID, dwellings, CMA_UID, p_condo, p_not_condo, p_owner, p_renter) %>% 
+  st_set_agr("constant")
+
+DAs_raffle$p_not_condo[DAs_raffle$p_not_condo >= "1"] <- "1"
+DAs_raffle $p_not_condo <- as.numeric(DAs_raffle$p_not_condo)
+
+
+###################################### RAFFLE FOR ONLY 2019 ########################################################
+
+active_properties_2019 <- 
+  daily %>% 
+  filter(date >="2019-01-01", date<="2020-01-01") %>% 
+  filter(status == "A" | status == "R") %>% 
+  group_by(property_ID) %>% 
+  count()
+
+ap_2019 <- property %>%
+  filter(property_ID %in% active_properties_2019$property_ID)
+
+raffle_2019 <- 
+  ap_2019 %>% 
+  strr_raffle(DAs_raffle, GeoUID, dwellings, seed=1, diagnostic = TRUE) 
+
+###### MERGRE THE PROBABILISTIC RAFFLE WITH THE PROPORTION FOR CONDOS AND RENTERS  ########################################################
+
+trial_tenure_2019 <- left_join(st_drop_geometry(raffle_2019), st_drop_geometry(DAs_raffle), by="GeoUID")
+
+unnested_trial_tenure_2019 <- trial_tenure_2019 %>% 
+  unnest(candidates)
+
+unnested_trial_tenure_2019 <- unnested_trial_tenure_2019 %>% 
+  left_join(., st_drop_geometry(DAs_raffle), by = c("poly_ID" = "GeoUID")) 
+
+tenure_probabilities_2019 <- unnested_trial_tenure_2019 %>% 
+  ungroup() %>% 
+  group_by(property_ID) %>% 
+  summarize(prob_condo = sum(p_condo.x*(probability/sum(probability))),
+            prob_renter = sum(p_renter.x*(probability/sum(probability))),
+            prob_owner = sum(p_owner.x*(probability/sum(probability)))
+            #number_condo = prob_condo/n(),
+            #number_renter = prob_renter/n(),
+            #number_owner = prob_owner/n(),
+            #number_condo1= sum(p_condo.x*(probability/sum(probability)))/n(),
+            #number_renter1=sum(p_condo.x*(probability/sum(probability)))/n(),
+            #number_owner1=sum(p_condo.x*(probability/sum(probability)))/n()
+  ) 
+
+tenure_probabilities_sf_2019 <- 
+  left_join(tenure_probabilities_2019, trial_tenure_2019, by="property_ID") %>% 
+  left_join(., DAs_raffle, by = "GeoUID") %>% 
+  select(property_ID, GeoUID, dwellings.x, prob_condo, prob_renter, prob_owner, geometry) %>% #number_condo, number_renter, number_owner,
+  rename(dwellings=dwellings.x) %>% 
+  st_as_sf()
+
+tenure_probabilities_sf_2019 %>% 
+  group_by(GeoUID) %>% 
+  summarize(`Percentage of condo STRs`=sum(prob_condo)/n()) %>% 
+  ggplot()+
+  geom_sf(aes(fill=`Percentage of condo STRs`), colour=NA)+
+  scale_fill_gradientn(colors = col_palette[c(3, 4, 2)])+ #limits = c(0,1000)
+  theme_void()+
+  labs(title="Percentage of STRs operated in condos by dissemination area")+
+  theme(legend.position = "bottom",
+        #text = element_text(family = "Futura"),
+  )
+
+
+DAs_raffle_p_condo <- DAs_raffle %>% 
+  select(GeoUID, p_condo) %>% 
+  st_drop_geometry()
+
+
+tenure_probabilities_sf_2019 %>%
+  left_join(., DAs_raffle_p_condo, by="GeoUID") %>% 
+  st_join(., boroughs) %>%
+  st_drop_geometry() %>% 
+  group_by(GeoUID, borough) %>% 
+  summarize(`Percentage of STRs by dwellings`= n()/(sum(dwellings)/n()),
+            `Percentage of DA that is condos` = sum(p_condo)/n(),
+            `Percentage of condo in STRs`=sum(prob_condo)/n()) %>% 
+  filter(`Percentage of STRs by dwellings` <0.5) %>% 
+  ggplot(aes(x=`Percentage of DA that is condos`, 
+             y=`Percentage of STRs by dwellings`, 
+             colour = case_when(borough == "Ville-Marie" ~ "Ville-Marie",
+                                borough == "Le Plateau-Mont-Royal" ~ "Le Plateau-Mont-Royal",
+                                TRUE ~ "Other")))+
+  scale_colour_manual(name = "Borough", values=c("orange", "grey", "red"))+
+  geom_point()+  
+  geom_smooth(method=lm, se=FALSE)+
+  theme_minimal()+
+  theme(aspect.ratio=1)
 
   
 ## Save files #####################################
