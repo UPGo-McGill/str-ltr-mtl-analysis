@@ -1156,6 +1156,8 @@ names(rent_total)[[4]] <- "Avg_Rent"
 
 ####city of montreal avg rents #### 
 
+#https://www03.cmhc-schl.gc.ca/hmip-pimh/#TableMapChart/2466023/4/Montr%C3%A9al%20(V)%20(Quebec)
+
 rent_city <- read_xls("data/VDM_AVG_RENT.xls")
 
 ###remove excess info & rename
