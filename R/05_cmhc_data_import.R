@@ -1203,9 +1203,118 @@ rent_total <- bind_rows(rent_total, rent_city)
 save(rent_total, file = "output/rent_total.Rdata")
 
 
+##get 2014 data for 2015 percent change.. 
+  
+  #####2014#####
+  
+  ###import data 
+  
+  rent_2014 <- read_xlsx("data/average-rents-vacant-occupied-units-2014-en.xlsx")
+  
+  # Turn rows into column names
+  
+  names(rent_2014) <- 
+    paste("column", 1:length(rent_2014), sep = "_")
+  
+  # Remove useless rows and columns
+  rent_2014 <- 
+    rent_2014 %>% 
+    slice(-1, -2, -3, -4, -5, -6, -7) %>% 
+    select(-7, -12, -17, -22, -27)
+  
+  # rename again 
+  names(rent_2014) <- 
+    paste("column", 1:length(rent_2014), sep = "_")
+  
+  ## get what's needed from the file (totals)
+  rent_2014 <-
+    rent_2014 %>% 
+    select(1, 2, 21, 22)
+  
+  
+  ##rename columns 
+  names(rent_2014)[[1]] <- 
+    "Zone"
+  
+  names(rent_2014)[[2]] <- 
+    "Year"
+  
+  names(rent_2014)[[3]] <- 
+    "Occupied_Units"
+  
+  names(rent_2014)[[4]] <- 
+    "DQ"
+  
+  # Remove first two rows
+  rent_2014 <- 
+    rent_2014 %>% 
+    slice(-1, -2)
+  
+  
+  ##filter for montreal rows 
+  
+  rent_2014 <-
+    rent_2014 %>% 
+    slice(105:140)
+  
+  ### island is only 1:18 
+  
+  rent_2014 <-
+    rent_2014 %>% 
+    slice(1:18)
+  
+  # clean up zone column 
+  
+  rent_2014 <- separate(data = rent_2014, col = Zone, into = c("Zone_Number", "Zone_Name"), sep = " - ")
+  
+  rent_2014 <- 
+    separate(data = rent_2014, col = "Zone_Number", into = c("Zone", "Zone_Number"), sep = " ") 
+  
+  rent_2014 <- 
+    rent_2014 %>% 
+    select(-Zone)
+  
 
-
-
-
-
-
+  
+  
+  
+  #### % change #### 
+  
+  rent_2014$Occupied_Units <- as.numeric(rent_2014$Occupied_Units)
+  rent_2015$Occupied_Units <- as.numeric(rent_2015$Occupied_Units)
+  rent_2016$Occupied_Units <- as.numeric(rent_2016$Occupied_Units)
+  rent_2017$Occupied_Units <- as.numeric(rent_2017$Occupied_Units)
+  rent_2018$Occupied_Units <- as.numeric(rent_2018$Occupied_Units)
+  rent_2019$Occupied_Units <- as.numeric(rent_2019$Occupied_Units)
+  
+ rent_2015 <- 
+  rent_2015 %>% 
+    mutate(percent_change = (((Occupied_Units-rent_2014$Occupied_Units) / rent_2014$Occupied_Units)*100))
+  
+ rent_2016 <-
+  rent_2016 %>% 
+    mutate(percent_change = (((Occupied_Units-rent_2015$Occupied_Units) / rent_2015$Occupied_Units)*100))
+  
+ rent_2017 <-
+   rent_2017 %>% 
+   mutate(percent_change = (((Occupied_Units-rent_2016$Occupied_Units) / rent_2016$Occupied_Units)*100))
+ 
+ rent_2018 <-
+   rent_2018 %>% 
+   mutate(percent_change = (((Occupied_Units-rent_2017$Occupied_Units) / rent_2017$Occupied_Units)*100))
+ 
+ rent_2019 <-
+   rent_2019 %>% 
+   mutate(percent_change = (((Occupied_Units-rent_2018$Occupied_Units) / rent_2018$Occupied_Units)*100))
+ 
+ rent_city <- 
+   rent_city %>% 
+   mutate(percent_change = )
+ 
+ #rebind 
+ rent_total <- bind_rows(rent_2015, rent_2016, rent_2017, rent_2018, rent_2019)
+ 
+ names(rent_total)[[4]] <- "Avg_Rent"
+ 
+ 
+ 
