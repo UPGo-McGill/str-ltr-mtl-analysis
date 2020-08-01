@@ -55,10 +55,7 @@ ever_FREH <-
 
 year_month <- 
   year_month %>% 
-  left_join(ever_FREH)
-
-year_month <- 
-  year_month %>% 
+  left_join(ever_FREH) %>% 
   group_by(property_ID) %>% 
   mutate(month = month.name[.data$month],
          cum_R = cumsum(month_R),
@@ -69,7 +66,6 @@ year_month <-
 
 model <- glm(FREH ~ cum_R + cum_AR + month_since_created + month, 
              data = year_month, family = binomial)
-
 
 
 # Model testing -----------------------------------------------------------
