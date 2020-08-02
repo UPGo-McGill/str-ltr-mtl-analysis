@@ -6,6 +6,8 @@
 
 #' External dependencies:
 #' - `shapefiles/CMHC_NBHD_2016-mercWGS84.shp`: CMHC neighbourhood shapefile
+#' - `vac_rate_mtl_ville.csv`: Table downloaded from CMHC housing market 
+#'   information portal (https://www03.cmhc-schl.gc.ca/hmip-pimh/)
 
 
 source("R/01_startup.R")
@@ -23,10 +25,38 @@ library(unpivotr)
 #   destfile = "data/montreal_rmr_2019.xlsx")
 
 
+# Helper function to import tables ----------------------------------------
+
+import_CMHC <- function(data, var_name) {
+  data %>% 
+    filter(row >= 5) %>%
+    select(row, col, data_type, character, numeric) %>%
+    behead("up-left", bedroom) %>%
+    behead("up-left", date) %>%
+    behead("left", zone) %>%
+    mutate(zone_name = str_remove(zone, 'Zone [:digit:]* - '),
+           zone = as.numeric(str_extract(zone, '(?<=Zone )[:digit:]*')),
+           date = if_else(date == "Oct-18", 2018, 2019)) %>% 
+    select(zone, zone_name, date, bedroom, numeric, character) %>%
+    group_by(zone, zone_name, bedroom, date) %>% 
+    summarize({{var_name}} := numeric[1],
+              quality = character[2],
+              change = if_else(date == 2019, character[3], NA_character_),
+              .groups = "drop") %>% 
+    mutate(change = case_when(
+      change == "−" ~ "no change",
+      change == "↓" ~ "decrease",
+      change == "↑" ~ "increase",
+      is.na(change) ~ NA_character_))
+  
+}
+
 # Import raw files --------------------------------------------------------
 
 cmhc <- read_sf("data/shapefiles/CMHC_NBHD_2016-mercWGS84.shp")
-vacancy_2019 <- tidyxl::xlsx_cells("data/montreal_rmr_2019.xlsx", "Table 1.1.1")
+vacancy_2019 <- xlsx_cells("data/montreal_rmr_2019.xlsx", "Table 3.1.1")
+avg_rent_2019 <- xlsx_cells("data/montreal_rmr_2019.xlsx", "Table 3.1.2")
+annual_vacancy <- read_csv("data/vac_rate_mtl_ville.csv", skip = 2, n_max = 18)
 
 
 # Process shapefile -------------------------------------------------------
@@ -37,579 +67,40 @@ cmhc <-
   select(ZONECODE, NAME_EN) %>% 
   rename(zone = ZONECODE, neighbourhood = NAME_EN) %>% 
   group_by(zone) %>% 
-  summarize(name = paste0(neighbourhood, collapse = "/"))
+  summarize(name = paste0(neighbourhood, collapse = "/"), .group = "drop")
 
 
 # Process 2019 vacancy rates ----------------------------------------------
 
-vacancy_2019 <- 
-  vacancy_2019 %>% 
-  filter(row >= 5) %>%
-  select(row, col, data_type, character, numeric) %>%
-  behead("up-left", bedroom) %>%
-  behead("up-left", date) %>%
-  behead("left", zone) %>%
-  mutate(zone_name = str_remove(zone, 'Zone [:digit:]* - '),
-         zone = as.numeric(str_extract(zone, '(?<=Zone )[:digit:]*')),
-         date = if_else(date == "Oct-18", 2018, 2019)) %>% 
-  select(zone, zone_name, date, bedroom, numeric, character) %>%
-  group_by(zone, zone_name, bedroom, date) %>% 
-  summarize(vacancy = numeric[1],
-            quality = character[2],
-            change = if_else(date == 2019, character[3], NA_character_)) %>% 
-  mutate(change = case_when(
-    change == "−" ~ "no change",
-    change == "↓" ~ "decrease",
-    change == "↑" ~ "increase",
-    is.na(change) ~ NA_character_))
+vacancy_2019 <- vacancy_2019 %>% import_CMHC(vacancy) %>% filter(zone <= 18)
 
 
 # Process 2019 average rent -----------------------------------------------
 
-# TKTK
+avg_rent_2019 <- avg_rent_2019 %>% import_CMHC(rent) %>% filter(zone <= 18)
+
+
+# Process annual vacancy --------------------------------------------------
+
+annual_vacancy <-
+  annual_vacancy %>% 
+  rename_with(~unique(vacancy_2019$bedroom)[c(4, 1:3, 5)], 
+              !starts_with("X")) %>% 
+  rename(date = X1) %>%
+  rename_with(~paste0(unique(vacancy_2019$bedroom)[c(4, 1:3, 5)], " - quality"), 
+              c(1:5 * 2 + 1)) %>% 
+  mutate(date = as.numeric(str_extract(date, "[:digit:]*"))) %>% 
+  pivot_longer(c(where(is.numeric), -date), names_to = "bedroom", 
+               values_to = "vacancy") %>% 
+  pivot_longer(c(where(is.character), -bedroom), names_to = "temp", 
+               values_to = "quality") %>% 
+  mutate(temp = str_remove(temp, " - quality")) %>% 
+  filter(bedroom == temp) %>% 
+  select(-temp) %>% 
+  mutate(vacancy = vacancy / 100)
+              
 
 
-
-
-
-
-
-#####TOTAL (apt and townhouse) rental avg rent 2018 2019 ####### 
-
-####import second sheet 
-
-avg_rent_2018_2019 <- 
-  read_xlsx("~/Desktop/RA/montreal-2020/data/rmr-montreal-2019-en.xlsx", 20)
-
-
-# Remove useless rows and columns
-avg_rent_2018_2019 <- 
-  avg_rent_2018_2019 %>% 
-  slice(-1, -2, -3)
-
-# Turn rows 1 and 2 into column names
-
-names(avg_rent_2018_2019) <- 
-  paste("column", 1:length(avg_rent_2018_2019), sep = "_")
-
-names(avg_rent_2018_2019)[[1]] <- 
-  "Zone"
-
-# Use a for loop to rename the four columns with the first-year values
-for (i in 1:5) {
-  
-  names(avg_rent_2018_2019)[(i - 1) * 4 + 2] <- 
-    paste(avg_rent_2018_2019[1, (i - 1) *  4 + 2], 
-          avg_rent_2018_2019[2, (i - 1) * 4 + 2],
-          sep = ", ")  
-}
-
-
-# Use a for loop to rename the four columns with first-year data quality
-
-for (i in 1:5) {
-  
-  names(avg_rent_2018_2019)[(i - 1) * 4 + 3] <- 
-    paste("Data quality", names(avg_rent_2018_2019)[(i - 1) * 4 + 2],
-          sep = ", ")
-  
-}
-
-
-# Use a for loop to rename the four columns with the second-year values
-
-for (i in 1:5) {
-  
-  names(avg_rent_2018_2019)[(i - 1) * 4 + 4] <- 
-    paste(avg_rent_2018_2019[1, (i - 1) * 4 + 2], 
-          (avg_rent_2018_2019[2, (i - 1) * 4 + 4]),
-          sep = ", ")  
-}
-
-
-# Use a for loop to rename the four columns with second-year data quality
-
-for (i in 1:5) {
-  
-  names(avg_rent_2018_2019)[(i - 1) * 4 + 5] <- 
-    paste("Data quality", names(avg_rent_2018_2019)[(i - 1) * 4 + 4],
-          sep = ", ")
-  
-}
-
-# Remove first two rows
-avg_rent_2018_2019 <- 
-  avg_rent_2018_2019 %>% 
-  slice(-1, -2)
-
-
-#split first column 
-
-avg_rent_2018_2019 <- separate(data = avg_rent_2018_2019, col = Zone, 
-                               into = c("Zone_Number", "Zone_Name"), sep = " - ")
-
-# delete extra rows (totals for island, laval, etc )
-
-avg_rent_2018_2019 <- 
-  avg_rent_2018_2019 %>% 
-  slice(-19, -26, -33, -34, -35, -44, -45, -47, -48)
-
-### note that: mtl island is zone 1-18!!!!!!!!!! ##
-
-#split zone number column 
-
-avg_rent_2018_2019 <- 
-  separate(data = avg_rent_2018_2019, col = "Zone_Number", 
-           into = c("Zone", "Zone_Number"), sep = " ")
-
-
-##change to numeric and add 0 to single digit numbers 
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "1"] <- "01"
-
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "2"] <- "02"
-
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "3"] <- "03"
-
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "4"] <- "04"
-
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "5"] <- "05"
-
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "6"] <- "06"
-
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "7"] <- "07"
-
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "8"] <- "08"
-
-
-avg_rent_2018_2019$Zone_Number[avg_rent_2018_2019$Zone_Number == "9"] <- "09"
-
-
-avg_rent_2018_2019 <- 
-  rename(avg_rent_2018_2019, BDBACH_OCT_18 = 'Bachelor, Oct-18', 
-         BDBACH_OCT_19 = 'Bachelor, Oct-19', 
-         DQ_BDBACH_OCT_18 = 'Data quality, Bachelor, Oct-18',  
-         DQ_BDBACH_OCT_19 = 'Data quality, Bachelor, Oct-19', 
-         BD1_OCT_18 = '1 Bedroom, Oct-18', 
-         DQ_BD1_OCT_18 = 'Data quality, 1 Bedroom, Oct-18', 
-         BD1_OCT_19 = '1 Bedroom, Oct-19', 
-         DQ_BD1_OCT_19 = 'Data quality, 1 Bedroom, Oct-19', 
-         BD2_OCT_18 = '2 Bedroom, Oct-18', 
-         DQ_BD2_OCT_18 = 'Data quality, 2 Bedroom, Oct-18', 
-         BD2_OCT_19 = '2 Bedroom, Oct-19', 
-         DQ_BD2_OCT_19 = 'Data quality, 2 Bedroom, Oct-19', 
-         BD3_OCT_18 = '3 Bedroom +, Oct-18', 
-         DQ_BD3_OCT_18 = 'Data quality, 3 Bedroom +, Oct-18',
-         BD3_OCT_19 = '3 Bedroom +, Oct-19', 
-         DQ_BD3_OCT_19 = 'Data quality, 3 Bedroom +, Oct-19', 
-         BDTOT_OCT_18 = 'Total, Oct-18', 
-         DQ_BDTOT_OCT_18 = 'Data quality, Total, Oct-18',
-         BDTOT_OCT_19 = 'Total, Oct-19', 
-         DQ_BDTOT_OCT_19 = 'Data quality, Total, Oct-19') 
-
-## pivot once for bedroom and % 
-avg_rent_2018_2019 <-
-  avg_rent_2018_2019 %>% 
-  pivot_longer(cols = starts_with("BD"), 
-               names_to = "unit_type",
-               values_to = "percent"
-  )
-
-
-### pivot again for bedroom and data quality
-
-avg_rent_2018_2019 <- 
-  avg_rent_2018_2019 %>% 
-  pivot_longer(cols = starts_with("DQ"),
-               names_to = "data_quality",
-               values_to = "data_quality_grade")
-
-### remove DQ for matching 
-
-avg_rent_2018_2019 <- 
-  avg_rent_2018_2019 %>% 
-  mutate(data_quality = str_remove(data_quality, "DQ_"))
-
-
-## matching dq and ut columns to find the accurate numbers... 
-
-avg_rent_2018_2019 <- 
-  avg_rent_2018_2019 %>% 
-  filter(unit_type == data_quality)
-
-#delete duplicate data quaity row 
-
-avg_rent_2018_2019 <- avg_rent_2018_2019 %>% select(-data_quality) 
-
-#split unit column to make year 
-
-avg_rent_2018_2019 <- separate(data = avg_rent_2018_2019, col = "unit_type", 
-                               into = c("bedroom_type", "year"), sep = "_OCT_")
-
-## renaming the year column 
-
-avg_rent_2018_2019$year[avg_rent_2018_2019$year == "18"] <- "2018"
-
-
-avg_rent_2018_2019$year[avg_rent_2018_2019$year == "19"] <- "2019"
-
-
-
-## as.numeric number columns 
-
-avg_rent_2018_2019$percent <- as.numeric(avg_rent_2018_2019$percent)
-
-avg_rent_2018_2019$Zone_Number <- as.numeric(avg_rent_2018_2019$Zone_Number)
-
-avg_rent_2018_2019$year <- as.numeric(avg_rent_2018_2019$year)
-
-###join with mtl zones 
-
-avg_rent_df <- 
-  avg_rent_2018_2019 %>% 
-  left_join(mtl_zones, .)
-
-avg_rent_df <- 
-  avg_rent_df %>% 
-  select(-Zone)
-
-save(avg_rent_df, file = "output/total_primary_market_average_rent.Rdata")
-
-
-
-#####TOTAL (apt and townhouse) rental vacancy rate 2018 2019 ####### 
-
-##import sheet
-
-tot_vacancy_2018_2019 <- 
-  read_xlsx("~/Desktop/RA/montreal-2020/data/rmr-montreal-2019-en.xlsx", 19)
-
-
-# Remove useless rows and columns
-tot_vacancy_2018_2019 <- 
-  tot_vacancy_2018_2019 %>% 
-  slice(-1, -2, -3) %>% 
-  select(-6, -11, -16, -21, -26)
-
-# Turn rows 1 and 2 into column names
-
-names(tot_vacancy_2018_2019) <- 
-  paste("column", 1:length(tot_vacancy_2018_2019), sep = "_")
-
-names(tot_vacancy_2018_2019)[[1]] <- 
-  "Zone"
-
-# Use a for loop to rename the four columns with the first-year values
-for (i in 1:5) {
-  
-  names(tot_vacancy_2018_2019)[(i - 1) * 4 + 2] <- 
-    paste(tot_vacancy_2018_2019[1, (i - 1) *  4 + 2], 
-          tot_vacancy_2018_2019[2, (i - 1) * 4 + 2],
-          sep = ", ")  
-}
-
-
-# Use a for loop to rename the four columns with first-year data quality
-
-for (i in 1:5) {
-  
-  names(tot_vacancy_2018_2019)[(i - 1) * 4 + 3] <- 
-    paste("Data quality", names(tot_vacancy_2018_2019)[(i - 1) * 4 + 2],
-          sep = ", ")
-  
-}
-
-
-# Use a for loop to rename the four columns with the second-year values
-
-for (i in 1:5) {
-  
-  names(tot_vacancy_2018_2019)[(i - 1) * 4 + 4] <- 
-    paste(tot_vacancy_2018_2019[1, (i - 1) * 4 + 2], 
-          (tot_vacancy_2018_2019[2, (i - 1) * 4 + 4]),
-          sep = ", ")  
-}
-
-
-# Use a for loop to rename the four columns with second-year data quality
-
-for (i in 1:5) {
-  
-  names(tot_vacancy_2018_2019)[(i - 1) * 4 + 5] <- 
-    paste("Data quality", names(tot_vacancy_2018_2019)[(i - 1) * 4 + 4],
-          sep = ", ")
-  
-}
-
-# Remove first two rows
-tot_vacancy_2018_2019 <- 
-  tot_vacancy_2018_2019 %>% 
-  slice(-1, -2)
-
-
-#split first column 
-
-tot_vacancy_2018_2019 <- separate(data = tot_vacancy_2018_2019, col = Zone, 
-                                  into = c("Zone_Number", "Zone_Name"), 
-                                  sep = " - ")
-
-# delete extra rows (totals for island, laval, etc )
-
-tot_vacancy_2018_2019 <- 
-  tot_vacancy_2018_2019 %>% 
-  slice(-19, -26, -33, -34, -35, -44, -45, -47, -48)
-
-### note that: mtl island is zone 1-18!!!!!!!!!! ##
-
-#split zone number column 
-
-tot_vacancy_2018_2019 <- 
-  separate(data = tot_vacancy_2018_2019, col = "Zone_Number", 
-           into = c("Zone", "Zone_Number"), sep = " ")
-
-
-##change to numeric and add 0 to single digit numbers 
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "1"] <- "01"
-
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "2"] <- "02"
-
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "3"] <- "03"
-
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "4"] <- "04"
-
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "5"] <- "05"
-
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "6"] <- "06"
-
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "7"] <- "07"
-
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "8"] <- "08"
-
-
-tot_vacancy_2018_2019$Zone_Number[tot_vacancy_2018_2019$Zone_Number == "9"] <- "09"
-
-
-#rename 
-
-tot_vacancy_2018_2019 <- 
-  rename(tot_vacancy_2018_2019, BDBACH_OCT_18 = 'Bachelor, Oct-18', 
-         BDBACH_OCT_19 = 'Bachelor, Oct-19', 
-         DQ_BDBACH_OCT_18 = 'Data quality, Bachelor, Oct-18',  
-         DQ_BDBACH_OCT_19 = 'Data quality, Bachelor, Oct-19', 
-         BD1_OCT_18 = '1 Bedroom, Oct-18', 
-         DQ_BD1_OCT_18 = 'Data quality, 1 Bedroom, Oct-18', 
-         BD1_OCT_19 = '1 Bedroom, Oct-19', 
-         DQ_BD1_OCT_19 = 'Data quality, 1 Bedroom, Oct-19', 
-         BD2_OCT_18 = '2 Bedroom, Oct-18', 
-         DQ_BD2_OCT_18 = 'Data quality, 2 Bedroom, Oct-18', 
-         BD2_OCT_19 = '2 Bedroom, Oct-19', 
-         DQ_BD2_OCT_19 = 'Data quality, 2 Bedroom, Oct-19', 
-         BD3_OCT_18 = '3 Bedroom +, Oct-18', 
-         DQ_BD3_OCT_18 = 'Data quality, 3 Bedroom +, Oct-18',
-         BD3_OCT_19 = '3 Bedroom +, Oct-19', 
-         DQ_BD3_OCT_19 = 'Data quality, 3 Bedroom +, Oct-19', 
-         BDTOT_OCT_18 = 'Total, Oct-18', 
-         DQ_BDTOT_OCT_18 = 'Data quality, Total, Oct-18',
-         BDTOT_OCT_19 = 'Total, Oct-19', 
-         DQ_BDTOT_OCT_19 = 'Data quality, Total, Oct-19') 
-
-## pivot once for bedroom and % 
-tot_vacancy_2018_2019 <-
-  tot_vacancy_2018_2019 %>% 
-  pivot_longer(cols = starts_with("BD"), 
-               names_to = "unit_type",
-               values_to = "percent"
-  )
-
-
-### pivot again for bedroom and data quality
-
-tot_vacancy_2018_2019 <- 
-  tot_vacancy_2018_2019 %>% 
-  pivot_longer(cols = starts_with("DQ"),
-               names_to = "data_quality",
-               values_to = "data_quality_grade")
-
-### remove DQ for matching 
-
-tot_vacancy_2018_2019 <- 
-  tot_vacancy_2018_2019 %>% 
-  mutate(data_quality = str_remove(data_quality, "DQ_"))
-
-
-## matching dq and ut columns to find the accurate numbers... 
-
-tot_vacancy_2018_2019 <- 
-  tot_vacancy_2018_2019 %>% 
-  filter(unit_type == data_quality)
-
-#delete duplicate data quaity row 
-
-tot_vacancy_2018_2019 <- tot_vacancy_2018_2019 %>% select(-data_quality) 
-
-#split unit column to make year 
-
-tot_vacancy_2018_2019 <- 
-  separate(data = tot_vacancy_2018_2019, col = "unit_type", 
-           into = c("bedroom_type", "year"), sep = "_OCT_")
-
-## renaming the year column 
-
-tot_vacancy_2018_2019$year[tot_vacancy_2018_2019$year == "18"] <- "2018"
-
-
-tot_vacancy_2018_2019$year[tot_vacancy_2018_2019$year == "19"] <- "2019"
-
-
-
-## as.numeric number columns 
-
-tot_vacancy_2018_2019$percent <- as.numeric(tot_vacancy_2018_2019$percent)
-
-tot_vacancy_2018_2019$Zone_Number <- as.numeric(tot_vacancy_2018_2019$Zone_Number)
-
-tot_vacancy_2018_2019$year <- as.numeric(tot_vacancy_2018_2019$year)
-
-###join with mtl zones 
-
-tot_vac_df <- 
-  tot_vacancy_2018_2019 %>% 
-  left_join(mtl_zones, .)
-
-tot_vac_df <- 
-  tot_vac_df %>% 
-  select(-Zone)
-
-save(tot_vac_df, file = "output/total_primary_market_vacancy_rate.Rdata")
-
-
-#----------------------- cleaning cmhc ville de mtl level data from the housing portal ####
-
-#https://www03.cmhc-schl.gc.ca/hmip-pimh/#TableMapChart/2466023/4/Montr%C3%A9al%20(V)%20(Quebec)
-
-city_vac_rate <- read_csv("~/Desktop/RA/montreal-2020/data/vac_rate_mtl_ville.csv")
-
-
-# Remove useless rows and columns
-city_vac_rate <- 
-  city_vac_rate %>% 
-  slice(-21:-28)
-
-# Turn rows 1 and 2 into column names
-
-names(city_vac_rate) <- 
-  paste("column", 1:length(city_vac_rate), sep = "_")
-
-names(city_vac_rate)[[1]] <- 
-  "Year"
-
-# Use a for loop to rename the columns with the first-year values
-for (i in 1:5) {
-  
-  names(city_vac_rate)[(i - 1) * 2 + 2] <- 
-    paste(#city_vac_rate[1, (i - 1) *  4 + 2], 
-      city_vac_rate[2, (i - 1) * 2 + 2],
-      sep = ", ")  
-}
-
-
-# Use a for loop to rename the columns with first-year data quality
-
-for (i in 1:5) {
-  
-  names(city_vac_rate)[(i - 1) * 2 + 3] <- 
-    paste("Data quality", names(city_vac_rate)[(i - 1) * 2 + 2],
-          sep = ", ")
-  
-}
-
-
-# Remove first two rows
-city_vac_rate <- 
-  city_vac_rate %>% 
-  slice(-1, -2)
-
-
-#split first column 
-
-city_vac_rate <- 
-  separate(data = city_vac_rate, col = Year, into = c("Year", "Month"), sep = " ")
-
-
-#delete month column 
-
-city_vac_rate <- 
-  city_vac_rate %>% 
-  select(-Month)
-
-#rename 
-
-city_vac_rate <- 
-  rename(city_vac_rate, BDBACH = 'Bachelor', 
-         DQ_BDBACH = 'Data quality, Bachelor',  
-         BD1 = '1 Bedroom', DQ_BD1 = 'Data quality, 1 Bedroom', 
-         BD2 = '2 Bedroom', DQ_BD2 = 'Data quality, 2 Bedroom', 
-         BD3 = '3 Bedroom +', DQ_BD3 = 'Data quality, 3 Bedroom +',
-         BDTOT = 'Total', DQ_BDTOT = 'Data quality, Total') 
-
-
-## pivot once for bedroom and % 
-city_vac_rate <-
-  city_vac_rate %>% 
-  pivot_longer(cols = starts_with("BD"), 
-               names_to = "unit_type",
-               values_to = "percent"
-  )
-
-### pivot again for bedroom and data quality
-
-city_vac_rate <- 
-  city_vac_rate %>% 
-  pivot_longer(cols = starts_with("DQ"),
-               names_to = "data_quality",
-               values_to = "data_quality_grade")
-
-### remove DQ for matching 
-
-city_vac_rate <- 
-  city_vac_rate %>% 
-  mutate(data_quality = str_remove(data_quality, "DQ_"))
-
-
-## matching 
-
-city_vac_rate <- 
-  city_vac_rate %>% 
-  filter(unit_type == data_quality)
-
-#delete duplicate data quaity row 
-
-city_vac_rate <- city_vac_rate %>% select(-data_quality) 
-
-
-## as.numeric number columns 
-
-city_vac_rate$percent <- as.numeric(city_vac_rate$percent)
-
-city_vac_rate$Year <- as.numeric(city_vac_rate$Year)
-
-
-save(city_vac_rate, file = "output/montreal_yoy_vac_rate.Rdata")
 
 
 #########average rents YOY file cleaning wooooooooo ############# 
