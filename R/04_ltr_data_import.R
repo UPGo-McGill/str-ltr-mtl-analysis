@@ -210,7 +210,7 @@ rm(kj, cl)
 
 # Add geometry ------------------------------------------------------------
 
-load("data/geometry.Rdata")
+load("output/geometry.Rdata")
 
 ltr <- st_transform(ltr, 32618)
 
@@ -232,4 +232,4 @@ rm(boroughs, city, DA)
 
 # Save output -------------------------------------------------------------
 
-save(ltr, file = "data/ltr_raw.Rdata")
+save(ltr, file = "output/ltr_raw.Rdata")

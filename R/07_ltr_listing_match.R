@@ -10,11 +10,11 @@ source("R/01_startup.R")
 
 # Load previous data ------------------------------------------------------
 
-load("data/str_raw.Rdata")
+load("output/str_raw.Rdata")
 
-load("data/matches_raw.Rdata")
+load("output/matches_raw.Rdata")
 
-load("data/ltr_raw.Rdata")
+load("output/ltr_raw.Rdata")
 
 dl_location <- "/Volumes/Data/Scrape photos/mtl"
 
@@ -79,6 +79,6 @@ rm(property_nest, ltr_nest)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, file = "data/str_processed.Rdata")
-save(ltr, file = "data/ltr_processed.Rdata")
-save(matches, ab_matches, file = "data/matches_processed.Rdata")
+save(property, daily, host, file = "output/str_processed.Rdata")
+save(ltr, file = "output/ltr_processed.Rdata")
+save(matches, ab_matches, file = "output/matches_processed.Rdata")

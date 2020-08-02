@@ -19,9 +19,9 @@ library(furrr)
 
 # Load previous data ------------------------------------------------------
 
-load("data/str_raw.Rdata")
+load("output/str_raw.Rdata")
 
-load("data/ltr_raw.Rdata")
+load("output/ltr_raw.Rdata")
 
 rm(daily, host)
 
@@ -129,13 +129,13 @@ rm(dl_location, ab_urls, ab_ids, cl_urls, cl_ids, kj_urls, kj_ids)
 # Get signatures ----------------------------------------------------------
 
 ab_sigs <- identify_image(ab_paths, batch_size = 100)
-save(ab_sigs, file = "data/img_sigs.Rdata")
+save(ab_sigs, file = "output/img_sigs.Rdata")
 
 cl_sigs <- identify_image(cl_paths, batch_size = 2000)
-save(ab_sigs, cl_sigs, file = "data/img_sigs.Rdata")
+save(ab_sigs, cl_sigs, file = "output/img_sigs.Rdata")
 
 kj_sigs <- identify_image(kj_paths, batch_size = 2000)
-save(ab_sigs, cl_sigs, kj_sigs, file = "data/img_sigs.Rdata")
+save(ab_sigs, cl_sigs, kj_sigs, file = "output/img_sigs.Rdata")
 
 rm(ab_paths, cl_paths, kj_paths)
 
@@ -163,5 +163,5 @@ cl_matches <- integrate_changes(cl_matches, cl_changes)
 
 # Save output -------------------------------------------------------------
 
-save(ab_matches, cl_matches, kj_matches, file = "data/matches_raw.Rdata")
-save(ab_changes, cl_changes, kj_changes, file = "data/match_changes.Rdata")
+save(ab_matches, cl_matches, kj_matches, file = "output/matches_raw.Rdata")
+save(ab_changes, cl_changes, kj_changes, file = "output/match_changes.Rdata")

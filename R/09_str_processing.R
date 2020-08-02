@@ -9,7 +9,7 @@ library(data.table)
 
 # Load previous data ------------------------------------------------------
 
-load("data/str_processed.Rdata")
+load("output/str_processed.Rdata")
 
 
 # Calculate multilistings -------------------------------------------------
@@ -70,4 +70,4 @@ rm(daily_GH, pb)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, FREH, GH, file = "data/str_processed.Rdata")
+save(property, daily, host, FREH, GH, file = "output/str_processed.Rdata")

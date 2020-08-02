@@ -46,4 +46,4 @@ city <-
 
 # Save output -------------------------------------------------------------
 
-save(DA, boroughs, city, file = "data/geometry.Rdata")
+save(DA, boroughs, city, file = "output/geometry.Rdata")

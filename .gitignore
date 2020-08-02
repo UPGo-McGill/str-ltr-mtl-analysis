@@ -6,3 +6,4 @@ data/
 .Rproj
 *.Rproj
 .DS_Store
+output/

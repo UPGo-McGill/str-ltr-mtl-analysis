@@ -9,9 +9,9 @@ source("R/01_startup.R")
 
 # Load previous data ------------------------------------------------------
 
-load("data/str_processed.Rdata")
+load("output/str_processed.Rdata")
 
-load("data/matches_processed.Rdata")
+load("output/matches_processed.Rdata")
 
 dl_location <- "/Volumes/Data/Scrape photos/mtl"
 
@@ -174,4 +174,4 @@ host <- strr_host(daily)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, file = "data/str_processed.Rdata")
+save(property, daily, host, file = "output/str_processed.Rdata")

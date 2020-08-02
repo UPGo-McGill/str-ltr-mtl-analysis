@@ -8,7 +8,7 @@
 #' - Municipal evaluation data shapefile
 
 source("R/01_startup.R")
-load("data/geometry.Rdata")
+load("output/geometry.Rdata")
 
 
 # Load parcel data --------------------------------------------------------
@@ -135,4 +135,4 @@ daily <-
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, file = "data/str_raw.Rdata")
+save(property, daily, host, file = "output/str_raw.Rdata")
