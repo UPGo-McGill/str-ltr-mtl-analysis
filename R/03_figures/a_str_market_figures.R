@@ -197,6 +197,61 @@ revenue_2019 %>%
   geom_text(aes(x=90, label="70.9% of total revenue", y=0.2), colour="black", angle=90, vjust = 1.2)
 
 
+### Stacked area graph for revenue distribution ###############################################################
+
+color <- colorRampPalette(brewer.pal(name="Spectral", n = 6))(20)
+color <- rev(color)
+
+weighted_bar_graph <- daily %>%
+  filter(housing == TRUE, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>%
+  group_by(host_ID) %>%
+  summarize(rev = sum(price)) %>% #*exchange_rate
+  filter(rev > 0) %>%
+  summarize(
+    `Top 10%` = sum(rev[rev > quantile(rev, c(0.90))] / sum(rev)),
+    `Top 20%` = sum(rev[rev > quantile(rev, c(0.80))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.90))] / sum(rev)),
+    `Top 30%` = sum(rev[rev > quantile(rev, c(0.70))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.80))] / sum(rev)),
+    `Top 40%` = sum(rev[rev > quantile(rev, c(0.60))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.70))] / sum(rev)),
+    `Top 50%` = sum(rev[rev > quantile(rev, c(0.50))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.60))] / sum(rev)),
+    `Top 60%` = sum(rev[rev > quantile(rev, c(0.40))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.50))] / sum(rev)),
+    `Top 70%` = sum(rev[rev > quantile(rev, c(0.30))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.40))] / sum(rev)),
+    `Top 80%` = sum(rev[rev > quantile(rev, c(0.20))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.30))] / sum(rev)),
+    `Top 90%` = sum(rev[rev > quantile(rev, c(0.10))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.20))] / sum(rev)),
+    `Top 100%` = sum(rev[rev > quantile(rev, c(0.00))] / sum(rev))- sum(rev[rev > quantile(rev, c(0.10))] / sum(rev))
+  )%>% 
+  gather(`Top 10%`, `Top 20%`, `Top 30%`, `Top 40%`, `Top 50%`, 
+         `Top 60%`, `Top 70%`, `Top 80%`, `Top 90%`, `Top 100%`, 
+         key = "percentile", value = "value") %>% 
+  mutate(percentile = factor(percentile, 
+                             levels = c('Top 10%', 'Top 20%', 'Top 30%', 'Top 40%', 'Top 50%', 
+                                        'Top 60%', 'Top 70%', 'Top 80%', 'Top 90%', 'Top 100%'))
+  ) 
+
+weighted_bar_graph$perfect_distribution <- 0.1
+weighted_bar_graph$ventile <- 1:10
+weighted_bar_graph$dummy1 <- weighted_bar_graph$perfect_distribution
+weighted_bar_graph$dummy2 <- weighted_bar_graph$value
+
+
+stacked_area_graph <- weighted_bar_graph %>%  
+  rename("0"=perfect_distribution, "1"=value, "0.25"=dummy1, "0.75"=dummy2) %>%
+  pivot_longer(c("0","0.25", "0.75", "1")) %>% 
+  ggplot()+
+  geom_area(aes(x=(as.numeric(name)), y=value, group=ventile, fill=ventile), colour="white", lwd=1.5)+
+  scale_y_continuous(position = "left", 
+                     breaks = seq(0, 1, by = 0.05), 
+                     label = c(" ", "Top 100%", " ","Top 90%", " ", "Top 80%"," ", "Top 70%", " ", "Top 60%", 
+                               " ", "Top 50%", " ", "Top 40%", " ", "Top 30%", " ", "Top 20%", " ", "Top 10%", " "))+
+  scale_fill_gradientn(colours=rev(color))+
+  theme_void()+
+  theme(legend.position = "none",
+        axis.text.y = element_text(angle = 20, hjust = 1),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        axis.text.x = element_blank())
+
+ggsave("output/stacked_area_graph.pdf", plot = stacked_area_graph, width =7, 
+       height = 8, units = "in")
 
 
 ### Housing loss ####################################################
