@@ -1,12 +1,19 @@
 #### 06 IMAGE MATCH ############################################################
 
-#' This script produces the `img_sigs.Rdata`, `matches_raw.Rdata` and 
-#' `match_changes.Rdata` objects. The script is extremely time-consuming and 
-#' memory-intensive to run, so it should only be rerun when image matching needs 
-#' to be rebuilt from scratch. In addition, the script downloads hundreds of 
-#' thousands of photos to a specified folder, so it requires approximately 50 GB 
-#' of free storage space.
-
+#' This script is extremely time-consuming and memory-intensive to run, so it 
+#' should only be rerun when image matching needs to be rebuilt from scratch. In 
+#' addition, the script downloads hundreds of thousands of photos to a specified 
+#' folder, so it requires approximately 50 GB of free storage space.
+#' 
+#' Output:
+#' - `img_sigs.Rdata`
+#' - `matches_raw.Rdata`
+#' - `match_changes.Rdata`
+#' 
+#' Script dependencies:
+#' - `03_str_data_import.R`
+#' - `04_ltr_data_import.R`
+#' 
 #' External dependencies:
 #' - Access to the UPGo database
 #' - Listings scraped from Kijiji and Craigslist with upgo::upgo_scrape_kj and

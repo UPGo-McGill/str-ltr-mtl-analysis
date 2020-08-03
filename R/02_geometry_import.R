@@ -1,8 +1,14 @@
 #### 02 GEOMETRY IMPORT ########################################################
 
-#' This script produces the `geometry.Rdata` object. It should only be rerun 
-#' when geometry needs to be rebuilt from scratch.
-
+#' This script should only be rerun when geometry needs to be rebuilt from 
+#' scratch.
+#' 
+#' Output:
+#' - `geometry.Rdata`
+#' 
+#' Script dependencies:
+#' - None
+#' 
 #' External dependencies:
 #' - `montreal_boroughs_2019.shp`: Shapefile of Montreal borough boundaries
 

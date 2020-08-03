@@ -1,8 +1,16 @@
 #### 08 STR LISTING MATCH ######################################################
 
-#' This script updates the `str_processed.Rdata` object. The script is 
-#' moderately time-consuming to run, and should be rerun when STR data or image 
-#' data has changed.
+#' This script is moderately time-consuming to run, and should be rerun when STR 
+#' data or image data has changed.
+#' 
+#' Output:
+#' - `str_processed.Rdata` (updated)
+#' 
+#' Script dependencies:
+#' - `07_ltr_listing_match.R`
+#' 
+#' External dependencies:
+#' - None
 
 source("R/01_startup.R")
 

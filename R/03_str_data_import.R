@@ -1,14 +1,17 @@
 #### 03 STR DATA IMPORT ########################################################
 
-#' This script produces the `str_raw.Rdata` object. It is time-consuming to run, 
-#' so it should only be rerun when STR data needs to be rebuilt from scratch.
+#' This script is time-consuming to run, so it should only be rerun when STR 
+#' data needs to be rebuilt from scratch.
+#' 
+#' Output:
+#' - `str_raw.Rdata`
 #' 
 #' Script dependencies:
-#' - 02_geometry_import.R
+#' - `02_geometry_import.R`
 #' 
 #' External dependencies:
 #' - Access to the UPGo database
-#' - Municipal evaluation data shapefile
+#' - `uniteevaluationfonciere.shp`: Municipal evaluation data shapefile
 
 source("R/01_startup.R")
 load("output/geometry.Rdata")

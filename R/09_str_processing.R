@@ -1,7 +1,16 @@
 #### 09 STR PROCESSING #########################################################
 
-#' This script updates the `str_processed.Rdata` object. The script is very 
-#' time-consuming to run, and should be rerun when STR data has changed.
+#' This script is very time-consuming to run, and should be rerun when STR data 
+#' has changed.
+#' 
+#' Output:
+#' - `str_processed.Rdata` (updated)
+#' 
+#' Script dependencies:
+#' - `08_str_listing_match.R`
+#' 
+#' External dependencies:
+#' - None
 
 source("R/01_startup.R")
 library(data.table)

@@ -1,8 +1,10 @@
-#### NATIONAL COMPARISON #######################################################
+#### 10 NATIONAL COMPARISON ####################################################
 
-#' This script produces the `national_comparison.Rdata` object. It is 
-#' time-consuming to run, so it should only be rerun when STR data needs to be 
-#' rebuilt from scratch.
+#' This script is time-consuming to run, so it should only be rerun when STR 
+#' data needs to be rebuilt from scratch.
+#' 
+#' Output:
+#' - `national_comparison.Rdata`
 #' 
 #' Script dependencies:
 #' - None
@@ -12,6 +14,7 @@
 
 source("R/01_startup.R")
 library(cancensus)
+
 
 # Get geometries for 10 biggest cities ------------------------------------
 
@@ -41,7 +44,10 @@ daily_CA <-
   filter(property_ID %in% !!property_CA$property_ID, start_date >= "2019-01-01",
          start_date <= "2019-12-31") %>% 
   collect() %>% 
-  strr_expand()
+  strr_expand() %>% 
+  # Reconcile geography inconsistencies between property and daily files
+  select(-country, -region, -city) %>% 
+  left_join(select(st_drop_geometry(property_CA), property_ID, country:city))
 
 upgo_disconnect()
 
@@ -52,7 +58,7 @@ national_comparison <-
   daily_CA %>% 
   filter(status != "B", housing) %>% 
   group_by(city) %>% 
-  summarize(active_daily_listings = n() / 365) %>% 
+  summarize(active_daily_listings = n() / 365, .groups = "drop") %>% 
   left_join(select(st_drop_geometry(CSD), name, Households), 
             by = c("city" = "name")) %>% 
   mutate(listings_per_1000 = 1000 * active_daily_listings / Households) %>% 
@@ -75,3 +81,8 @@ national_comparison <-
 national_comparison <- 
   national_comparison %>% 
   mutate(revenue_per_listing = revenue / active_daily_listings)
+
+
+# Save output -------------------------------------------------------------
+
+save(national_comparison, file = "output/national_comparison.Rdata")

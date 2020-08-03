@@ -1,9 +1,20 @@
 #### 07 LTR LISTING MATCH ######################################################
 
-#' This script produces the `str_processed.Rdata`, `ltr_processed.Rdata`, and
-#' `matches_processed.Rdata` objects, and updates the `ltr.Rdata` object. The 
-#' script runs relatively quickly, and should be rerun anytime the raw STR, LTR 
-#' or image matching data changes.
+#' This script runs relatively quickly, and should be rerun anytime the raw STR, 
+#' LTR or image matching data changes.
+#' 
+#' Output:
+#' - `str_processed.Rdata`
+#' - `ltr_processed.Rdata`
+#' - `matches_processed.Rdata`
+#' 
+#' Script dependencies:
+#' - `03_str_data_import.R`
+#' - `04_ltr_data_import.R`
+#' - `06_image_match.R`
+#' 
+#' External dependencies:
+#' - None
 
 source("R/01_startup.R")
 

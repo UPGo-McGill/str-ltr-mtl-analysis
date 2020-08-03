@@ -1,15 +1,20 @@
 #### 05 CMHC DATA IMPORT #######################################################
 
-#' This script produces the `cmhc.Rdata` object. It should only be rerun when
-#' CMHC data needs to be rebuilt from scratch. The necessary XLSX files can be
-#' downloaded with lines 15-TK of the script on first run.
-
+#' This script should only be rerun when CMHC data needs to be rebuilt from 
+#' scratch. The necessary XLSX files can be downloaded with lines 24-100 of the 
+#' script on first run.
+#' 
+#' Output:
+#' - `cmhc.Rdata`
+#' 
+#' Script dependencies:
+#' - None
+#' 
 #' External dependencies:
 #' - `CMHC_NBHD_2016-mercWGS84.shp`: CMHC neighbourhood shapefile
 #' - `mtl_units.csv`, `mtl_avg_rent.csv` & `mtl_vacancy.csv`: Tables downloaded 
 #'   from CMHC housing market information portal 
 #'   (https://www03.cmhc-schl.gc.ca/hmip-pimh/)
-
 
 source("R/01_startup.R")
 library(tidyxl)

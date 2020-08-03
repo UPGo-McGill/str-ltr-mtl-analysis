@@ -1,8 +1,14 @@
 #### 04 KJ/CL DATA IMPORT ######################################################
 
-#' This script produces the `ltr_raw.Rdata` object. It should only be rerun when
-#' KJ/CL data needs to be rebuilt from scratch.
-
+#' This script should only be rerun when new KJ/CL data arrives or it otherwise
+#' needs to be rebuilt from scratch.
+#' 
+#' Output:
+#' - `ltr_raw.Rdata`
+#' 
+#' Script dependencies:
+#' - None
+#' 
 #' External dependencies:
 #' - `kj.rds` and `cl.rds`, the results of scraping Kjiji and Craigslist 
 #'   listings, respectively.
