@@ -226,6 +226,39 @@ GH_total <-
   summarize(GH_units = sum(housing_units)) %>%
   mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
 
+### STR-induced housing loss - Combined housing loss ################################################
+
+housing_loss <-
+  FREH %>%
+  group_by(date) %>%
+  summarize(`Entire home/apt` = n()) %>%
+  left_join(GH_total, by = "date") %>%
+  rename(`Private room` = GH_average) %>%
+  gather(`Entire home/apt`, `Private room`, 
+         key = `Listing type`, value = `Housing units`) 
+
+# housing loss variation
+(housing_loss %>% 
+    filter(date == LTM_end_date) %>% 
+    summarize(sum(`Housing units`)) - 
+    housing_loss %>% 
+    filter(date == LTM_end_date - years(1)) %>% 
+    summarize(sum(`Housing units`))
+) /
+  housing_loss %>% 
+  filter(date == LTM_end_date - years(1)) %>% 
+  summarize(sum(`Housing units`))
+
+
+# Current housing loss figure
+sum(filter(housing_loss, date == "2019-12-31")$`Housing units`)
+
+
+# housing loss of family size units.
+property %>% 
+  filter(property_ID %in% filter(FREH, date == "2019-12-31")$property_ID,
+         bedrooms == 2)
+
 
 ### STRs and Montreal’s housing market indicators - Vacancy rates ######################################################
 
@@ -264,4 +297,9 @@ GH_total <-
 
 
 ### STR-related increase in rent in Montreal, 2017-2019 ######################################################
+
+
+
+
+
 
