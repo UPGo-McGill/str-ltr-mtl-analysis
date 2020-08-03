@@ -2,6 +2,7 @@
 
 source("R/01_startup.R")
 library(caret)
+library(slider)
 
 
 # Wrangle data ------------------------------------------------------------
