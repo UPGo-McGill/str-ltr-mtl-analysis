@@ -1,5 +1,15 @@
 #### NATIONAL COMPARISON #######################################################
 
+#' This script produces the `national_comparison.Rdata` object. It is 
+#' time-consuming to run, so it should only be rerun when STR data needs to be 
+#' rebuilt from scratch.
+#' 
+#' Script dependencies:
+#' - None
+#' 
+#' External dependencies:
+#' - Access to the UPGo database
+
 source("R/01_startup.R")
 library(cancensus)
 
@@ -19,25 +29,27 @@ CSD <-
 
 upgo_connect()
 
-property <- 
+property_CA <- 
   property_all %>% 
   filter(country == "Canada", city %in% !!CSD$name) %>% 
   collect() %>% 
   strr_as_sf() %>%
   st_filter(CSD)
 
-daily <- 
+daily_CA <- 
   daily_all %>% 
-  filter(property_ID %in% !!property$property_ID, start_date >= "2019-01-01",
+  filter(property_ID %in% !!property_CA$property_ID, start_date >= "2019-01-01",
          start_date <= "2019-12-31") %>% 
   collect() %>% 
   strr_expand()
+
+upgo_disconnect()
 
 
 # Calculate figures -------------------------------------------------------
 
 national_comparison <- 
-  daily %>% 
+  daily_CA %>% 
   filter(status != "B", housing) %>% 
   group_by(city) %>% 
   summarize(active_daily_listings = n() / 365) %>% 
@@ -50,7 +62,7 @@ exchange_rates <- convert_currency(start_date = "2019-01-01",
                                    end_date = "2019-12-31")
 
 national_comparison <- 
-  daily %>% 
+  daily_CA %>% 
   filter(status == "R", housing) %>% 
   mutate(year_month = substr(date, 1, 7)) %>% 
   left_join(exchange_rates) %>% 

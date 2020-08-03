@@ -2,7 +2,10 @@
 
 #' This script produces the `str_raw.Rdata` object. It is time-consuming to run, 
 #' so it should only be rerun when STR data needs to be rebuilt from scratch.
-
+#' 
+#' Script dependencies:
+#' - 02_geometry_import.R
+#' 
 #' External dependencies:
 #' - Access to the UPGo database
 #' - Municipal evaluation data shapefile

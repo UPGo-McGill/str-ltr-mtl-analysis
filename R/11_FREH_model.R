@@ -5,12 +5,16 @@ library(caret)
 library(slider)
 
 
+# Load data ---------------------------------------------------------------
+
+load("output/str_processed.Rdata")
+
+
 # Wrangle data ------------------------------------------------------------
 
 FREH <- 
-  daily %>% 
-  strr_FREH() %>% 
-  filter(FREH == TRUE)
+  FREH %>% 
+  mutate(FREH = TRUE)
 
 year_long <- 
   daily %>% 
