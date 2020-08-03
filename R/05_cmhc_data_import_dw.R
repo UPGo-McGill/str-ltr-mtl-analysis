@@ -19,11 +19,35 @@ library(unpivotr)
 
 # # 2019 Montreal RMR data table
 # download.file(paste0(
-#   "https://assets.cmhc-schl.gc.ca/sites/cmhc/data-research/data-tables/", 
+#   "https://assets.cmhc-schl.gc.ca/sites/cmhc/data-research/data-tables/",
 #   "rental-market-data/rmr-data-tables/2019/rmr-montreal-2019-en.xlsx?",
-#   "rev=d8045cac-9e1a-4d95-85d8-1e239cf13747"), 
+#   "rev=d8045cac-9e1a-4d95-85d8-1e239cf13747"),
 #   destfile = "data/montreal_rmr_2019.xlsx")
-
+# 
+# # National vacancy
+# download.file(c(
+#   paste0(
+#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/",
+#     "rms-3-urban-vacancy-rates-by-bedroom-type-2015-10.xlsx?",
+#     "rev=4f908e16-717e-4ed8-8eef-e6ca941cdc27"),
+#   paste0(
+#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/",
+#     "rms-3-urban-vacancy-rates-by-bedroom-type-2016-10.xlsx?",
+#     "rev=95ee1335-6b23-43ba-b3c4-e8b5e7433a3f"),
+#   paste0(
+#     "https://assets.cmhc-schl.gc.ca/sf/project/cmhc/pubsandreports/excel/",
+#     "rms-3-urban-vacancy-rates-by-bedroom-type-2017-10.xlsx?",
+#     "rev=6bfe023e-691e-421b-a41f-4f9ff4204661"),
+#   paste0(
+#     "https://assets.cmhc-schl.gc.ca/sites/cmhc/data-research/data-tables/",
+#     "urban-rental-market-survey-data/2018/urban-rental-market-survey-data-",
+#     "vacancy-rates-2018-10-en.xlsx?rev=7427253e-44d0-4ec6-a62c-7afc7c249855"),
+#   paste0(
+#     "https://assets.cmhc-schl.gc.ca/sites/cmhc/data-research/data-tables/",
+#     "urban-rental-market-survey-data/2019/urban-rental-market-survey-data-",
+#     "vacancy-rates-2019.xlsx?rev=15373968-504f-42e8-a277-b1633b21553d")),
+#   destfile = paste0("data/annual_vacancy_", 2015:2019, ".xlsx"))
+# 
 # # National average rents
 # download.file(c(
 #   paste0("https://assets.cmhc-schl.gc.ca/sf/project/cmhc/xls/data-tables/",
@@ -47,8 +71,7 @@ library(unpivotr)
 #     "https://assets.cmhc-schl.gc.ca/sites/cmhc/data-research/data-tables/",
 #     "average-rents-vacant-occupied-units/average-rents-vacant-occupied-units-",
 #     "2019-en.xlsx?rev=8dbefa49-8770-4d89-bc1a-0e11060ed3b7")),
-#   destfile = paste0("data/avg_rents_", 2015:2019, ".xlsx"))
-
+#   destfile = paste0("data/annual_avg_rent_", 2015:2019, ".xlsx"))
 
 
 # Helper functions to import tables ---------------------------------------
@@ -95,7 +118,117 @@ import_web_table <- function(data, var_name) {
     select(-temp) %>% 
     mutate(var = var / 100) %>% 
     rename({{var_name}} := var)
-  }
+}
+
+import_annual_vacancy <- function(data, year) {
+  
+  province_names <- 
+    cancensus::list_census_regions("CA16", quiet = TRUE) %>% 
+    filter(level == "PR") %>% 
+    pull(name) %>% 
+    sort()
+  
+  data %>% 
+    filter(row >= 5) %>%
+    select(row, col, data_type, character, numeric) %>%
+    behead("up-left", bedroom) %>% 
+    behead("left", province) %>% 
+    behead("left", centre) %>% 
+    behead("left", zone) %>% 
+    behead("left", neighbourhood) %>% 
+    behead("left", dwelling_type) %>% 
+    mutate(date = year) %>% 
+    select(province, centre, zone, neighbourhood, dwelling_type, date, bedroom, 
+           character) %>% 
+    mutate(province = 
+             case_when(province == "Alta/Alb."          ~ province_names[[1]],
+                       province == "B.C./C.-B."         ~ province_names[[2]],
+                       province == "Man./Man."          ~ province_names[[3]],
+                       province == "N.B./N.-B."         ~ province_names[[4]],
+                       province == "Nfld.Lab./T.-N.-L." ~ province_names[[5]],
+                       province == "N.S./N.-É."         ~ province_names[[7]],
+                       province == "Ont./Ont."          ~ province_names[[9]],
+                       province == "Que/Qc"             ~ province_names[[11]],
+                       province == "Sask./Sask."        ~ province_names[[12]])
+    ) %>% 
+    filter(!is.na(province)) %>% 
+    mutate(dwelling_type = case_when(
+      dwelling_type == "Row / En\r\nbande" ~ "Row",
+      dwelling_type %in% c("Apt &\r\nOther /\r\nApp. &\r\nautres",
+                           "Apt & Other /\r\nApp. & autres",
+                           "Apt & Other /\r\nApp. &\r\nautres") ~ 
+        "Apartment and other",
+      TRUE ~ dwelling_type
+    )) %>% 
+    mutate(bedroom = case_when(
+      str_detect(bedroom, "Bachelor") ~ "Bachelor",
+      str_detect(bedroom, "1") ~ "1 Bedroom",
+      str_detect(bedroom, "2") ~ "2 Bedroom",
+      str_detect(bedroom, "3") ~ "3 Bedroom +",
+      str_detect(bedroom, "Total") ~ "Total"
+    )) %>% 
+    group_by(date, province, centre, zone, neighbourhood, dwelling_type, 
+             bedroom) %>% 
+    summarize(
+      vacancy = character[1],
+      quality = character[2],
+      .groups = "drop_last") %>% 
+    ungroup() %>% 
+    mutate(
+      vacancy = if_else(str_detect(vacancy, "%"),
+                        as.numeric(str_remove(vacancy, "%")) / 100,
+                        NA_real_)) %>% 
+    mutate(quality = if_else(quality %in% c("a", "b", "c", "d"), quality,
+                             NA_character_))
+}
+
+import_annual_avg_rent <- function(data) {
+  
+  data <-
+    data %>% 
+    filter(row >= 9) %>%
+    select(row, col, data_type, character, numeric) %>%
+    behead("up-left", bedroom) %>% 
+    behead("up-left", occupied_status) %>% 
+    behead("left", zone) %>% 
+    behead("left", date) %>% 
+    filter(!is.na(zone), zone != "", 
+           !str_starts(zone, "(\\*)|(a - E)|(The f)")) %>%
+    mutate(heading = if_else(!str_starts(zone, "Zone ") & str_ends(zone, " CMA"), 
+                             TRUE, FALSE)) %>% 
+    arrange(row, col)
+  
+  indices <- 
+    test %>% 
+    filter(heading == TRUE) %>% 
+    pull(row) %>% 
+    unique()
+  
+  data %>% 
+    rowwise() %>% 
+    mutate(index_group = min(indices[indices >= row])) %>% 
+    ungroup() %>% 
+    group_by(index_group) %>% 
+    mutate(CMA = first(zone[row == index_group])) %>% 
+    ungroup() %>% 
+    select(CMA, zone, bedroom, occupied_status, date, character, numeric) %>% 
+    group_by(CMA, zone, bedroom, occupied_status, date) %>% 
+    summarize(avg_rent = first(numeric), quality = last(character), 
+              .groups = "drop") %>% 
+    group_by(CMA, zone, bedroom) %>% 
+    summarize(occupied_status = occupied_status[1:2],
+              date = date[1:2],
+              avg_rent = avg_rent[1:2],
+              occ_rent_higher = rep(if_else(quality[3] == "Y", TRUE, FALSE), 2),
+              quality = quality[1:2],
+              .groups = "drop") %>% 
+    relocate(occ_rent_higher, .after = last_col()) %>% 
+    mutate(zone_name = str_remove(zone, 'Zone [:digit:]* - '),
+           zone = as.numeric(str_extract(zone, '(?<=Zone )[:digit:]*'))) %>% 
+    relocate(zone_name, .after = zone) %>% 
+    mutate(quality = if_else(quality %in% c("a", "b", "c", "d"), quality,
+                             NA_character_))
+}
 
 
 # Import raw files --------------------------------------------------------
@@ -103,9 +236,13 @@ import_web_table <- function(data, var_name) {
 cmhc <- read_sf("data/shapefiles/CMHC_NBHD_2016-mercWGS84.shp")
 vacancy_2019 <- xlsx_cells("data/montreal_rmr_2019.xlsx", "Table 3.1.1")
 avg_rent_2019 <- xlsx_cells("data/montreal_rmr_2019.xlsx", "Table 3.1.2")
-annual_vacancy <- read_csv("data/mtl_vacancy.csv", skip = 2, n_max = 18)
-annual_avg_rent <- read_csv("data/mtl_avg_rent.csv", skip = 2, n_max = 18) %>% 
+city_vacancy <- read_csv("data/mtl_vacancy.csv", skip = 2, n_max = 18)
+city_avg_rent <- read_csv("data/mtl_avg_rent.csv", skip = 2, n_max = 18) %>% 
   select(1:11)
+annual_vacancy <- paste0("data/annual_vacancy_", 2015:2019, ".xlsx") %>% 
+  map(xlsx_cells, "Neighbourhood - Quartier")
+annual_avg_rent <- paste0("data/annual_avg_rent_", 2015:2019, ".xlsx") %>% 
+  map(xlsx_cells)
 
 
 # Process shapefile -------------------------------------------------------
@@ -119,22 +256,26 @@ cmhc <-
   summarize(name = paste0(neighbourhood, collapse = "/"), .group = "drop")
 
 
-# Process 2019 vacancy rates ----------------------------------------------
+# Process 2019 vacancy and average rent -----------------------------------
 
 vacancy_2019 <- vacancy_2019 %>% import_RMR(vacancy) %>% filter(zone <= 18)
-
-
-# Process 2019 average rent -----------------------------------------------
-
 avg_rent_2019 <- avg_rent_2019 %>% import_RMR(rent) %>% filter(zone <= 18)
 
 
-# Process annual vacancy --------------------------------------------------
+# Process annual city vacancy and average rent ----------------------------
 
-annual_vacancy <- annual_vacancy %>% import_web_table(vacancy)
-              
-
-# Process annual rents ----------------------------------------------------
-
-annual_avg_rent <- annual_avg_rent %>% import_web_table(avg_rent)
+city_vacancy <- city_vacancy %>% import_web_table(vacancy)
+city_avg_rent <- city_avg_rent %>% import_web_table(avg_rent)
   
+
+# Process annual zone vacancy and average rent ----------------------------
+
+annual_vacancy <-
+  annual_vacancy %>% 
+  map2_dfr(2015:2019, import_annual_vacancy) %>% 
+  filter(centre == "Montréal", neighbourhood == "Total") %>% 
+  select(-neighbourhood)
+
+annual_avg_rent <- annual_avg_rent %>% map_dfr(import_annual_avg_rent) %>% 
+  filter(CMA == "Montréal CMA", zone <= 18)
+
