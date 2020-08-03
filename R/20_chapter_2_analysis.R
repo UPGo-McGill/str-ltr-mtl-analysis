@@ -379,6 +379,66 @@ tenure_probabilities_sf_2019 <-
   count(date) %>% 
   summarize(mean(n) + 960)
 
+daily_variation <- 
+  left_join(
+    (daily %>% 
+       filter(housing, status == "R", date >= "2017-01-01") %>% 
+       group_by(date) %>% 
+       summarize(daily_rev = sum(price)) %>% 
+       mutate(rev_var = as.numeric(NA)) %>% 
+       filter(date != "2020-02-29")),
+    (daily %>% 
+       filter(status != "B", date >= "2017-01-01") %>% 
+       count(date) %>% 
+       mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n)),
+              n_var = as.numeric(NA)) %>% 
+       filter(date != "2020-02-29")), by = "date")
+
+
+for(i in 366:length(daily_variation$date)) {
+  year1_n <- 
+    daily_variation %>% 
+    filter(date == daily_variation$date[[i]] - years(1)) %>% 
+    pull(n)
+  
+  year2_n <- 
+    daily_variation %>% 
+    filter(date == daily_variation$date[[i]]) %>% 
+    pull(n)
+  
+  daily_variation$n_var[[i]] <- as.numeric((year2_n - year1_n) / year1_n)
+  
+  
+  
+  
+  year1_rev <- 
+    daily_variation %>% 
+    filter(date == daily_variation$date[[i]] - years(1)) %>% 
+    pull(daily_rev)
+  
+  year2_rev <- 
+    daily_variation %>% 
+    filter(date == daily_variation$date[[i]]) %>% 
+    pull(daily_rev)
+  
+  daily_variation$rev_var[[i]] <- as.numeric((year2_rev - year1_rev) / year1_rev)
+  
+}
+
+daily_variation <- 
+  rbind(
+    daily_variation %>% 
+      rename(variation = rev_var) %>% 
+      mutate(group = "Revenue") %>% 
+      select(date, variation, group),
+    
+    daily_variation %>% 
+      rename(variation = n_var) %>% 
+      mutate(group = "Active Listings") %>% 
+      select(date, variation, group)
+  ) %>% 
+  filter(date >= "2018-01-01")
+
 ### STR revenue distribution ######################################################
 
 ## Host revenue percentiles
