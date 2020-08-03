@@ -9,11 +9,11 @@ library(data.table)
 ### Colour palette #############################################################
 
 col_palette <- 
-  c("#FF3333", "#FFCC00", "#FF6600", "#66FFFF", "#00CC66")
+  c("#FF6600", "#CC6699", "#3399CC", "#FFCC66", "#074387")
 
 scales::show_col(col_palette)
 
-### FIGURE 1 - Active listings ##############################################################
+### FIGURE 2.1 - Active listings ##############################################################
 
 active_listings_type <- 
   daily %>% 
@@ -29,18 +29,22 @@ daily %>%
   mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n)),
          n = data.table::frollmean(n, 7)) %>%
   ggplot() +
-  geom_line(aes(date, n), colour = "black", size = 1.5) +
+  geom_line(aes(date, n), colour = col_palette[5], size = 1.5) +
   geom_line(data = active_listings_type, aes(date, n, colour = listing_type),
             size = 0.75) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = 0, ymax = 12500, alpha = .2)+
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_colour_manual(name = "", values = col_palette[1:4]) +
   theme_minimal() +
   theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank()
         #        text = element_text(family = "Futura"),
   )
 
-### FIGURE 2 - Active listings density by dissemination areas and borough #####################################################
+
+### FIGURE 2.2 - Active listings density by dissemination areas and borough #####################################################
 
 active_borough <- daily %>%
   filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
@@ -53,17 +57,10 @@ active_borough <- daily %>%
   arrange(desc(`Daily active listings (average)`)) %>% 
   select(borough, `Daily active listings (average)`, dwellings, percentage) %>% 
   ggplot() +
-  geom_sf(
-    aes(fill = percentage), 
-    lwd= 0,
-    colour = NA) +
-  # geom_sf_label(
-  #   aes(label = borough), 
-  #   size = 1.8, 
-  #   # family = "Futura",
-  #   alpha = 0.5,
-  #   fill = alpha("white", 0.6)) +
-  scale_fill_gradientn(colors = col_palette[c(5, 2, 3)],
+  geom_sf(aes(fill = percentage), 
+          lwd= 0, 
+          colour = NA) +
+  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
                        na.value = "grey80",
                        limits = c(0, 0.05),
                        oob = scales::squish,
@@ -89,8 +86,10 @@ active_DA <- daily %>%
   left_join(select(DAs, GeoUID, dwellings), .) %>% 
   mutate(percentage = `Daily active listings (average)` / dwellings) %>% 
   ggplot() +
-  geom_sf(aes(fill = percentage), lwd = NA, colour = "white") +
-  scale_fill_gradientn(colors = col_palette[c(5, 2, 3)],
+  geom_sf(aes(fill = percentage), 
+          lwd = NA, 
+          colour = "white") +
+  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
                        na.value = "grey80",
                        limits = c(0, 0.05),
                        oob = scales::squish,
@@ -103,30 +102,31 @@ active_DA <- daily %>%
         # legend.title = element_text(family = "Futura", face = "bold", 
         #                             size = 10),
         # legend.text = element_text(family = "Futura", size = 10)
-  )+
-  coord_sf( ##### Raffle brang me outside the city of Mtl. 
-    xlim = sf::st_bbox(city)[c(1,3)],
-    ylim = sf::st_bbox(city)[c(2,4)],
-    expand = FALSE)
+  )
+  #+
+  #coord_sf( ##### Raffle brang me outside the city of Mtl. 
+  #  xlim = sf::st_bbox(city)[c(1,3)],
+  #  ylim = sf::st_bbox(city)[c(2,4)],
+  #  expand = FALSE)
 
 active_DA + active_borough + plot_layout(ncol=1) + plot_layout(guides = 'collect') & theme(legend.position="right")
 
 
-### FIGURE 3 - Estimated percentage of listings located in condos #####################################################
+### FIGURE 2.3 - Estimated percentage of listings located in condos #####################################################
 
 tenure_probabilities_sf_2019 %>% 
   group_by(GeoUID) %>% 
   summarize(`Percentage of condo STRs`=sum(prob_condo)/n()) %>% 
   ggplot()+
   geom_sf(aes(fill=`Percentage of condo STRs`), colour=NA)+
-  scale_fill_gradientn(colors = col_palette[c(3, 4, 2)])+ #limits = c(0,1000)
+  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
+                       labels = scales::percent)+ #limits = c(0,1000)
   theme_void()+
-  labs(title="Percentage of STRs operated in condos by dissemination area")+
   theme(legend.position = "bottom",
         #text = element_text(family = "Futura"),
   )
 
-### FIGURE 4 - Relationship between the percentage of condos and STR concentration by borough #####################################################
+### FIGURE 2.4 - Relationship between the percentage of condos and STR concentration by borough #####################################################
 
 DAs_raffle_p_condo <- DAs_raffle %>% 
   select(GeoUID, p_condo) %>% 
@@ -146,11 +146,14 @@ tenure_probabilities_sf_2019 %>%
              colour = case_when(borough == "Ville-Marie" ~ "Ville-Marie",
                                 borough == "Le Plateau-Mont-Royal" ~ "Le Plateau-Mont-Royal",
                                 TRUE ~ "Other")))+
-  scale_colour_manual(name = "Borough", values=c("orange", "grey", "red"))+
   geom_point()+  
   geom_smooth(method=lm, se=FALSE)+
+  scale_colour_manual(name = "Borough", values=c(col_palette[3], "grey", col_palette[1]))+
   theme_minimal()+
-  theme(aspect.ratio=1)
+  theme(aspect.ratio=1,
+        legend.position = "right",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank())
 
 
 ### FIGURE 5 - Year-over-year rate of growth of active daily listings #####################################################
