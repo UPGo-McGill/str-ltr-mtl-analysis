@@ -149,6 +149,8 @@ tenure_probabilities_sf_2019 %>%
   geom_point()+  
   geom_smooth(method=lm, se=FALSE)+
   scale_colour_manual(name = "Borough", values=c(col_palette[3], "grey", col_palette[1]))+
+  scale_x_continuous(labels = scales::percent)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
   theme_minimal()+
   theme(aspect.ratio=1,
         legend.position = "right",
@@ -156,7 +158,7 @@ tenure_probabilities_sf_2019 %>%
         panel.grid.minor.y = element_blank())
 
 
-### FIGURE 5 - Year-over-year rate of growth of active daily listings #####################################################
+### FIGURE 2.5 - Year-over-year rate of growth of active daily listings #####################################################
 
 daily_variation %>% 
   mutate(variation = data.table::frollmean(variation, 14)) %>% 
@@ -182,8 +184,8 @@ daily_variation %>%
 
 ### FIGURE 6 - STR host revenue distribution in Montreal #####################################################
 
-color <- colorRampPalette(brewer.pal(name="Spectral", n = 6))(20)
-color <- rev(color)
+color <- c("#074387", "#0282c2", "#3399CC", "#7c78f5", "#cd9eff", "#c76cf5", "#CC6699", "#FF6600", "#ffcc00")
+
 
 weighted_bar_graph <- daily %>%
   filter(housing == TRUE, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>%
@@ -235,7 +237,7 @@ stacked_area_graph <- weighted_bar_graph %>%
 
 # use ggsave to change height of graph
 
-ggsave("output/stacked_area_graph.pdf", plot = stacked_area_graph, width =7, 
+ggsave("Downloads/stacked_area_graph.pdf", plot = stacked_area_graph, width =7, 
        height = 8, units = "in")
 
 ### FIGURE 7 - STR host revenue distribution in Montreal #####################################################
