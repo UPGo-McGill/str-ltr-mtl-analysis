@@ -199,7 +199,7 @@ import_annual_avg_rent <- function(data) {
     arrange(row, col)
   
   indices <- 
-    test %>% 
+    data %>% 
     filter(heading == TRUE) %>% 
     pull(row) %>% 
     unique()
@@ -276,6 +276,8 @@ annual_vacancy <-
   filter(centre == "Montréal", neighbourhood == "Total") %>% 
   select(-neighbourhood)
 
-annual_avg_rent <- annual_avg_rent %>% map_dfr(import_annual_avg_rent) %>% 
+annual_avg_rent <- 
+  annual_avg_rent %>% 
+  map_dfr(import_annual_avg_rent) %>% 
   filter(CMA == "Montréal CMA", zone <= 18)
 
