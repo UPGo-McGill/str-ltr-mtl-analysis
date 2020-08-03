@@ -152,7 +152,7 @@ daily <-
   left_join(property_change_table) %>% 
   mutate(old_PID = if_else(is.na(new_PID), NA_character_, property_ID),
          property_ID = if_else(is.na(new_PID), property_ID, new_PID)) %>% 
-  select(-new_PID)
+  select(-new_PID, -new_created, -new_scraped)
 
 property_change_collapsed <-
   property_change_table %>% 

@@ -28,15 +28,6 @@ daily <-
   strr_multi(host)
 
 
-# Calculate FREH ----------------------------------------------------------
-
-FREH <-
-  daily %>%
-  strr_FREH() %>%
-  filter(FREH == TRUE) %>%
-  select(-FREH)
-
-
 # Calculate ghost hostels -------------------------------------------------
 
 GH <- 
@@ -79,4 +70,4 @@ rm(daily_GH, pb)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, FREH, GH, file = "output/str_processed.Rdata")
+save(property, daily, host, GH, file = "output/str_processed.Rdata")
