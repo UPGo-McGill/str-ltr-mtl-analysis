@@ -207,6 +207,7 @@ GH %>%
   summarize(GH_units = sum(housing_units)) %>%
   filter(date >= "2020-01-01") %>% 
   View()
+
 ggplot() +
   geom_line(aes(date, GH_units), colour = "black", size = 1) +
   theme_minimal() +
