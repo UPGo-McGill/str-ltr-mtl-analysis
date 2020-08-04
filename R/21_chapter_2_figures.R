@@ -105,6 +105,8 @@ active_DA + active_borough + plot_layout(ncol=1) + plot_layout(guides = 'collect
 
 ### FIGURE 2.3 - Estimated percentage of listings located in condos #####################################################
 
+load("output/raffle_condo.Rdata")
+
 tenure_probabilities_sf_2019 %>% 
   group_by(GeoUID) %>% 
   summarize(`Percentage of condo STRs`=sum(prob_condo)/n()) %>% 
@@ -118,10 +120,6 @@ tenure_probabilities_sf_2019 %>%
   )
 
 ### FIGURE 2.4 - Relationship between the percentage of condos and STR concentration by borough #####################################################
-
-DAs_raffle_p_condo <- DAs_raffle %>% 
-  select(GeoUID, p_condo) %>% 
-  st_drop_geometry()
 
 tenure_probabilities_sf_2019 %>%
   left_join(., DAs_raffle_p_condo, by="GeoUID") %>% 
@@ -301,7 +299,6 @@ ggsave("Downloads/stacked_area_graph.pdf", plot = stacked_area_graph, width =7,
        height = 8, units = "in")
 
 ### FIGURE 2.7 - Multilistings #####################################################
-
 
 daily %>% 
   filter(status != "B") %>% 
