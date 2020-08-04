@@ -1339,11 +1339,11 @@ save(rent_total, file = "output/rent_total.Rdata")
  
  rent_total_tbl <- 
    rent_total %>% 
-   filter(Zone_Number %in% c("1", "2", "4", "5", "6", "8", "9", "17", "100")) %>% 
+   filter(Zone_Number %in% c("1", "4", "6", "9", "100")) %>% 
    select(-Zone_Number, -DQ) %>% 
    pivot_wider(names_from = Zone_Name, values_from = c(Avg_Rent, percent_change))
  
-rent_total_tbl <- rent_total_tbl[, c(1, 10, 19, 2, 11, 3, 12, 4, 13, 5, 14, 6, 15, 7, 16, 8, 17, 9, 18)]
+rent_total_tbl <- rent_total_tbl[, c(1, 6, 11, 2, 7, 3, 8, 4, 9, 5, 10)]
   
 rent_total_tbl <- 
   rename(rent_total_tbl, 
@@ -1351,20 +1351,20 @@ rent_total_tbl <-
        "City of Montreal, Percent Change" = 'percent_change_City of Montreal', 
        "Downtown Montreal/Îles-des-Soeurs, Average Rent" = 'Avg_Rent_Downtown Montréal/Îles-des-Soeurs', 
        "Downtown Montreal/Îles-des-Soeurs, Percent Change" = 'percent_change_Downtown Montréal/Îles-des-Soeurs',
-       "Sud-Ouest/Verdun, Average Rent" = 'Avg_Rent_Sud-Ouest/Verdun', 
-       "Sud-Ouest/Verdun, Percent Change" = 'percent_change_Sud-Ouest/Verdun',
+       #"Sud-Ouest/Verdun, Average Rent" = 'Avg_Rent_Sud-Ouest/Verdun', 
+       #"Sud-Ouest/Verdun, Percent Change" = 'percent_change_Sud-Ouest/Verdun', ###zone 2
        "ND-de-Grâce/Ct-St-Luc etc., Average Rent" = 'Avg_Rent_ND-de-Grâce/Ct-St-Luc etc.', 
        "ND-de-Grâce/Ct-St-Luc etc., Percent Change" = 'percent_change_ND-de-Grâce/Ct-St-Luc etc.',
-       "Ct-des-Neiges/Mt-Royal/Outremont, Average Rent" = 'Avg_Rent_Ct-des-Neiges/Mt-Royal/Outremont', 
-       "Ct-des-Neiges/Mt-Royal/Outremont, Percent Change" = 'percent_change_Ct-des-Neiges/Mt-Royal/Outremont',
+       #"Ct-des-Neiges/Mt-Royal/Outremont, Average Rent" = 'Avg_Rent_Ct-des-Neiges/Mt-Royal/Outremont', ##zone 5 
+       #"Ct-des-Neiges/Mt-Royal/Outremont, Percent Change" = 'percent_change_Ct-des-Neiges/Mt-Royal/Outremont',
        "Plateau-Mont-Royal, Average Rent" = 'Avg_Rent_Plateau-Mont-Royal', 
        "Plateau-Mont-Royal, Percent Change" = 'percent_change_Plateau-Mont-Royal',
-       "Hochelaga-Maisonneuve, Average Rent" = 'Avg_Rent_Hochelaga-Maisonneuve', 
-       "Hochelaga-Maisonneuve, Percent Change" = 'percent_change_Hochelaga-Maisonneuve',
+       #"Hochelaga-Maisonneuve, Average Rent" = 'Avg_Rent_Hochelaga-Maisonneuve', ###zone 8
+       #"Hochelaga-Maisonneuve, Percent Change" = 'percent_change_Hochelaga-Maisonneuve',
        "Rosemont/La Petite-Patrie, Average Rent" = 'Avg_Rent_Rosemont/La Petite-Patrie', 
        "Rosemont/La Petite-Patrie, Percent Change" = 'percent_change_Rosemont/La Petite-Patrie',
-       "Mercier, Average Rent" = 'Avg_Rent_Mercier', 
-       "Mercier, Percent Change" = 'percent_change_Mercier'
+       #"Mercier, Average Rent" = 'Avg_Rent_Mercier', 
+       #"Mercier, Percent Change" = 'percent_change_Mercier' ##zone 17
 )
 
 
@@ -1375,7 +1375,7 @@ rent_total_tbl <-
      subtitle = "YOY Primary Market, CMHC Zones"
    ) %>%
    opt_row_striping() %>% 
-   fmt_percent(columns = c(3, 5, 7, 9, 11, 13, 15, 17, 19) , decimals = 1)
+   fmt_percent(columns = c(3, 5, 7, 9, 11) , decimals = 1)
  
 
  
