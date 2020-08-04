@@ -20,9 +20,15 @@ library(strr)
 library(sf)
 library(future)
 library(progressr)
+library(data.table)
+library(gt)
 
 
 # Set global variables ----------------------------------------------------
 
 plan(multiprocess)
 key_date <- as.Date("2020-03-14")
+LTM_start_date <- as.Date("2019-01-01")
+LTM_end_date <- as.Date("2019-12-31")
+col_palette <- 
+  c("#FF6600", "#CC6699", "#3399CC", "#FFCC66", "#074387")
