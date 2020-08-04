@@ -28,7 +28,8 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(stringr)
-
+library(slider)
+library(gt)
 
 # Import data -------------------------------------------------------------
 
@@ -1180,7 +1181,7 @@ names(rent_city)[[3]] <- "DQ"
 
 rent_city <- 
   rent_city %>% 
-  slice(16:20)
+  slice(15:20)
 
 #clean up year column 
 
@@ -1193,7 +1194,7 @@ rent_city <-
 
 rent_city <- 
   rent_city %>% 
-  mutate(Zone_Name = "City of Montreal", Zone_Number = "N/A")
+  mutate(Zone_Name = "City of Montreal", Zone_Number = "100")
 
 #####BIND TO EXISTING FILE
 
@@ -1286,35 +1287,96 @@ save(rent_total, file = "output/rent_total.Rdata")
   rent_2017$Occupied_Units <- as.numeric(rent_2017$Occupied_Units)
   rent_2018$Occupied_Units <- as.numeric(rent_2018$Occupied_Units)
   rent_2019$Occupied_Units <- as.numeric(rent_2019$Occupied_Units)
+  rent_city$Avg_Rent <- as.numeric(rent_city$Avg_Rent)
+  
   
  rent_2015 <- 
   rent_2015 %>% 
-    mutate(percent_change = (((Occupied_Units-rent_2014$Occupied_Units) / rent_2014$Occupied_Units)*100))
+    mutate(percent_change = (((Occupied_Units-rent_2014$Occupied_Units) / rent_2014$Occupied_Units)))
   
  rent_2016 <-
   rent_2016 %>% 
-    mutate(percent_change = (((Occupied_Units-rent_2015$Occupied_Units) / rent_2015$Occupied_Units)*100))
+    mutate(percent_change = (((Occupied_Units-rent_2015$Occupied_Units) / rent_2015$Occupied_Units)))
   
  rent_2017 <-
    rent_2017 %>% 
-   mutate(percent_change = (((Occupied_Units-rent_2016$Occupied_Units) / rent_2016$Occupied_Units)*100))
+   mutate(percent_change = (((Occupied_Units-rent_2016$Occupied_Units) / rent_2016$Occupied_Units)))
  
  rent_2018 <-
    rent_2018 %>% 
-   mutate(percent_change = (((Occupied_Units-rent_2017$Occupied_Units) / rent_2017$Occupied_Units)*100))
+   mutate(percent_change = (((Occupied_Units-rent_2017$Occupied_Units) / rent_2017$Occupied_Units)))
  
  rent_2019 <-
    rent_2019 %>% 
-   mutate(percent_change = (((Occupied_Units-rent_2018$Occupied_Units) / rent_2018$Occupied_Units)*100))
+   mutate(percent_change = (((Occupied_Units-rent_2018$Occupied_Units) / rent_2018$Occupied_Units)))
+ 
+ ##divide row by row beneath it
  
  rent_city <- 
    rent_city %>% 
-   mutate(percent_change = )
+   mutate(percent_change = slide_dbl(Avg_Rent, ~{.x[2] / .x[1]}, .before = 1, .complete = TRUE))
  
- #rebind 
+ rent_city <- 
+   rent_city %>% 
+   slice(-1)
+ 
+# alternate way ** df[2:10,]$ratio_column <- df$original_column[2:10] / df$original_column[1:9]
+ 
+ #rebind 2015 - 2019
  rent_total <- bind_rows(rent_2015, rent_2016, rent_2017, rent_2018, rent_2019)
  
  names(rent_total)[[4]] <- "Avg_Rent"
  
+ 
+ ##bind rent_total to rent _city 
+ 
+ rent_total <- bind_rows(rent_total, rent_city)
+
+ 
+ #####3make change in rents table ##### 
+ 
+ rent_total$Zone_Number <- as.numeric(rent_total$Zone_Number)
+ 
+ rent_total_tbl <- 
+   rent_total %>% 
+   filter(Zone_Number %in% c("1", "2", "4", "5", "6", "8", "9", "17", "100")) %>% 
+   select(-Zone_Number, -DQ) %>% 
+   pivot_wider(names_from = Zone_Name, values_from = c(Avg_Rent, percent_change))
+ 
+rent_total_tbl <- rent_total_tbl[, c(1, 10, 19, 2, 11, 3, 12, 4, 13, 5, 14, 6, 15, 7, 16, 8, 17, 9, 18)]
+  
+rent_total_tbl <- 
+  rename(rent_total_tbl, 
+       "City of Montreal, Average Rent" = 'Avg_Rent_City of Montreal', 
+       "City of Montreal, Percent Change" = 'percent_change_City of Montreal', 
+       "Downtown Montreal/Îles-des-Soeurs, Average Rent" = 'Avg_Rent_Downtown Montréal/Îles-des-Soeurs', 
+       "Downtown Montreal/Îles-des-Soeurs, Percent Change" = 'percent_change_Downtown Montréal/Îles-des-Soeurs',
+       "Sud-Ouest/Verdun, Average Rent" = 'Avg_Rent_Sud-Ouest/Verdun', 
+       "Sud-Ouest/Verdun, Percent Change" = 'percent_change_Sud-Ouest/Verdun',
+       "ND-de-Grâce/Ct-St-Luc etc., Average Rent" = 'Avg_Rent_ND-de-Grâce/Ct-St-Luc etc.', 
+       "ND-de-Grâce/Ct-St-Luc etc., Percent Change" = 'percent_change_ND-de-Grâce/Ct-St-Luc etc.',
+       "Ct-des-Neiges/Mt-Royal/Outremont, Average Rent" = 'Avg_Rent_Ct-des-Neiges/Mt-Royal/Outremont', 
+       "Ct-des-Neiges/Mt-Royal/Outremont, Percent Change" = 'percent_change_Ct-des-Neiges/Mt-Royal/Outremont',
+       "Plateau-Mont-Royal, Average Rent" = 'Avg_Rent_Plateau-Mont-Royal', 
+       "Plateau-Mont-Royal, Percent Change" = 'percent_change_Plateau-Mont-Royal',
+       "Hochelaga-Maisonneuve, Average Rent" = 'Avg_Rent_Hochelaga-Maisonneuve', 
+       "Hochelaga-Maisonneuve, Percent Change" = 'percent_change_Hochelaga-Maisonneuve',
+       "Rosemont/La Petite-Patrie, Average Rent" = 'Avg_Rent_Rosemont/La Petite-Patrie', 
+       "Rosemont/La Petite-Patrie, Percent Change" = 'percent_change_Rosemont/La Petite-Patrie',
+       "Mercier, Average Rent" = 'Avg_Rent_Mercier', 
+       "Mercier, Percent Change" = 'percent_change_Mercier'
+)
+
+
+ rent_total_tbl %>%
+   gt() %>% 
+   tab_header(
+     title = "Average Rent (CAD) and Percent Change (%)",
+     subtitle = "YOY Primary Market, CMHC Zones"
+   ) %>%
+   opt_row_striping() %>% 
+   fmt_percent(columns = c(3, 5, 7, 9, 11, 13, 15, 17, 19) , decimals = 1)
+ 
+
  
  
