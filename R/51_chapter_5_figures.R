@@ -42,8 +42,7 @@ ltr_unique_ab_id %>%
   scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
                        na.value = "grey80",
                        limits = c(0, 400),
-                       oob = scales::squish,
-                       labels = scales::percent
+                       oob = scales::squish
   ) +
   theme_void() +
   theme(legend.position = "right",
@@ -69,12 +68,12 @@ unique_ltr %>%
                         group_by(created) %>%
                         summarize(avg_price = mean(price))), aes(created, avg_price),  se = F,
               color = "grey80")+
-  scale_x_date(name = "Date create") +
-  scale_y_continuous(name = "Average daily price", label = scales::comma) +
+  scale_x_date(name = "Date created") +
+  scale_y_continuous(name = "Average daily price ($)", label = scales::comma) +
   scale_color_manual(name = "Group",
                      values = col_palette[c(1, 3)],
                      labels = c("Did not match", "Matched")) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .2)+
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .1)+
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
@@ -137,23 +136,30 @@ daily %>%
                                            filter(property_ID %in% ltr_unique_ab_id$ab_id) %>%
                                            pull(host_ID)), TRUE, FALSE)) %>%
   group_by(host_ID, matched) %>% 
-  summarize("host_rev" = round(sum(revenue_LTM), digit = -3)) %>% 
-  count(host_rev, matched) %>% 
-  ungroup() %>% 
-  mutate(perc = host_rev/sum(host_rev) )%>%
+  summarize(host_rev = sum(revenue_LTM)) %>% 
   group_by(matched) %>% 
   ggplot()+
-  geom_line(aes(host_rev, perc, color = matched), alpha = 0.3)+
-  geom_smooth(aes(host_rev, perc, color = matched), se = F)+
-  xlab("Hosts revenue")+
-  ylab("% of all hosts within the group")+
-  scale_y_continuous(labels = scales::percent)+
-  scale_color_manual(name = "Group",
-                     values = c("#00CC66", "#FF3333"),
-                     labels = c("Did not match", "Matched")) +
-  ggtitle("Revenue distribution of hosts")
+  geom_density(aes(host_rev, fill = matched), colour=NA, alpha = 0.7)+
+  scale_x_continuous(name="Hosts revenue", limits = c(0, 100000),
+                     labels =scales::dollar)+
+  scale_y_continuous(name="Density of all hosts within the group",
+                     labels =scales::comma)+
+  scale_fill_manual(name = "Group",
+                     values = col_palette[c(1, 3)],
+                     labels = c("Did not match", "Matched"))+
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        text = element_text(face = "plain"), #family = "Futura", 
+        legend.title = element_text(#family = "Futura", face = "bold", 
+          size = 10),
+        legend.text = element_text(#family = "Futura", 
+          size = 10)
+  )
 
 
+?geom_density
 ### Figure 15. Length of stay of matches and non-matches on LTR platforms ##########################
 
 unique_ltr %>% 
@@ -167,13 +173,21 @@ unique_ltr %>%
   # geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3)+
   geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F)+
   xlab("Days online")+
-  ylab("% of all listings within the group")+
-  scale_y_continuous(labels = scales::percent)+
+  ylab("Percentage of all listings within the group")+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
   scale_color_manual(name = "Group",
-                     values = c("#00CC66", "#FF3333"),
+                     values = col_palette[c(1, 3)],
                      labels = c("Did not match", "Matched")) +
-  ggtitle("How old are LTR listings")
-
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        #text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(#family = "Futura", face = "bold", 
+          size = 10),
+        legend.text = element_text(#family = "Futura", 
+          size = 10)
+        )
 
 
 
