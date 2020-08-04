@@ -253,10 +253,12 @@ ML_table %>%
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank()
+        panel.grid.minor.y = element_blank(),
         #text = element_text(family = "Futura", face = "plain"),
-        #legend.title = element_text(family = "Futura", face = "bold", size = 10),
-        #legend.text = element_text(family = "Futura", size = 10)
+        legend.title = element_text(#family = "Futura", face = "bold", 
+          size = 10),
+        legend.text = element_text(#family = "Futura", 
+          size = 10)
   )
 
 
