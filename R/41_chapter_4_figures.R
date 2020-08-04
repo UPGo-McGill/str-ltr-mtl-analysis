@@ -1,5 +1,7 @@
 #### Chapter 4 FIGURES ####################################################
 
+source("R/01_startup.R")
+
 ### Figure 9 - Active and reserved listings since 2018 ####################################################
 
 

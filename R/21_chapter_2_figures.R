@@ -1,17 +1,8 @@
 #### Chapter 2 FIGURES ####################################################
 
-### load libraries ###########################################
-library(tidyverse)
-library(ggplot2)
+source("R/01_startup.R")
 library(patchwork)
-library(data.table)
 
-### Colour palette #############################################################
-
-col_palette <- 
-  c("#FF6600", "#CC6699", "#3399CC", "#FFCC66", "#074387")
-
-scales::show_col(col_palette)
 
 ### FIGURE 2.1 - Active listings ##############################################################
 
