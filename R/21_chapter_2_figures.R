@@ -182,10 +182,9 @@ daily_variation %>%
 #                    labels = c("Active listings", "Revenue"))
 
 
-### FIGURE 6 - STR host revenue distribution in Montreal #####################################################
+### FIGURE 2.6 - STR host revenue distribution in Montreal #####################################################
 
-color <- c("#074387", "#0282c2", "#3399CC", "#7c78f5", "#cd9eff", "#c76cf5", "#CC6699", "#FF6600", "#ffcc00")
-
+color <- colorRampPalette(brewer.pal(name="RdYlBu", n = 9))(10)
 
 weighted_bar_graph <- daily %>%
   filter(housing == TRUE, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>%
@@ -227,7 +226,7 @@ stacked_area_graph <- weighted_bar_graph %>%
                      breaks = seq(0, 1, by = 0.05), 
                      label = c(" ", "Top 100%", " ","Top 90%", " ", "Top 80%"," ", "Top 70%", " ", "Top 60%", 
                                " ", "Top 50%", " ", "Top 40%", " ", "Top 30%", " ", "Top 20%", " ", "Top 10%", " "))+
-  scale_fill_gradientn(colours=rev(color))+
+  scale_fill_gradientn(colours=color)+
   theme_void()+
   theme(legend.position = "none",
         axis.text.y = element_text(angle = 20, hjust = 1),
@@ -240,7 +239,7 @@ stacked_area_graph <- weighted_bar_graph %>%
 ggsave("Downloads/stacked_area_graph.pdf", plot = stacked_area_graph, width =7, 
        height = 8, units = "in")
 
-### FIGURE 7 - STR host revenue distribution in Montreal #####################################################
+### FIGURE 2.7 - Multilistings #####################################################
 
 ML_table %>% 
   gather(Listings, Revenue, key = `Multilisting percentage`, value = Value) %>% 
@@ -248,15 +247,16 @@ ML_table %>%
   geom_line(aes(date, Value, colour = `Multilisting percentage`), alpha = 0.2) +
   geom_smooth(aes(date, Value, colour = `Multilisting percentage`), se = FALSE,
               method = "loess", span = 0.25) +
-  theme_minimal() +
-  scale_y_continuous(name = NULL, label = scales::percent) +
   scale_x_date(name = NULL, limits = c(as.Date("2017-06-01"), NA)) +
+  scale_y_continuous(name = NULL, label = scales::percent) +
   scale_colour_manual(values = col_palette[c(1, 3)]) +
-  theme(legend.position = "bottom", 
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold",
-                                    size = 10),
-        legend.text = element_text(family = "Futura", size = 10)
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank()
+        #text = element_text(family = "Futura", face = "plain"),
+        #legend.title = element_text(family = "Futura", face = "bold", size = 10),
+        #legend.text = element_text(family = "Futura", size = 10)
   )
 
 
