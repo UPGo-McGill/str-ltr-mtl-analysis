@@ -487,8 +487,7 @@ ML_table <-
   filter(status != "B") %>% 
   group_by(date) %>% 
   summarize(Listings = mean(multi),
-            Revenue = sum(price * (status == "R") * multi * 
-                            exchange_rate, na.rm = TRUE) / 
+            Revenue = sum(price * (status == "R") * multi, na.rm = TRUE) / 
               sum(price * (status == "R") , na.rm = TRUE))
 
 ML_table %>% 
