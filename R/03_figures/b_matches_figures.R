@@ -102,21 +102,16 @@ revenue_2019 %>% # still a lot of more work to do on that!!!!!
                                         filter(property_ID %in% ltr_unique_ab_id$ab_id) %>%
                                         pull(host_ID)), TRUE, FALSE)) %>%
   group_by(host_ID, matched) %>% 
-  summarize("host_rev" = round(sum(revenue_LTM), digit = -3)) %>% 
-  count(host_rev, matched) %>% 
-  ungroup() %>% 
-  mutate(perc = host_rev/sum(host_rev) )%>%
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
   group_by(matched) %>% 
   ggplot()+
-  geom_line(aes(host_rev, perc, color = matched), alpha = 0.3)+
-  geom_smooth(aes(host_rev, perc, color = matched), se = F)+
+  geom_density(aes(host_rev, fill = matched), alpha = 0.7)+
+  scale_x_continuous(limits = c(0, 100000))+
   xlab("Hosts revenue")+
-  ylab("% of all hosts within the group")+
-  scale_y_continuous(labels = scales::percent)+
   scale_color_manual(name = "Group",
                      values = c("#00CC66", "#FF3333"),
                      labels = c("Did not match", "Matched")) +
-  ggtitle("Revenue distribution of hosts")
+  ggtitle("Smoothed density estimate of hosts revenue")
 
 
 # time LTR listings were active
@@ -137,3 +132,28 @@ unique_ltr %>%
                      values = c("#00CC66", "#FF3333"),
                      labels = c("Did not match", "Matched")) +
   ggtitle("How old are LTR listings")
+
+
+
+
+
+
+#
+unique_ltr_unnest <- 
+unique_ltr %>% 
+  unnest(ab_id)
+
+unique_ltr_unnest %>% 
+  select(ab_id, furnished)
+
+inner_join(select(st_drop_geometry(property), scraped, property_ID),
+           unique_ltr_unnest %>% 
+             filter(!is.na(ab_id)) %>% 
+             select(ab_id, furnished) %>% 
+             rename(property_ID = ab_id)
+             , by = "property_ID"
+) %>% 
+  distinct() %>% 
+  count(scraped, furnished) %>%
+  ggplot()+
+  geom_point(aes(scraped, n, color = furnished), se = F)
