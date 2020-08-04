@@ -23,7 +23,7 @@ daily %>%
   geom_line(aes(date, n), colour = col_palette[5], size = 1.5) +
   geom_line(data = active_listings_type, aes(date, n, colour = listing_type),
             size = 0.75) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = 0, ymax = 12500, alpha = .2)+
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .2)+
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_colour_manual(name = "", values = col_palette[1:4]) +
@@ -217,19 +217,30 @@ daily_variation %>%
   #           alpha = 0.002, fill = "green")+
   # geom_rect(aes(ymin = -Inf, ymax = 0, xmin = as.Date("2018-01-01", "%Y-%m-%d"), xmax = as.Date("2020-01-01", "%Y-%m-%d")),
   #           alpha = 0.002, fill = "red")+
-  geom_line(aes(date, variation, color = group))+
-  # geom_smooth(aes(date, variation, color = group), se = F)+
-  ggtitle("Bi-weekly variation compared to same date one year before (Frollmean 14)")+
-  xlab("Date (Bi-weekly)")+
+  geom_line(aes(date, variation, color = group), lwd=1)+
+  #geom_smooth(aes(date, variation, color = group), se = F)+
+  #ggtitle("Bi-weekly variation compared to same date one year before (Frollmean 14)")+
+  xlab("Date (bi-weekly)")+
   ylab("Variation compared to a year before (%)") +
   scale_x_date(limits = as.Date(c("2018-01-12","2020-05-31")),
                date_labels = "%Y (%b)")+
   # ylim(c(-20,15))+
   geom_hline(yintercept=0, linetype="dashed", color = "black")+
-  scale_y_continuous(labels = scales::percent)
-# scale_color_manual(name = "Group",
-#                    values = c("#00CC66", "#FF3333"),
-#                    labels = c("Active listings", "Revenue"))
+  scale_y_continuous(labels = scales::percent)+
+  scale_color_manual(name = " ",
+                     values = col_palette[c(1,3)],
+                     labels = c("Active listings", "Revenue"))+
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-05-31"), ymin = -Inf, ymax = Inf, alpha = .2)+
+  theme_minimal() +
+  theme(legend.position = "right",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        #text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(#family = "Futura", face = "bold", 
+          size = 10),
+        legend.text = element_text(#family = "Futura", 
+          size = 10)
+  )
 
 
 ### FIGURE 2.6 - STR host revenue distribution in Montreal #####################################################
@@ -291,7 +302,13 @@ ggsave("Downloads/stacked_area_graph.pdf", plot = stacked_area_graph, width =7,
 
 ### FIGURE 2.7 - Multilistings #####################################################
 
-ML_table %>% 
+
+daily %>% 
+  filter(status != "B") %>% 
+  group_by(date) %>% 
+  summarize(Listings = mean(multi),
+            Revenue = sum(price * (status == "R") * multi, na.rm = TRUE) / 
+              sum(price * (status == "R") , na.rm = TRUE)) %>% 
   gather(Listings, Revenue, key = `Multilisting percentage`, value = Value) %>% 
   ggplot() +
   geom_line(aes(date, Value, colour = `Multilisting percentage`), alpha = 0.2) +
