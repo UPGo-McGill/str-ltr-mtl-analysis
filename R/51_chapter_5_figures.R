@@ -1,12 +1,6 @@
 #### Chapter 5 FIGURES ####################################################
 
-### load libraries and data ###########################################
-library(tidyverse)
-library(lubridate)
-library(sf)
-library(gt)
-library(future)
-library(ggplot2)
+source("R/01_startup.R")
 
 load("data/str_montreal.Rdata")
 load("data/ltr_matches.Rdata")

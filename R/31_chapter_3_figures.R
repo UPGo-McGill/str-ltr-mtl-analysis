@@ -1,10 +1,6 @@
 #### Chapter 3 FIGURES ####################################################
 
-### load libraries ###########################################
-library(tidyverse)
-library(ggplot2)
-library(patchwork)
-library(data.table)
+source("R/01_startup.R")
 
 
 ### FIGURE 3.1 - Housing units converted to dedicated STRs in Montreal ###########################################

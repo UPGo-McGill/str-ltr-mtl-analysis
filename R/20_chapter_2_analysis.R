@@ -1,17 +1,6 @@
 #### Chapter 2 ANALYSIS ####################################################
 
-### load libraries ###########################################
-library(tidyverse)
-library(lubridate)
-library(sf)
-library(gt)
-library(future)
-library(ggplot2)
-library(data.table)
-
-### LTM start_date and end_date
-LTM_start_date <- as.Date("2019-01-01")
-LTM_end_date <- as.Date("2019-12-31")
+source("R/01_startup.R")
 
 ### Active daily listings ######################################################
 

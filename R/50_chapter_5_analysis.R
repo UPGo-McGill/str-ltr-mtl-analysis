@@ -1,13 +1,6 @@
 #### Chapter 5 ANALYSIS ####################################################
 
-### load libraries and data ###########################################
-library(tidyverse)
-library(lubridate)
-library(sf)
-library(gt)
-library(future)
-library(ggplot2)
-library(data.table)
+source("R/01_startup.R")
 
 load("data/str_processed.Rdata")
 load("data/geometry.Rdata")
