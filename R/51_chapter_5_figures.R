@@ -5,6 +5,29 @@ source("R/01_startup.R")
 load("data/str_montreal.Rdata")
 load("data/ltr_matches.Rdata")
 
+### Unique matches #################################################################
+
+# distinct LTR listings
+unique_ltr <- 
+  ltr %>% 
+  st_drop_geometry() %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(id, .keep_all = T)
+
+#unique matching ab_id locations using street address
+ltr_unique_ab_id <- 
+  ltr %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ab_id)) %>% 
+  unnest(ab_id) %>% 
+  filter(ab_id %in% filter(property, scraped >= "2020-01-01")$property_ID) %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(ab_id) %>% 
+  inner_join(unnest(ltr, ab_id), by = "ab_id") %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(ab_id, .keep_all = T)
+
+
 ### FIGURE 11. Concentration of STR listings matched with LTR listings by borough ########################################
 
 ltr_unique_ab_id %>% 
@@ -15,13 +38,13 @@ ltr_unique_ab_id %>%
   geom_sf(aes(fill = n),
           lwd = NA, 
           colour = "white")+
-  scale_fill_gradientn(
-    colors = col_palette[c(5,2,3)],
-    na.value = "grey80",
-    limits = c(0, 400),
-    oob = scales::squish,
-  ) +
   guides(fill = guide_colorbar(title = "STR to LTR Matches")) +
+  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
+                       na.value = "grey80",
+                       limits = c(0, 400),
+                       oob = scales::squish,
+                       labels = scales::percent
+  ) +
   theme_void() +
   theme(legend.position = "right",
         # text = element_text(family = "Futura", face = "plain"),
@@ -41,16 +64,30 @@ unique_ltr %>%
   ggplot()+
   geom_line(aes(created, avg_price, color = matched), alpha = 0.2)+
   geom_smooth(aes(created, avg_price, color = matched), se = F)+
-  ggtitle("Daily price of new LTR listings")+
   geom_smooth(data = (unique_ltr %>% 
                         filter(price >425, price <8000) %>% 
                         group_by(created) %>%
                         summarize(avg_price = mean(price))), aes(created, avg_price),  se = F,
               color = "grey80")+
+  scale_x_date(name = "Date create") +
+  scale_y_continuous(name = "Average daily price", label = scales::comma) +
   scale_color_manual(name = "Group",
-                     values = c("#00CC66", "#FF3333"),
-                     labels = c("Did not match", "Matched"))
+                     values = col_palette[c(1, 3)],
+                     labels = c("Did not match", "Matched")) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .2)+
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        #text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(#family = "Futura", face = "bold", 
+          size = 10),
+        legend.text = element_text(#family = "Futura", 
+          size = 10)
+  )
 
+
+#ggtitle("Daily price of new LTR listings")+
 
 ### Figure 13. Distribution of matches and non-matches by date created on STR platforms #################################
 
@@ -68,17 +105,31 @@ property %>%
   geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3)+
   geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F)+
   xlab("Years of activity")+
-  ylab("% of all listings within the group")+
-  scale_y_continuous(labels = scales::percent)+
+  ylab("Percentage of all listings within the group")+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
   scale_color_manual(name = "Group",
-                     values = c("#00CC66", "#FF3333"),
+                     values = col_palette[c(1, 3)],
                      labels = c("Did not match", "Matched")) +
-  ggtitle("How old are STR listings (active in 2020)")
-
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        #text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(#family = "Futura", face = "bold", 
+          size = 10),
+        legend.text = element_text(#family = "Futura", 
+          size = 10)
+  )
 
 ### Figure 14. Distribution of matches by revenue earned between 14 March 2019 to 14 March 2020 ##########################
 
-revenue_2019 %>% # still a lot of more work to do on that!!!!!
+daily %>%
+  filter(housing,
+         date <= LTM_end_date, date >= LTM_start_date,
+         status == "R") %>%
+  group_by(property_ID) %>%
+  summarize(revenue_LTM = sum(price) ) %>% 
+  inner_join(property, .) %>% # still a lot of more work to do on that!!!!!
   st_drop_geometry() %>% 
   filter(revenue_LTM > 0) %>%
   mutate(matched = if_else(host_ID %in% (property %>%
