@@ -33,6 +33,12 @@ daily_pred %>%
 
 
 # bedrooms breakdown of FREH listings
+property_2019 <-
+  property %>%
+  filter(housing, property_ID %in% 
+           filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date)$property_ID) %>% 
+  filter(created <= LTM_end_date)
+
 property_2019 %>% 
   st_drop_geometry() %>%  
   filter(housing == TRUE,
