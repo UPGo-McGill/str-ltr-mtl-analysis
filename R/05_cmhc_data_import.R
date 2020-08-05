@@ -400,7 +400,8 @@ cmhc <-
   summarize(name = paste0(neighbourhood, collapse = "/"), .groups = "drop") %>% 
   mutate(zone = as.numeric(zone)) %>% 
   left_join(zones, by = "zone") %>% 
-  select(zone, zone_name, geometry)
+  select(zone, zone_name, geometry) %>% 
+  st_transform(32618)
 
 
 # Save output -------------------------------------------------------------
