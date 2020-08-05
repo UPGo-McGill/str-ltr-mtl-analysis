@@ -56,10 +56,24 @@ host <-
 upgo_disconnect()
 
 
-# Remove inactive rows from daily file ------------------------------------
+# Manually fix scraped date issue -----------------------------------------
 
+# Load files for fix
+load("data/scrape_fix/changes.Rdata")
+load("data/scrape_fix/inactives.Rdata")
+
+# Change scraped date in property file
+property <- 
+  property %>% 
+  left_join(rename(changes, new_scraped = scraped)) %>% 
+  mutate(scraped = if_else(new_scraped > scraped, new_scraped, scraped, 
+                           scraped)) %>% 
+  select(-new_scraped)
+
+# Add inactive rows to daily file then re-trim
 daily <- 
   daily %>% 
+  bind_rows(inactives) %>% 
   left_join(select(property, property_ID, created, scraped)) %>%
   filter(date >= created, date <= scraped) %>%
   select(-created, -scraped)
