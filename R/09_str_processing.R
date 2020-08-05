@@ -13,7 +13,6 @@
 #' - None
 
 source("R/01_startup.R")
-library(data.table)
 
 
 # Load previous data ------------------------------------------------------
