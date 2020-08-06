@@ -3,6 +3,8 @@
 source("R/01_startup.R")
 library(patchwork)
 
+load("output/str_processed.Rdata")
+load("output/geometry.Rdata")
 
 ### FIGURE 2.1 - Active listings ##############################################################
 
@@ -67,15 +69,19 @@ active_borough <- daily %>%
   )
 
 
-active_DA <- daily %>%
+active_DA <-
+  daily %>%
   filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
   left_join(select(st_drop_geometry(property), GeoUID, property_ID), .) %>% 
   group_by(GeoUID) %>% 
   count(date, GeoUID) %>% 
   group_by(GeoUID) %>% 
   summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
-  left_join(select(DAs, GeoUID, dwellings), .) %>% 
-  mutate(percentage = `Daily active listings (average)` / dwellings) %>% 
+  left_join(select(DA, GeoUID, dwellings), .) %>% 
+  mutate(percentage = `Daily active listings (average)` / dwellings,
+         percentage = ifelse(dwellings <= 4, NA, percentage)) %>% 
+    arrange(dwellings) %>% 
+    View()
   ggplot() +
   geom_sf(aes(fill = percentage), 
           lwd = NA, 
