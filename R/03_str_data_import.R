@@ -17,21 +17,6 @@ source("R/01_startup.R")
 load("output/geometry.Rdata")
 
 
-# Load parcel data --------------------------------------------------------
-
-uef <- 
-  read_sf("data/shapefiles/uniteevaluationfonciere.shp") %>% 
-  st_transform(32618) %>% 
-  filter(!is.na(NOMBRE_LOG))
-
-# Remove duplicates
-uef <- 
-  uef %>% 
-  as_tibble() %>% 
-  distinct(ID_UEV, .keep_all = TRUE) %>% 
-  st_as_sf()
-
-
 # Get data ----------------------------------------------------------------
 
 upgo_connect()
@@ -58,9 +43,19 @@ upgo_disconnect()
 
 # Manually fix scraped date issue -----------------------------------------
 
-# Load files for fix
+# Load file for fix
 load("data/scrape_fix/changes.Rdata")
-load("data/scrape_fix/inactives.Rdata")
+
+# Get inactives
+upgo_connect(daily_inactive = TRUE)
+
+inactives <-
+  daily_inactive_all %>% 
+  filter(property_ID %in% !!changes$property_ID) %>% 
+  collect() %>% 
+  strr_expand()
+
+upgo_disconnect()
 
 # Change scraped date in property file
 property <- 
@@ -77,6 +72,8 @@ daily <-
   left_join(select(property, property_ID, created, scraped)) %>%
   filter(date >= created, date <= scraped) %>%
   select(-created, -scraped)
+
+rm(changes, inactive)
 
 
 # Convert currency --------------------------------------------------------
@@ -100,6 +97,7 @@ rm(exchange_rates)
 # Spatial join to only keep the properties inside the city of Mtl
 property <- 
   property %>% 
+  strr_as_sf(32618) %>% 
   st_intersection(city)
 
 # Run raffle to assign a DA to each listing
@@ -107,10 +105,18 @@ property <-
   property %>% 
   strr_raffle(DA, GeoUID, dwellings, seed = 1)
 
-# Run raffle to assign a parcel to each listing
-property <-
-  property %>% 
-  strr_raffle(uef, ID_UEV, NOMBRE_LOG, seed = 1)
+# # Run raffle to assign a parcel to each listing
+# uef <- 
+#   read_sf("data/shapefiles/uniteevaluationfonciere.shp") %>% 
+#   st_transform(32618) %>% 
+#   filter(!is.na(NOMBRE_LOG)) %>% 
+#   as_tibble() %>% 
+#   distinct(ID_UEV, .keep_all = TRUE) %>% 
+#   st_as_sf()
+# 
+# property <-
+#   property %>% 
+#   strr_raffle(uef, ID_UEV, NOMBRE_LOG, seed = 1)
 
 # Trim daily file
 daily <- 
@@ -128,13 +134,14 @@ property <-
   st_join(boroughs) %>% 
   select(-dwellings)
 
-
 # Add borough to daily file
 daily <- 
   property %>% 
   st_drop_geometry() %>% 
   select(property_ID, borough) %>% 
   left_join(daily, ., by = "property_ID")
+
+rm(borough, city, DA)
 
 
 # Fix April plateau -------------------------------------------------------
