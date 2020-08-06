@@ -20,12 +20,12 @@ source("R/01_startup.R")
 
 # Load and filter data ----------------------------------------------------
 
-kj <- readRDS("data/kj.rds") %>% filter(city == "Montreal")
+kj <- readRDS("data/ltr/kj.rds") %>% filter(city == "Montreal")
 
-cl <- readRDS("data/cl.rds") %>% filter(city == "montreal")
+cl <- readRDS("data/ltr/cl.rds") %>% filter(city == "montreal")
 
 rclalq <- 
-  readxl::read_xlsx("data/rclalq.xlsx") %>% 
+  readxl::read_xlsx("data/ltr/rclalq.xlsx") %>% 
   filter(location == "VilledeMontréal") %>% 
   select(-location)
 
@@ -59,9 +59,19 @@ kj_new_geography <-
          !is.na(location))
 
 if (nrow(kj_new_geography) > 0) {
+  
+  to_geocode <- kj_new_geography$location %>% unique()
+  
+  output <- ggmap::geocode(to_geocode)
+  
+  output <- tibble(location = to_geocode,
+                   lon = output$lon,
+                   lat = output$lat)
+  
   kj_new_geography <- 
     kj_new_geography %>% 
-    ggmap::mutate_geocode(location)
+    left_join(output, by = "location")
+  
 } else kj_new_geography <- 
   mutate(kj_new_geography, lon = numeric(), lat = numeric())
 
@@ -101,8 +111,9 @@ upgo_disconnect()
 kj <- bind_rows(kj_old_geography, kj_new_geography)
 rclalq <- bind_rows(rclalq_old_geography, rclalq_new_geography)
 
-rm(processed_addresses, kj_old_geography, kj_new_geography, 
-   rclalq_old_geography, rclalq_new_geography, locations_new)
+suppressWarnings(rm(processed_addresses, kj_old_geography, kj_new_geography, 
+   rclalq_old_geography, rclalq_new_geography, locations_new, output,
+   to_geocode))
 
 
 # Clean up KJ file --------------------------------------------------------
@@ -115,11 +126,16 @@ kj <-
          bathrooms = str_sub(bathrooms, end = 3L),
          bathrooms = str_replace(bathrooms, pattern = "Ut|U|\\+", 
                                  replacement = ""),
-         bathrooms = as.numeric(bathrooms))
+         bathrooms = as.numeric(bathrooms),
+         type = details %>% 
+           str_extract("(?<=Agreement Type).*?(?=(Move-In)|(Pet Friendly))") %>% 
+           str_remove('</dd.*') %>% 
+           str_remove('.*">'),
+         type = if_else(type == "Not Available", NA_character_, type))
 
 kj <- 
   kj %>% 
-  select(id, short_long:furnished, lat, lon, title, text, photos) %>% 
+  select(id, short_long:furnished, type, lat, lon, title, text, photos) %>% 
   mutate(kj = TRUE)
 
 kj <- 
@@ -144,6 +160,7 @@ cl <-
          lon = as.numeric(lon),
          short_long = NA,
          location = NA,
+         type = NA,
          kj = FALSE) %>% 
   filter(!is.na(lon), !is.na(lat)) %>% 
   st_as_sf(coords = c("lat", "lon"), crs = st_crs(4326))
@@ -175,11 +192,12 @@ rclalq <-
          short_long = NA,
          bathrooms = NA,
          furnished = NA,
+         type = NA,
          text = NA,
          photos = map(1:n(), ~NA),
          kj = TRUE) %>% 
   select(id, short_long, created, scraped, price, city, location, bedrooms, 
-         bathrooms, furnished, lat, lon, title, kj, text, photos)
+         bathrooms, furnished, type, lat, lon, title, kj, text, photos)
 
 rclalq <- 
   rclalq %>% 
