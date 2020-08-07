@@ -89,8 +89,6 @@ daily <-
   mutate(price = price * exchange_rate) %>% 
   select(-year_month, -exchange_rate)
 
-rm(exchange_rates)
-
 
 # Process the property and daily files ------------------------------------
 
@@ -144,22 +142,105 @@ daily <-
 rm(borough, city, DA)
 
 
-# Fix April plateau -------------------------------------------------------
+# Fix April and June plateaus ---------------------------------------------
 
-# Problem dates are 2020-04-03 to 2020-04-17, and the actual bad results have 
-# booked_date 2020-04-04, 2020-04-14, 2020-04-15. So we change those status
-# values from R to B.
+#' For April, problem dates are 2020-04-03 to 2020-04-17, and the actual bad 
+#' results have booked_date 2020-04-04, 2020-04-14, 2020-04-15. So we change 
+#' those status values from R to A. For June, problem dates are 2020-06-01 to
+#' 2020-06-15, and the relevant booked_date is 2020-05-31. We then shift Bs to
+#' As based on activity in the previous ~1 month.
 
 daily <- 
   daily %>% 
-  as_tibble() %>% 
-  mutate(status = if_else(
-    booked_date %in% c(as.Date("2020-04-04"), as.Date("2020-04-14"), 
-                       as.Date("2020-04-15")) & 
-      date < "2020-04-18" &
-      status == "R", "B", status))
+  mutate(status = if_else(booked_date %in% c(as.Date("2020-04-04"), 
+                                             as.Date("2020-04-14"), 
+                                             as.Date("2020-04-15")) & 
+                            date < "2020-04-18" & status == "R", "A", status),
+         status = if_else(status == "R" & 
+                            date >= "2020-06-01" &
+                            date <= "2020-06-15" & 
+                            booked_date == "2020-05-30" &
+                            !is.na(booked_date), "A", status))
+
+all_blocked_june <- 
+  daily %>% 
+  filter(date >= "2020-06-01", date <= "2020-06-15") %>% 
+  group_by(property_ID) %>% 
+  count(status) %>% 
+  ungroup() %>% 
+  filter(status == "B", n == 15) %>% 
+  pull(property_ID)
+
+activity_in_may <- 
+  daily %>% 
+  filter(property_ID %in% all_blocked_june, date >= "2020-04-15", 
+         date <= "2020-05-31") %>% 
+  group_by(property_ID) %>% 
+  count(status) %>% 
+  ungroup() %>% 
+  filter(status != "B") %>% 
+  pull(property_ID) %>% 
+  unique()
+
+daily <- 
+  daily %>% 
+  mutate(status = if_else(status == "B" &
+                            property_ID %in% all_blocked_june &
+                            property_ID %in% activity_in_may &
+                            date >= "2020-06-02" & date <= "2020-06-15",
+                          "A", status))
+
+all_blocked_april <- 
+  daily %>% 
+  filter(date >= "2020-04-03", date <= "2020-04-17") %>% 
+  group_by(property_ID) %>% 
+  count(status) %>% 
+  ungroup() %>% 
+  filter(status == "B", n == 15) %>% 
+  pull(property_ID)
+
+activity_in_march <- 
+  daily %>% 
+  filter(property_ID %in% all_blocked_april, date >= "2020-03-01", 
+         date <= "2020-03-31") %>% 
+  group_by(property_ID) %>% 
+  count(status) %>% 
+  ungroup() %>% 
+  filter(status != "B") %>% 
+  pull(property_ID) %>% 
+  unique()
+
+A_on_15_16 <- 
+  daily %>% 
+  filter(date >= "2020-04-15", date <= "2020-04-16", status == "A") %>%
+  count(property_ID) %>% 
+  # filter(n == 2) %>%
+  pull(property_ID)
+
+changed_from_14_to_15 <- 
+  daily %>% 
+  filter(date >= "2020-04-03", date <= "2020-04-14", status == "B",
+         property_ID %in% A_on_15_16) %>%
+  count(property_ID) %>% 
+  filter(n >= 10) %>% 
+  pull(property_ID)
+
+daily <- 
+  daily %>% 
+  mutate(status = if_else(status == "B" &
+                            property_ID %in% all_blocked_april &
+                            property_ID %in% activity_in_march &
+                            date >= "2020-04-03" & date <= "2020-04-17",
+                          "A", status)) %>%
+  mutate(status = if_else(property_ID %in% changed_from_14_to_15 &
+                            date >= "2020-04-15" & date <= "2020-04-16",
+                          "B",
+                          status))
+
+rm(all_blocked_june, activity_in_may, all_blocked_april, activity_in_march,
+   A_on_15_16, changed_from_14_to_15)
 
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, file = "output/str_raw.Rdata")
+save(property, daily, host, exchange_rate, file = "output/str_raw.Rdata")
