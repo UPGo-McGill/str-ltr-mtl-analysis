@@ -329,7 +329,8 @@ daily %>%
           size = 10),
         legend.text = element_text(#family = "Futura", 
           size = 10)
-  )
+  )+
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .2)
 
 
 
