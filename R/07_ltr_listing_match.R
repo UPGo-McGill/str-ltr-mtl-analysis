@@ -82,6 +82,10 @@ ltr <-
   left_join(ltr, .) %>% 
   select(-geometry, everything(), geometry)
 
+ltr <- 
+  ltr %>% 
+  mutate(property_ID = map(property_ID, ~unique(unlist(.x))))
+
 rm(property_nest, ltr_nest)
 
 
