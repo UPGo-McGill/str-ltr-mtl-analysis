@@ -2,26 +2,61 @@
 
 source("R/01_startup.R")
 
+load("output/str_processed.Rdata")
+
 ### Figure 9 - Active and reserved listings since 2018 ####################################################
+
+#YOY growth of R number
+(daily %>% 
+  filter(status == "R", date >= LTM_start_date, date <= LTM_end_date) %>% 
+  nrow() -
+  daily %>% 
+  filter(status == "R", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+  nrow()
+ ) /
+  daily %>% 
+  filter(status == "R", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+  nrow()
+
+# growth of R for first half of 2020
+(daily %>% 
+    filter(status == "R", date >= "2020-01-01", date <= max(date)) %>% 
+    nrow() -
+    daily %>% 
+    filter(status == "R", date >= "2019-01-01", date <= max(date) - years(1)) %>% 
+    nrow()
+) /
+  daily %>% 
+  filter(status == "R", date >= "2019-01-01", date <= max(date) - years(1)) %>% 
+  nrow()
+
+# Lowest point of As
+daily %>% 
+  filter(status == "A", date >= "2018-01-01") %>% 
+  count(date) %>% 
+  arrange(n)
+
+
+### Figure 4.1 - Active and reserved listings in 2020 ####################################################
 
 ggplot()+
   geom_line(data = daily %>% 
-              filter(housing, date >= "2017-12-29", status == "R") %>% 
+              filter(housing, date >= "2018-01-01", status == "R") %>% 
               count(date, status) %>% 
               mutate(n = data.table::frollmean(n, 7)),
             aes(date, n, color = status), alpha = 0.4)+
   geom_smooth(data = daily %>% 
-                filter(housing, date >= "2017-12-29", status == "R") %>% 
+                filter(housing, date >= "2018-01-01", status == "R") %>% 
                 count(date, status) %>% 
                 mutate(n = data.table::frollmean(n, 7)),
               aes(date, n, color = status), se = F, lwd=0.9)+
   geom_line(data = daily %>% 
-              filter(housing, date >= "2017-12-29", status == "A") %>% 
+              filter(housing, date >= "2018-01-01", status == "A") %>% 
               count(date, status) %>% 
               mutate(n = data.table::frollmean(n, 7)),
             aes(date, n, color = status), alpha = 0.4)+
   geom_smooth(data = daily %>% 
-                filter(housing, date >= "2017-12-29", status == "A") %>% 
+                filter(housing, date >= "2018-01-01", status == "A") %>% 
                 count(date, status) %>% 
                 mutate(n = data.table::frollmean(n, 7)),
               aes(date, n, color = status), se = F, lwd=0.9)+
@@ -41,26 +76,26 @@ ggplot()+
 
 
 
-### Figure 10 - Active and reserved listings in 2020 ####################################################
+### Figure 4.2 - Active and reserved listings in 2020 ####################################################
 
 ggplot()+
   geom_line(data = daily %>% 
-              filter(housing, date >= "2019-12-29", status == "R") %>% 
+              filter(housing, date >= "2020-01-01", status == "R") %>% 
               count(date, status) %>% 
               mutate(n = data.table::frollmean(n, 7)),
             aes(date, n, color = status), alpha = 0.4)+
   stat_smooth(geom='line', data = daily %>% 
-                filter(housing, date >= "2019-12-29", status == "R") %>% 
+                filter(housing, date >= "2020-01-01", status == "R") %>% 
                 count(date, status) %>% 
                 mutate(n = data.table::frollmean(n, 7)),
               aes(date, n, color = status), se = F, lwd=0.9)+
   geom_line(data = daily %>% 
-              filter(housing, date >= "2019-12-29", status == "A") %>% 
+              filter(housing, date >= "2020-01-01", status == "A") %>% 
               count(date, status) %>% 
               mutate(n = data.table::frollmean(n, 7)),
             aes(date, n, color = status), alpha = 0.4)+
   stat_smooth(geom='line', data = daily %>% 
-                filter(housing, date >= "2019-12-29", status == "A") %>% 
+                filter(housing, date >= "2020-01-01", status == "A") %>% 
                 count(date, status) %>% 
                 mutate(n = data.table::frollmean(n, 7)),
               aes(date, n, color = status), se = F, lwd = 0.9)+
