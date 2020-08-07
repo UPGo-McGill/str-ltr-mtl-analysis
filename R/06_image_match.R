@@ -52,6 +52,7 @@ ab_ids <-
 # Get KJ urls
 kj_urls <-
   ltr %>% 
+  st_drop_geometry() %>% 
   filter(str_starts(id, "kj-")) %>% 
   group_by(id) %>% 
   slice(1) %>% 
@@ -61,6 +62,7 @@ kj_urls <-
 # Get KJ IDs
 kj_ids <- 
   ltr %>% 
+  st_drop_geometry() %>% 
   filter(str_starts(id, "kj-")) %>% 
   group_by(id) %>% 
   slice(1) %>% 
@@ -70,15 +72,17 @@ kj_ids <-
 # Get CL urls
 cl_urls <-
   ltr %>% 
+  st_drop_geometry() %>% 
   filter(str_starts(id, "cl-")) %>% 
   group_by(id) %>% 
   slice(1) %>% 
   ungroup() %>% 
   pull(photos)
 
-# Get KJ IDs
+# Get CL IDs
 cl_ids <- 
   ltr %>% 
+  st_drop_geometry() %>% 
   filter(str_starts(id, "cl-")) %>% 
   group_by(id) %>% 
   slice(1) %>% 
@@ -110,17 +114,17 @@ if (!dir.exists(paste0(dl_location, "/kj"))) {
 
 future_map2(ab_urls, ab_ids, ~{
   try(download.file(.x, paste0(
-    dl_location, "/ab/", .y, "-", seq_along(.x), ".jpg")))
+    dl_location, "/ab/", .y, ".jpg")))
 })
 
 future_map2(cl_urls, cl_ids, ~{
   try(download.file(.x, paste0(
-    dl_location, "/cl/", .y, "-", seq_along(.x), 
+    dl_location, "/cl/", .y, "-", seq_along(.x), ".jpg"))) 
 })
 
 future_map2(kj_urls, kj_ids, ~{
   try(download.file(.x, paste0(
-    dl_location, "/kj/", .y, "-", seq_along(.x), 
+    dl_location, "/kj/", .y, "-", seq_along(.x), ".jpg"))) 
 })
 
 
@@ -152,6 +156,8 @@ rm(ab_paths, cl_paths, kj_paths)
 ab_matrix <- match_signatures(ab_sigs)
 ab_matches <- identify_matches(ab_matrix)
 ab_matches <- confirm_matches(ab_matches)
+# Temporarily need to remove duplicates!
+ab_matches <- ab_matches %>% filter(x_name != y_name)
 ab_changes <- compare_images(ab_matches)
 ab_matches <- integrate_changes(ab_matches, ab_changes)
 

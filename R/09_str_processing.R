@@ -13,6 +13,7 @@
 #' - None
 
 source("R/01_startup.R")
+library(foreach)
 
 
 # Load previous data ------------------------------------------------------
@@ -24,7 +25,8 @@ load("output/str_processed.Rdata")
 
 daily <- 
   daily %>% 
-  strr_multi(host)
+  strr_multi(host) %>% 
+  as_tibble()
 
 
 # Calculate ghost hostels -------------------------------------------------
@@ -42,29 +44,28 @@ setDT(daily_GH)
 
 daily_GH <- daily_GH %>% select(property_ID:status)
 
+status_fun <- function(x, y) {
+  status <- unique(daily_GH[date == x & property_ID %in% y, status])
+  fcase("R" %in% status, "R", "A" %in% status, "A", "B" %in% status, "B")
+}
+
 upgo:::handler_upgo("Analyzing row")
 
 with_progress({
   
   pb <- progressor(nrow(GH))
-  
-  GH <- 
-    GH %>% 
-    mutate(status = furrr::future_map2_chr(date, property_IDs, ~{
-      pb()
-      status <- unique(daily_GH[date == .x & property_ID %in% .y, status])
-      status <- case_when(
-        "R" %in% status ~ "R",
-        "A" %in% status ~ "A",
-        "B" %in% status ~ "B",
-        TRUE ~ NA_character_
-      )
-    })) %>% 
-    select(ghost_ID, date, status, host_ID:data, geometry)
-  
+
+  status <- foreach(i = 1:nrow(GH), .combine = "c") %dopar% {
+    pb()
+    status_fun(GH$date[[i]], GH$property_IDs[[i]])
+  }
+
 })
 
-rm(daily_GH, pb)
+GH$status <- status
+GH <- GH %>% select(ghost_ID, date, status, host_ID:data, geometry)
+
+rm(daily_GH, pb, status_fun)
 
 
 # Save output -------------------------------------------------------------

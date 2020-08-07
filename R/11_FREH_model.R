@@ -127,7 +127,7 @@ daily <-
 # 
 # # Split the data into training and test set
 # training_samples_12 <-
-#   first_year$FREH %>% 
+#   first_year$FREH %>%
 #   createDataPartition(p = 0.80, list = FALSE)
 # 
 # train_data_12 <- first_year[training_samples_12, ]
@@ -211,11 +211,11 @@ daily <-
 # # Test models
 # probabilities_1 <- model_1_test %>% predict(test_data_1_3, type = "response")
 # predicted_classes_1 <- ifelse(probabilities_1 > 0.5, "TRUE", "FALSE")
-# mean(predicted_classes_1 == test_data_1_3$FREH) # Outcome: 0.808
+# mean(predicted_classes_1 == test_data_1_3$FREH) # Outcome: 0.801
 # 
 # probabilities_3 <- model_3_test %>% predict(test_data_1_3, type = "response")
 # predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
-# mean(predicted_classes_3 == test_data_1_3$FREH) # Outcome: 0.850
+# mean(predicted_classes_3 == test_data_1_3$FREH) # Outcome: 0.846
 
 
 # Save output -------------------------------------------------------------
