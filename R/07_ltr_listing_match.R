@@ -22,11 +22,8 @@ source("R/01_startup.R")
 # Load previous data ------------------------------------------------------
 
 load("output/str_raw.Rdata")
-
 load("output/matches_raw.Rdata")
-
 load("output/ltr_raw.Rdata")
-
 dl_location <- "/Volumes/Data/Scrape photos/mtl"
 
 

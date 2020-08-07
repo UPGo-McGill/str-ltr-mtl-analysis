@@ -138,11 +138,24 @@ kj <-
   select(id, short_long:furnished, type, lat, lon, title, text, photos) %>% 
   mutate(kj = TRUE)
 
-kj <- 
+kj_with_geom <- 
   kj %>% 
-  filter(!is.na(lon),
-         !is.na(lat)) %>% 
-  st_as_sf(coords = c("lon", "lat"), crs = st_crs(4326))
+  filter(!is.na(lon), !is.na(lat)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+kj_without_geom <-
+  kj %>%
+  filter(is.na(lon) | is.na(lat)) %>% 
+  mutate(geometry = st_sfc(st_point())) %>% 
+  st_as_sf(crs = 4326) %>% 
+  select(-lon, -lat)
+
+kj <-
+  rbind(kj_with_geom, kj_without_geom) %>% 
+  st_as_sf() %>% 
+  arrange(scraped, id)
+
+rm(kj_with_geom, kj_without_geom)
 
 
 # Clean up CL file --------------------------------------------------------
@@ -161,9 +174,26 @@ cl <-
          short_long = NA,
          location = NA,
          type = NA,
-         kj = FALSE) %>% 
-  filter(!is.na(lon), !is.na(lat)) %>% 
-  st_as_sf(coords = c("lat", "lon"), crs = st_crs(4326))
+         kj = FALSE)
+
+cl_with_geom <- 
+  cl %>% 
+  filter(!is.na(lon), !is.na(lat)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+cl_without_geom <-
+  cl %>%
+  filter(is.na(lon) | is.na(lat)) %>% 
+  mutate(geometry = st_sfc(st_point())) %>% 
+  st_as_sf(crs = 4326) %>% 
+  select(-lon, -lat)
+
+cl <-
+  rbind(cl_with_geom, cl_without_geom) %>% 
+  st_as_sf() %>% 
+  arrange(scraped, id)
+
+rm(cl_with_geom, cl_without_geom)
 
 
 # Clean up RCLALQ file ----------------------------------------------------
@@ -178,10 +208,7 @@ rclalq <-
       "plus d'un mois|un mois" = "30",
       "[:digit:]+ heures|une heure|[:digit:]+ minutes|moins d'une minute|une minute" = "0",
       "un" = "1")) %>% 
-      as.numeric())
-
-rclalq <-
-  rclalq %>% 
+      as.numeric()) %>% 
   mutate(city = "Montreal",
          scraped = as.Date(date, tryFormats = c("%m/%d/%Y")),
          details = as.numeric(substr(details, 1, 1)),
@@ -199,11 +226,24 @@ rclalq <-
   select(id, short_long, created, scraped, price, city, location, bedrooms, 
          bathrooms, furnished, type, lat, lon, title, kj, text, photos)
 
-rclalq <- 
+rclalq_with_geom <- 
   rclalq %>% 
-  filter(!is.na(lon),
-         !is.na(lat)) %>% 
-  st_as_sf(coords = c("lon", "lat"), crs = st_crs(4326))
+  filter(!is.na(lon), !is.na(lat)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)
+
+rclalq_without_geom <-
+  rclalq %>%
+  filter(is.na(lon) | is.na(lat)) %>% 
+  mutate(geometry = st_sfc(st_point())) %>% 
+  st_as_sf(crs = 4326) %>% 
+  select(-lon, -lat)
+
+rclalq <-
+  rbind(rclalq_with_geom, rclalq_without_geom) %>% 
+  st_as_sf() %>% 
+  arrange(scraped, id)
+
+rm(rclalq_with_geom, rclalq_without_geom)
 
 
 # Merge KJ with RCLALQ ----------------------------------------------------
@@ -241,7 +281,6 @@ ltr <- st_transform(ltr, 32618)
 ltr <- 
   ltr %>% 
   st_join(boroughs) %>% 
-  filter(!is.na(borough)) %>% 
   select(-dwellings)
 
 ltr <-
