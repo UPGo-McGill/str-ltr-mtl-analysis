@@ -65,7 +65,7 @@ with_progress({
 GH$status <- status
 GH <- GH %>% select(ghost_ID, date, status, host_ID:data, geometry)
 
-rm(daily_GH, pb, status_fun)
+rm(daily_GH, pb, status_fun, status)
 
 
 # Save output -------------------------------------------------------------
