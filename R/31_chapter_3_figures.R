@@ -2,6 +2,8 @@
 
 source("R/01_startup.R")
 
+load("output/str_processed.Rdata")
+
 
 ### FIGURE 3.1 - Housing units converted to dedicated STRs in Montreal ###########################################
 
@@ -16,9 +18,10 @@ GH_total <-
   
 # Housing loss graph
 FREH %>%
-  group_by(date) %>%
-  summarize(`Entire home/apt` = n()) %>%
+  select(date, FREH_3) %>% 
+  rename(`Entire home/apt` = FREH_3) %>%
   left_join(GH_total, by = "date") %>%
+  select(-GH_units) %>% 
   rename(`Private room` = GH_average) %>%
   gather(`Entire home/apt`, `Private room`, 
          key = `Listing type`, value = `Housing units`) %>% 
