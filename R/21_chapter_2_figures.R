@@ -80,8 +80,7 @@ active_DA <-
   left_join(select(DA, GeoUID, dwellings), .) %>% 
   mutate(percentage = `Daily active listings (average)` / dwellings,
          percentage = ifelse(dwellings <= 4, NA, percentage)) %>% 
-    arrange(dwellings) %>% 
-    View()
+    arrange(dwellings) %>%
   ggplot() +
   geom_sf(aes(fill = percentage), 
           lwd = NA, 
@@ -249,7 +248,8 @@ daily_variation %>%
 
 ### FIGURE 2.6 - STR host revenue distribution in Montreal #####################################################
 
-color <- colorRampPalette(brewer.pal(name="RdYlBu", n = 9))(10)
+color <- colorRampPalette(RColorBrewer::brewer.pal(name="RdYlBu", n = 9))(10)
+
 
 weighted_bar_graph <- daily %>%
   filter(housing == TRUE, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>%
