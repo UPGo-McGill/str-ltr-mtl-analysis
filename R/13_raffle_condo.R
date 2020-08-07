@@ -29,7 +29,7 @@ DAs_raffle$p_not_condo <- as.numeric(DAs_raffle$p_not_condo)
 
 active_properties_2019 <- 
   daily %>% 
-  filter(date >="2019-01-01", date<="2020-01-01") %>% 
+  filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
   filter(status == "A" | status == "R") %>% 
   group_by(property_ID) %>% 
   count()
@@ -37,11 +37,13 @@ active_properties_2019 <-
 active_properties_2019 <- property %>%
   filter(property_ID %in% active_properties_2019$property_ID)
 
+
 ### Conduct the raffle ################################################ 
 
 raffle_2019 <- 
   active_properties_2019 %>% 
   strr_raffle(DAs_raffle, GeoUID, dwellings, seed=1, diagnostic = TRUE) 
+
 
 ### Add geometries and census variables to the raffle ################################################ 
 
@@ -53,6 +55,7 @@ unnested_trial_tenure_2019 <- trial_tenure_2019 %>%
 unnested_trial_tenure_2019 <- unnested_trial_tenure_2019 %>% 
   left_join(., st_drop_geometry(DAs_raffle), by = c("poly_ID" = "GeoUID")) 
 
+
 ### Add geometries and census variables to the raffle ################################################ 
 
 tenure_probabilities_2019 <- unnested_trial_tenure_2019 %>% 
@@ -63,6 +66,7 @@ tenure_probabilities_2019 <- unnested_trial_tenure_2019 %>%
             prob_owner = sum(p_owner.x*(probability/sum(probability)))
   ) 
 
+
 ### Add final sf to the raffle ################################################ 
 
 tenure_probabilities_sf_2019 <- 
@@ -72,11 +76,13 @@ tenure_probabilities_sf_2019 <-
   rename(dwellings=dwellings.x) %>% 
   st_as_sf()
 
+
 ### Initial proportions for graph ################################################ 
 
 DAs_raffle_p_condo <- DAs_raffle %>% 
   select(GeoUID, p_condo) %>% 
   st_drop_geometry()
+
 
 # Save output -------------------------------------------------------------
 
