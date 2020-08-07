@@ -2,8 +2,18 @@
 
 source("R/01_startup.R")
 
-load("data/str_processed.Rdata")
+load("output/str_processed.Rdata")
+load("output/geometry.Rdata")
 
+
+
+daily %>% 
+  filter(date >= "2020-01-01") %>% 
+  mutate(status = if_else(status == "R" & booked_date == "2020-05-30" & !is.na(booked_date), "B", status)) %>%
+  count(date, status) %>% 
+  ggplot()+
+  geom_line(aes(date, n, color= status))
+  
 ### Active daily listings ######################################################
 
 # Average active daily listings in 2019
@@ -42,7 +52,7 @@ daily %>%
 daily %>% 
   filter(housing, status != "B") %>% 
   count(date) %>% 
-  filter(n >= 12300)
+  filter(n >= 11800)
 
 
 # Active housing listings in 2019
@@ -63,16 +73,44 @@ revenue_2019 <-
   summarize(revenue_LTM = sum(price) ) %>% 
   inner_join(property, .)
 
-sum(revenue_2019$revenue_LTM, na.rm = T)
-mean(revenue_2019$revenue_LTM, na.rm = T)
+round(sum(revenue_2019$revenue_LTM), digit =-5)
+round(mean(revenue_2019$revenue_LTM), digit =-2)
 
-# average revenue by host
+# average listings revenue per average of daily active listings
+(sum(revenue_2019$revenue_LTM) /
+  filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
+  count(date) %>% 
+  summarize(round(mean(n)))
+) %>% 
+  round(digit=-2)
+
+# average revenue per host (taking out hosts blocked 365 days)
 revenue_2019 %>% 
   st_drop_geometry() %>% 
-  filter(!is.na(host_ID)) %>% 
+  filter(!is.na(host_ID)) %>% # because if not, grouping the sum of host_ID = NA makes it a top earner, and brings average up
   group_by(host_ID) %>% 
   summarize("host_rev" = sum(revenue_LTM)) %>% 
   summarize(mean(host_rev))
+ 
+
+(sum(revenue_2019$revenue_LTM) /
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
+  count(host_ID) %>% 
+  nrow()
+) %>% 
+  round(digit=-2)
+
+(sum(revenue_2019$revenue_LTM) /
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
+  count(date, host_ID) %>% 
+  count(date) %>% 
+  summarize(round(mean(n)))
+) %>% 
+  round(digit=-2)
+
+
 
 ### Montreal in comparison with other major Canadian cities ######################################################
 
@@ -106,11 +144,11 @@ boroughs_breakdown <- tibble(Borough = character(length = length(boroughs$boroug
                              `Annual revenue (CAD)` = numeric(length = length(boroughs$borough)),
                              `% of all listings` = numeric(length = length(boroughs$borough)),
                              `% of annual revenue` = numeric(length = length(boroughs$borough)),
-                             `% of daily active listings (average) per dwellings` = numeric(length = length(boroughs$borough))
+                             `Active listings as % of dwellings` = numeric(length = length(boroughs$borough))
 )
 
 
-for (i in 1:length(boroughs$borough)) { # testing a bigger loop, good one with try(), does work. long, since not doing remotely.
+for (i in 1:length(boroughs$borough)) {
   
   boroughs_breakdown[i,1] <- boroughs$borough[[i]]
   
@@ -141,24 +179,6 @@ for (i in 1:length(boroughs$borough)) { # testing a bigger loop, good one with t
     filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date) %>%
     summarize(sum(price))
   
-  boroughs_breakdown[i,6] <- (
-    daily %>%
-      filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
-             borough == boroughs$borough[[i]]) %>%
-      count(date) %>%
-      summarize(mean(n, na.rm = T)) -
-      daily %>%
-      filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
-             borough == boroughs$borough[[i]]) %>%
-      count(date) %>%
-      summarize(mean(n, na.rm = T))
-  ) /
-    daily %>%
-    filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
-           borough == boroughs$borough[[i]]) %>%
-    count(date) %>%
-    summarize(mean(n, na.rm = T))
-  
   boroughs_breakdown[i,6] <- daily %>%
     filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
            borough == boroughs$borough[[i]]) %>%
@@ -178,7 +198,6 @@ boroughs_breakdown %>%
          `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
          `Annual revenue (CAD)` = paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
                                          str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
-  rename(`Active listings as % of dwellings` = `% of daily active listings (average) per dwellings`) %>% 
   gt() %>% 
   tab_header(
     title = "Borough breakdown",
@@ -203,7 +222,7 @@ listing_type_breakdown <- tibble(`Listing Type` = character(length = length(uniq
 )
 
 
-for (i in 1:length(unique_listing_type)) { # testing a bigger loop, good one with try(), does work. long, since not doing remotely.
+for (i in 1:length(unique_listing_type)) { 
   
   listing_type_breakdown[i,1] <- unique_listing_type[[i]]
   
@@ -273,11 +292,25 @@ listing_type_breakdown %>%
              decimals = 0)
 
 
+
+# Bedroom counts
+property %>% 
+  st_drop_geometry() %>% 
+  filter(housing == TRUE,
+         listing_type == "Entire home/apt") %>% 
+  mutate(bedrooms = ifelse(bedrooms >= 3, "3+", bedrooms)) %>% 
+  count(bedrooms) %>% 
+  mutate(percentage = n / sum(n)) %>% 
+  group_by(bedrooms) %>% 
+  summarize(perc_bedrooms = sum(percentage)) 
+
+
+
 ### STR growth rate ######################################################
 
 # YOY growth of average daily active listings
 # 2019 to 2020
-(filter(daily, housing, status != "B", date >= LTM_start_date + years(1), date <= max(date)) %>% 
+(filter(daily, housing, status != "B", date >= LTM_start_date + years(1), date <= max(daily$date)) %>% 
    count(date) %>% 
    summarize(mean(n)) - 
    filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
@@ -307,7 +340,7 @@ listing_type_breakdown %>%
     summarize(mean(n)) + 960) /
   filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
   count(date) %>% 
-  summarize(mean(n) + 960)
+  summarize(mean(n) + 960) # +960 to account for HA
 
 
 ### STR revenue distribution ######################################################
@@ -350,6 +383,14 @@ revenue_2019 %>%
   ) %>%
   opt_row_striping() 
 
+# More than 500k
+revenue_2019 %>% 
+  st_drop_geometry() %>% 
+  filter(revenue_LTM > 0) %>% 
+  group_by(host_ID) %>% 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
+  filter(host_rev > 500000) %>% 
+  nrow()
 
 ### Multilistings ######################################################
 
