@@ -5,14 +5,6 @@ source("R/01_startup.R")
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 
-
-
-daily %>% 
-  filter(date >= "2020-01-01") %>% 
-  mutate(status = if_else(status == "R" & booked_date == "2020-05-30" & !is.na(booked_date), "B", status)) %>%
-  count(date, status) %>% 
-  ggplot()+
-  geom_line(aes(date, n, color= status))
   
 ### Active daily listings ######################################################
 
