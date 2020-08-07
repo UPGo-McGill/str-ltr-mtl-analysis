@@ -1,31 +1,49 @@
-#### Raffle for condo and ownership type ################################################
+#### 13. RAFFLE CONDO ##########################################################
+
+#' This script runs slowly, and should be rerun anytime the raw STR data 
+#' changes.
+#' 
+#' Output:
+#' - `condo_analysis.Rdata`
+#' 
+#' Script dependencies:
+#' - `09_str_processing.R`
+#' 
+#' External dependencies:
+#' - None
 
 source("R/01_startup.R")
+load("output/str_processed.Rdata")
 
-### Get DA variables for raffle ################################################
+
+# Get DA variables for raffle ---------------------------------------------
 
 DAs_raffle <-
   cancensus::get_census(
     dataset = "CA16", regions = list(CSD = c("2466023")), level = "DA",
-    vectors = c("v_CA16_4840", "v_CA16_4841", "v_CA16_4842", "v_CA16_4836", "v_CA16_4837", "v_CA16_4838"),
+    vectors = c("v_CA16_4840", "v_CA16_4841", "v_CA16_4842", "v_CA16_4836", 
+                "v_CA16_4837", "v_CA16_4838"),
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
-  select(GeoUID, CSD_UID, Population, Dwellings, "v_CA16_4840: Total - Occupied private dwellings by condominium status - 25% sample data",
-         "v_CA16_4841: Condominium", "v_CA16_4842: Not condominium", "v_CA16_4836: Total - Private households by tenure - 25% sample data", 
-         "v_CA16_4837: Owner", "v_CA16_4838: Renter") %>% 
-  set_names(c("GeoUID", "CMA_UID", "population", "dwellings", "parent_condo", "condo", "not_condo", "parent_tenure",
-              "owner", "renter", "geometry")) %>% 
-  mutate(p_condo = condo/parent_condo,
-         p_not_condo = not_condo/parent_condo,
-         p_owner = owner/parent_tenure,
-         p_renter = renter/parent_tenure) %>% 
-  select(GeoUID, dwellings, CMA_UID, p_condo, p_not_condo, p_owner, p_renter) %>% 
-  st_set_agr("constant")
+  select(GeoUID, CSD_UID, Population, Dwellings, 
+         "v_CA16_4840: Total - Occupied private dwellings by condominium status - 25% sample data",
+         "v_CA16_4841: Condominium", "v_CA16_4842: Not condominium", 
+         "v_CA16_4836: Total - Private households by tenure - 25% sample data", 
+         "v_CA16_4837: Owner", 
+         "v_CA16_4838: Renter") %>% 
+  set_names(c("GeoUID", "CMA_UID", "population", "dwellings", "parent_condo", 
+              "condo", "not_condo", "parent_tenure", "owner", "renter", 
+              "geometry")) %>% 
+  mutate(p_condo = condo / parent_condo,
+         p_not_condo = max(not_condo / parent_condo, 1, na.rm = TRUE),
+         p_owner = owner / parent_tenure,
+         p_renter = renter / parent_tenure) %>% 
+  select(GeoUID, dwellings, CMA_UID, p_condo:p_renter) %>% 
+  as_tibble() %>% 
+  st_as_sf(agr = "constant")
 
-### Get properties that were only active in 2019 ################################################ 
 
-DAs_raffle$p_not_condo[DAs_raffle$p_not_condo >= "1"] <- "1"
-DAs_raffle$p_not_condo <- as.numeric(DAs_raffle$p_not_condo)
+# Get properties that were only active in 2019 ----------------------------
 
 active_properties_2019 <- 
   daily %>% 

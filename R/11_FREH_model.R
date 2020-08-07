@@ -70,7 +70,7 @@ monthly <-
 
 first_year <-
   monthly %>% 
-  filter(year <= 2019) %>% 
+  filter(year <= 2018 | (year == 2019 & month <= 6)) %>% 
   group_by(property_ID) %>% 
   filter(n() >= 12) %>% 
   ungroup() %>% 
@@ -140,14 +140,16 @@ daily <-
 # # Test model
 # probabilities_12 <- model_12_test %>% predict(test_data_12, type = "response")
 # predicted_classes_12 <- ifelse(probabilities_12 > 0.5, "TRUE", "FALSE")
-# mean(predicted_classes_12 == test_data_12$FREH) # Outcome: 0.863
+# mean(predicted_classes_12 == test_data_12$FREH)
+# # Outcome: 0.863, or .864 with only to June
 
 
 # Model based on last n months --------------------------------------------
 
 # Summarize by month
 after_one_year <- 
-  monthly %>%
+  monthly %>% 
+  filter(year <= 2018 | (year == 2019 & month <= 6)) %>% 
   mutate(month = month.name[.data$month],
          AR = A + R) %>% 
   group_by(property_ID) %>% 
@@ -188,8 +190,9 @@ daily <-
   left_join(select(model_1_3_results, property_ID, year, month, FREH_1, FREH_3),
             by = c("property_ID", "year", "month")) %>% 
   mutate(FREH_1 = if_else(is.na(FREH_1), 0, FREH_1),
-         FREH_3 = if_else(is.na(FREH_3), 0, FREH_3)) %>% 
-  select(-year, -month)
+         FREH_3 = if_else(is.na(FREH_3), 0, FREH_3))
+
+daily <- daily %>% select(-year, -month)
 
 
 # # Model testing -----------------------------------------------------------
@@ -211,11 +214,13 @@ daily <-
 # # Test models
 # probabilities_1 <- model_1_test %>% predict(test_data_1_3, type = "response")
 # predicted_classes_1 <- ifelse(probabilities_1 > 0.5, "TRUE", "FALSE")
-# mean(predicted_classes_1 == test_data_1_3$FREH) # Outcome: 0.803
+# mean(predicted_classes_1 == test_data_1_3$FREH)
+# # Outcome: 0.803, or .796 with only to June
 # 
 # probabilities_3 <- model_3_test %>% predict(test_data_1_3, type = "response")
 # predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
-# mean(predicted_classes_3 == test_data_1_3$FREH) # Outcome: 0.846
+# mean(predicted_classes_3 == test_data_1_3$FREH)
+# # Outcome: 0.846, or .839 with only to June
 
 
 # Save output -------------------------------------------------------------

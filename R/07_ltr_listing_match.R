@@ -22,11 +22,8 @@ source("R/01_startup.R")
 # Load previous data ------------------------------------------------------
 
 load("output/str_raw.Rdata")
-
 load("output/matches_raw.Rdata")
-
 load("output/ltr_raw.Rdata")
-
 dl_location <- "/Volumes/Data/Scrape photos/mtl"
 
 
@@ -84,6 +81,10 @@ ltr <-
   summarize(property_ID = list(property_ID)) %>% 
   left_join(ltr, .) %>% 
   select(-geometry, everything(), geometry)
+
+ltr <- 
+  ltr %>% 
+  mutate(property_ID = map(property_ID, ~unique(unlist(.x))))
 
 rm(property_nest, ltr_nest)
 

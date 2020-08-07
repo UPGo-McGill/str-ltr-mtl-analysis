@@ -144,7 +144,8 @@ property_change_table <-
               slice(1) %>% 
               pull(property_ID),
             new_created = min(.x$created),
-            new_scraped = max(.x$scraped)
+            new_scraped = max(.x$scraped),
+            new_ltr_IDs = list(unique(unlist(.x$ltr_ID)))
           ))
 
 daily <-
@@ -157,19 +158,23 @@ daily <-
 property_change_collapsed <-
   property_change_table %>% 
   group_by(new_PID, new_created, new_scraped) %>% 
-  summarize(all_PIDs = list(property_ID))
+  summarize(all_PIDs = list(property_ID),
+            new_ltr_ID = list(unique(unlist(new_ltr_IDs))))
 
 property_to_delete <-
   property_change_table %>% 
   filter(property_ID != new_PID)
 
-property <- 
+property <-
   property %>% 
   left_join(property_change_collapsed, by = c("property_ID" = "new_PID")) %>% 
   filter(!property_ID %in% property_to_delete$property_ID) %>% 
+  # select(property_ID, ltr_ID, new_ltr_ID)
   mutate(created = if_else(!is.na(new_created), new_created, created),
-         scraped = if_else(!is.na(new_scraped), new_scraped, scraped)) %>% 
-  select(-new_created, -new_scraped)
+         scraped = if_else(!is.na(new_scraped), new_scraped, scraped),
+         ltr_ID = map2(ltr_ID, new_ltr_ID, ~{if (is.null(.y)) .x else .y}),
+         ltr_ID = map(ltr_ID, unique)) %>% 
+  select(-new_created, -new_scraped, -new_ltr_ID)
 
 rm(group_matches, property_change_collapsed, property_change_table, 
    property_to_delete)
