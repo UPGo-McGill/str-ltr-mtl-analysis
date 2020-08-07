@@ -1,98 +1,35 @@
 #### Chapter 3 ANALYSIS ####################################################
 
 source("R/01_startup.R")
+load("output/str_processed.Rdata")
+load("output/geometry.Rdata")
 
 
 ### STR-induced housing loss - FREH LISTINGS  ######################################################
+FREH <- 
+daily %>% 
+  filter(date >= "2016-01-01") %>% 
+  group_by(date) %>% 
+  summarize(across(c(FREH, FREH_3), sum)) %>%
+  filter(substr(date, 9, 10) == "01")
 
 FREH %>% 
-  filter(date == LTM_end_date) %>% 
-  nrow()
+  filter(date == "2020-01-01") %>% 
+  pull(FREH_3) %>% 
+  round(digit=-2)
 
-
-# adding newer listings with FREH pattern to the number
-dec2019_freh_properties <- 
-  rbind( 
-    daily_pred %>% 
-      filter(date >= "2019-12-01", date < "2020-01-01",
-             FREH_later == T) %>% 
-      distinct(property_ID),
-    FREH %>% 
-      filter(date == LTM_end_date) %>% 
-      distinct(property_ID)
-  ) %>% 
-  distinct(property_ID)
-
-
-# look at every single listings that weren't considered as FREH, but added with the statistical model
-daily_pred %>% 
-  filter(date >= "2019-12-01", date < "2020-01-01",
-         property_ID %in% dec2019_freh_properties$property_ID,
-         !property_ID %in% filter(FREH, date == LTM_end_date)$property_ID, 
-         FREH_later)
-
-
-# bedrooms breakdown of FREH listings
-property_2019 <-
-  property %>%
-  filter(housing, property_ID %in% 
-           filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date)$property_ID) %>% 
-  filter(created <= LTM_end_date)
-
-property_2019 %>% 
-  st_drop_geometry() %>%  
-  filter(housing == TRUE,
-         listing_type == "Entire home/apt",
-         property_ID %in% dec2019_freh_properties$property_ID) %>% 
-  count(bedrooms) %>% 
-  mutate(percentage = n / sum(n)) %>% 
-  group_by(bedrooms) %>% 
-  summarize(`Percentage of listings` = sum(percentage)) %>% 
-  filter(bedrooms >= 2) %>% 
-  summarize(sum(`Percentage of listings`))
-filter(`Percentage of listings` > 0.01) %>% 
-  gt() %>% 
-  tab_header(
-    title = "LTM active properties, entire home/apt",
-  ) %>%
-  opt_row_striping() %>% 
-  fmt_percent(columns = 2)
-
-
-#2018-2019 YOY growth of FREH
-(rbind( 
-  daily_pred %>% 
-    filter(date >= "2019-12-01", date < "2020-01-01",
-           FREH_later == T) %>% 
-    distinct(property_ID),
+# increase since last year
+(FREH %>% 
+  filter(date == "2020-01-01") %>% 
+  pull(FREH_3) -
   FREH %>% 
-    filter(date == LTM_end_date) %>% 
-    distinct(property_ID)
-) %>% 
-    distinct(property_ID) %>% 
-    nrow() -
-    rbind( 
-      daily_pred %>% 
-        filter(date >= "2018-12-01", date < "2019-01-01",
-               FREH_later == T) %>% 
-        distinct(property_ID),
-      FREH %>% 
-        filter(date == LTM_end_date - years(1)) %>% 
-        distinct(property_ID)
-    ) %>% 
-    distinct(property_ID) %>% 
-    nrow()) /
-  rbind( 
-    daily_pred %>% 
-      filter(date >= "2018-12-01", date < "2019-01-01",
-             FREH_later == T) %>% 
-      distinct(property_ID),
-    FREH %>% 
-      filter(date == LTM_end_date - years(1)) %>% 
-      distinct(property_ID)
-  ) %>% 
-  distinct(property_ID) %>% 
-  nrow()
+  filter(date == "2019-01-01") %>% 
+  pull(FREH_3)
+)/
+  FREH %>% 
+  filter(date == "2019-01-01") %>% 
+  pull(FREH_3)
+
 
 # variation of FREH number per borough
 
@@ -102,84 +39,61 @@ boroughs_FREH_breakdown <- tibble(Borough = character(length = length(boroughs$b
                                   `Variation` = numeric(length = length(boroughs$borough)),
 )
 
+FREH_borough <- 
+  daily %>% 
+  filter(date >= "2016-01-01") %>% 
+  group_by(date, borough) %>% 
+  summarize(across(c(FREH, FREH_3), sum)) %>%
+  filter(substr(date, 9, 10) == "01")
+  
+
 
 for (i in 1:length(boroughs$borough)) { # testing a bigger loop, good one with try(), does work. long, since not doing remotely.
   
   boroughs_FREH_breakdown[i,1] <- boroughs$borough[[i]]
   
-  boroughs_FREH_breakdown[i,2] <- rbind( 
-    daily_pred %>% 
-      filter(date >= "2018-12-01", date < "2019-01-01",
-             FREH_later == T) %>% 
-      distinct(property_ID),
-    FREH %>% 
-      filter(date == LTM_end_date - years (1)) %>% 
-      distinct(property_ID)
-  ) %>% 
-    distinct(property_ID) %>% 
-    inner_join(select(distinct(daily, property_ID, .keep_all = T), property_ID, borough), by = "property_ID") %>% 
-    filter(borough == boroughs$borough[[i]]) %>% 
-    nrow()
+  boroughs_FREH_breakdown[i,2] <- 
+    FREH_borough %>% 
+       filter(date == "2019-01-01", borough == boroughs$borough[[i]]) %>% 
+       pull(FREH_3)
   
-  boroughs_FREH_breakdown[i,3] <- rbind( 
-    daily_pred %>% 
-      filter(date >= "2019-12-01", date < "2020-01-01",
-             FREH_later == T) %>% 
-      distinct(property_ID),
-    FREH %>% 
-      filter(date == LTM_end_date) %>% 
-      distinct(property_ID)
-  ) %>% 
-    distinct(property_ID) %>% 
-    inner_join(select(distinct(daily, property_ID, .keep_all = T), property_ID, borough), by = "property_ID") %>% 
-    filter(borough == boroughs$borough[[i]]) %>% 
-    nrow()
-  
-  boroughs_FREH_breakdown[i,4] <- (rbind( 
-    daily_pred %>% 
-      filter(date >= "2019-12-01", date < "2020-01-01",
-             FREH_later == T) %>% 
-      distinct(property_ID),
-    FREH %>% 
-      filter(date == LTM_end_date) %>% 
-      distinct(property_ID)
-  ) %>% 
-    distinct(property_ID) %>% 
-    inner_join(select(distinct(daily, property_ID, .keep_all = T), property_ID, borough), by = "property_ID") %>% 
-    filter(borough == boroughs$borough[[i]]) %>% 
-    nrow() - rbind( 
-      daily_pred %>% 
-        filter(date >= "2018-12-01", date < "2019-01-01",
-               FREH_later == T) %>% 
-        distinct(property_ID),
-      FREH %>% 
-        filter(date == LTM_end_date - years (1)) %>% 
-        distinct(property_ID)
-    ) %>% 
-    distinct(property_ID) %>% 
-    inner_join(select(distinct(daily, property_ID, .keep_all = T), property_ID, borough), by = "property_ID") %>% 
-    filter(borough == boroughs$borough[[i]]) %>% 
-    nrow()) / rbind( 
-      daily_pred %>% 
-        filter(date >= "2018-12-01", date < "2019-01-01",
-               FREH_later == T) %>% 
-        distinct(property_ID),
-      FREH %>% 
-        filter(date == LTM_end_date - years (1)) %>% 
-        distinct(property_ID)
-    ) %>% 
-    distinct(property_ID) %>% 
-    inner_join(select(distinct(daily, property_ID, .keep_all = T), property_ID, borough), by = "property_ID") %>% 
-    filter(borough == boroughs$borough[[i]]) %>% 
-    nrow() 
+  boroughs_FREH_breakdown[i,3] <- 
+    FREH_borough %>% 
+       filter(date == "2020-01-01", borough == boroughs$borough[[i]]) %>% 
+       pull(FREH_3) 
   
 }
 
+as.data.frame(c("City of Montreal"), FREH %>% 
+                filter(date == "2020-01-01") %>% 
+                pull(FREH_3),
+              FREH %>% 
+                filter(date == "2019-01-01") %>% 
+                pull(FREH_3) )
+
+as.data.frame(Borough = character(c("City of Montreal")), 
+       `2018 FREH` = numeric(FREH %>% 
+                               filter(date == "2020-01-01") %>% 
+                               pull(FREH_3)),
+       `2019 FREH` = numeric(FREH %>% 
+                               filter(date == "2019-01-01") %>% 
+                               pull(FREH_3)),
+       `Variation` = numeric(),
+)
+  
 
 boroughs_FREH_breakdown %>% 
+  add_row(Borough = "City of Montreal", 
+          `2018 FREH` = FREH %>% 
+            filter(date == "2019-01-01") %>% 
+            pull(FREH_3), 
+          `2019 FREH` = FREH %>% 
+            filter(date == "2020-01-01") %>% 
+            pull(FREH_3), `Variation` = 0) %>% 
   filter(`2019 FREH` > 100) %>% 
   arrange(desc(`2019 FREH`)) %>%
-  mutate(`2019 FREH` = round(`2019 FREH`, digit = -1),
+  mutate(Variation = (`2019 FREH` - `2018 FREH`) / `2018 FREH`,
+         `2019 FREH` = round(`2019 FREH`, digit = -1),
          `2018 FREH` = round(`2018 FREH`, digit = -1)) %>%
   gt() %>% 
   tab_header(
@@ -191,29 +105,16 @@ boroughs_FREH_breakdown %>%
   fmt_number(columns = 2:3,
              decimals = 0)
 
+
 ### STR-induced housing loss - GH LISTINGS  ######################################################
 
+# average of active GH_units daily
 GH %>% 
   st_drop_geometry() %>% 
-  filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
+  filter(date >= LTM_start_date, date <= LTM_end_date, status != "B") %>% 
   group_by(date) %>% 
   summarize(GH_units = sum(housing_units)) %>% 
   summarize(round(mean(GH_units), digit=-1))
-
-
-GH %>% 
-  st_drop_geometry() %>% 
-  group_by(date) %>% 
-  summarize(GH_units = sum(housing_units)) %>%
-  filter(date >= "2020-01-01") %>% 
-  View()
-
-ggplot() +
-  geom_line(aes(date, GH_units), colour = "black", size = 1) +
-  theme_minimal() +
-  scale_y_continuous(name = NULL) +
-  ggtitle("Units converted to ghost hostels in Montreal")
-
 
 GH_total <-
   GH %>%
@@ -227,34 +128,61 @@ GH_total <-
 
 housing_loss <-
   FREH %>%
-  group_by(date) %>%
-  summarize(`Entire home/apt` = n()) %>%
+  select(date, FREH_3) %>% 
+  rename(`Entire home/apt` = FREH_3) %>%
   left_join(GH_total, by = "date") %>%
+  select(-GH_units) %>% 
   rename(`Private room` = GH_average) %>%
   gather(`Entire home/apt`, `Private room`, 
          key = `Listing type`, value = `Housing units`) 
 
+# housing loss in end 2019
+sum(filter(housing_loss, date == "2020-01-01")$`Housing units`) %>% 
+  round()
+
 # housing loss variation
 (housing_loss %>% 
-    filter(date == LTM_end_date) %>% 
+    filter(date == "2020-01-01") %>% 
     summarize(sum(`Housing units`)) - 
     housing_loss %>% 
-    filter(date == LTM_end_date - years(1)) %>% 
+    filter(date == "2019-01-01") %>% 
     summarize(sum(`Housing units`))
 ) /
   housing_loss %>% 
-  filter(date == LTM_end_date - years(1)) %>% 
+  filter(date == "2019-01-01") %>% 
   summarize(sum(`Housing units`))
 
 
-# Current housing loss figure
-sum(filter(housing_loss, date == "2019-12-31")$`Housing units`)
+# Housing loss figure for a given year (the next day of the end of the year will give information on the previous year)
+sum(filter(housing_loss, date == "2019-01-01")$`Housing units`) %>% 
+  round(digits = -2)
 
 
-# housing loss of family size units.
+# housing loss of family size units in 2019
+(property %>% 
+  st_drop_geometry() %>% 
+  filter(bedrooms >= 2) %>% 
+  select(property_ID, bedrooms) %>% 
+  inner_join(daily) %>% 
+  filter(date == "2020-01-01") %>% 
+  summarize(sum(FREH_3)) + 
+  GH %>% 
+  st_drop_geometry() %>% 
+  filter(date >= LTM_start_date, date <= LTM_end_date, status != "B") %>% 
+  group_by(date) %>% 
+  summarize(GH_units = sum(housing_units)) %>% 
+  summarize(round(mean(GH_units)))) %>% 
+  round(digit =-2)
+
+#how many 2 bedrooms unit in housing loss
 property %>% 
-  filter(property_ID %in% filter(FREH, date == "2019-12-31")$property_ID,
-         bedrooms == 2)
+  st_drop_geometry() %>% 
+  filter(bedrooms == 2) %>% 
+  select(property_ID, bedrooms) %>% 
+  inner_join(daily) %>% 
+  filter(date == "2020-01-01") %>% 
+  summarize(sum(FREH_3)) %>% 
+  round(digits = -2)
 
 
 ### STRs and Montreal’s housing market indicators - Vacancy rates ######################################################
