@@ -398,6 +398,10 @@ ML_table %>%
   filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
   summarize(mean(Listings), mean(Revenue))
 
+ML_table %>% # look at % of commercial operations revenue in the last month of the analysis
+  filter(date >= max(date) - months(1)) %>% 
+  arrange(desc(Revenue))
+
 # Entire home multilistings
 daily %>% 
   filter(listing_type == "Entire home/apt") %>% 
