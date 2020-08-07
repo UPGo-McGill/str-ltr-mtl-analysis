@@ -162,7 +162,7 @@ daily_variation <-
        mutate(rev_var = as.numeric(NA)) %>% 
        filter(date != "2020-02-29")),
     (daily %>% 
-       filter(status != "B", date >= "2017-01-01") %>% 
+       filter(housing, status != "B", date >= "2017-01-01") %>% 
        count(date) %>% 
        mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n)),
               n_var = as.numeric(NA)) %>% 
