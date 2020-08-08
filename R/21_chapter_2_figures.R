@@ -21,6 +21,7 @@
 #'   `01_startup.R`
 
 source("R/01_startup.R")
+library(slider)
 library(patchwork)
 
 load("output/str_processed.Rdata")
@@ -29,36 +30,61 @@ load("output/geometry.Rdata")
 
 # Figure 2.1 - Active daily listings --------------------------------------
 
-active_listings_type <- 
+active_listings <- 
   daily %>% 
   filter(housing, status != "B") %>% 
   count(date, listing_type) %>% 
   mutate(n = if_else(date <= "2017-05-31" & listing_type == "Entire home/apt",
                      # Adjusted to account for addition of HA on 2017-06-01
-                     n + 800, as.numeric(n)))
+                     n + 800L, n)) %>% 
+  group_by(listing_type) %>% 
+  mutate(n = slider::slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  ungroup()
 
-daily %>% 
+active_listings <- 
+  daily %>% 
   filter(housing, status != "B") %>% 
   count(date) %>% 
   mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n)),
-         n = data.table::frollmean(n, 7)) %>%
-  ggplot() +
-  geom_line(aes(date, n), colour = col_palette[5], size = 1.5) +
-  geom_line(data = active_listings_type, aes(date, n, colour = listing_type),
-            size = 0.75) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .2) +
+         n = data.table::frollmean(n, 7),
+         listing_type = "All listings") %>% 
+  bind_rows(active_listings) %>% 
+  arrange(date, listing_type)
+
+figure_2_1 <- 
+  active_listings %>% 
+  ggplot(aes(date, n , colour = listing_type, size = listing_type)) +
+  geom_line() +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+           ymin = 0, ymax = Inf, alpha = .2) +
+  annotate("curve", x = as.Date("2019-08-01"), xend = as.Date("2020-05-01"),
+           y = 12000, yend = 10500, curvature = -.2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2019-05-01"), y = 11700,
+           label = "STRs banned \nby Province", family = "Futura Condensed") +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
-  scale_colour_manual(name = "", values = col_palette[1:4]) +
+  scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
+                      guide = guide_legend(
+                        override.aes = list(size = c(1.5, 0.75, 0.75, 0.75)))
+                      ) +
+  scale_size_manual(values = c("All listings" = 1.5, "Entire home/apt" = 0.75,
+                               "Private room" = 0.75, "Shared room" = 0.75),
+                    guide = "none") +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        panel.grid.major.x = element_blank()
-        #        text = element_text(family = "Futura"),
-  )
+        # panel.grid.major.x = element_blank(),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figures/figure_2_1.pdf", plot = figure_2_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_1.pdf")
 
 
-### FIGURE 2.2 - Active listings density by dissemination areas and borough #####################################################
+
+### FIGURE 2.2 - Active listings density by dissemination areas and borough ####
 
 active_borough <- daily %>%
   filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
@@ -80,7 +106,9 @@ active_borough <- daily %>%
                        oob = scales::squish,
                        labels = scales::percent
   )  +
-  guides(fill = guide_colorbar(title = "Percentage of daily active listings\n(average) out of total dwellings")) +
+  guides(fill = 
+           guide_colorbar(
+             title = "Percentage of daily active listings\n(average) out of total dwellings")) +
   theme_void() +
   theme(legend.position = "right",
         # text = element_text(family = "Futura", face = "plain"),
@@ -112,7 +140,9 @@ active_DA <-
                        oob = scales::squish,
                        labels = scales::percent
   ) +
-  guides(fill = guide_colorbar(title = "Percentage of daily active listings\n(average) out of total dwellings")) +
+  guides(fill = 
+           guide_colorbar(
+             title = "Percentage of daily active listings\n(average) out of total dwellings")) +
   theme_void() +
   theme(legend.position = "right",
         # text = element_text(family = "Futura", face = "plain"),
@@ -126,10 +156,13 @@ active_DA <-
   #  ylim = sf::st_bbox(city)[c(2,4)],
   #  expand = FALSE)
 
-active_DA + active_borough + plot_layout(ncol=1) + plot_layout(guides = 'collect') & theme(legend.position="right")
+active_DA + 
+  active_borough + 
+  plot_layout(ncol = 1) + 
+  plot_layout(guides = 'collect') & theme(legend.position = "right")
 
 
-### FIGURE 2.3 - Estimated percentage of listings located in condos #####################################################
+### FIGURE 2.3 - Estimated percentage of listings located in condos ############
 
 load("output/raffle_condo.Rdata")
 
@@ -145,7 +178,7 @@ tenure_probabilities_sf_2019 %>%
         #text = element_text(family = "Futura"),
   )
 
-### FIGURE 2.4 - Relationship between the percentage of condos and STR concentration by borough #####################################################
+### FIGURE 2.4 - Relationship between the percentage of condos and STR concentration by borough ####
 
 tenure_probabilities_sf_2019 %>%
   left_join(., DAs_raffle_p_condo, by="GeoUID") %>% 
@@ -173,7 +206,7 @@ tenure_probabilities_sf_2019 %>%
         panel.grid.minor.y = element_blank())
 
 
-### FIGURE 2.5 - Year-over-year rate of growth of active daily listings #####################################################
+### FIGURE 2.5 - Year-over-year rate of growth of active daily listings ########
 daily_variation <- 
   left_join(
     (daily %>% 
