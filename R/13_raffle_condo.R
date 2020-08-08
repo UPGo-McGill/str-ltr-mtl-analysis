@@ -4,7 +4,7 @@
 #' changes.
 #' 
 #' Output:
-#' - `condo_analysis.Rdata`
+#' - `raffle_condo.Rdata`
 #' 
 #' Script dependencies:
 #' - `09_str_processing.R`
@@ -50,34 +50,45 @@ active_properties_2017 <-
   filter(date >= "2017-01-01", date <= "2017-12-31",
          status %in% c("A", "R")) %>% 
   pull(property_ID) %>% 
-  unique() %>% 
-  {filter(property, property_ID %in% .)}
+  unique()
 
 active_properties_2018 <- 
   daily %>% 
   filter(date >= "2018-01-01", date <= "2018-12-31",
          status %in% c("A", "R")) %>% 
   pull(property_ID) %>% 
-  unique() %>% 
-  {filter(property, property_ID %in% .)}
+  unique()
 
 active_properties_2019 <- 
   daily %>% 
   filter(date >= LTM_start_date, date <= LTM_end_date,
          status %in% c("A", "R")) %>% 
   pull(property_ID) %>% 
-  unique() %>% 
-  {filter(property, property_ID %in% .)}
+  unique()
 
 
 # Do new raffle with diagnostic == TRUE -----------------------------------
 
 raffle_condo <-
   property %>% 
-  filter(property_ID %in% c(active_properties_2017$property_ID,
-                            active_properties_2018$property_ID,
-                            active_properties_2019$property_ID)) %>% 
+  filter(property_ID %in% c(active_properties_2017, active_properties_2018, 
+                            active_properties_2019)) %>% 
   strr_raffle(DAs_raffle, GeoUID, dwellings, seed = 1, diagnostic = TRUE) 
+
+
+# Split results by year ---------------------------------------------------
+
+raffle_condo_2017 <- 
+  raffle_condo %>% 
+  filter(property_ID %in% active_properties_2017)
+
+raffle_condo_2018 <- 
+  raffle_condo %>% 
+  filter(property_ID %in% active_properties_2017)
+
+raffle_condo_2019 <- 
+  raffle_condo %>% 
+  filter(property_ID %in% active_properties_2017)
 
 
 ### Add geometries and census variables to the raffle ################################################ 
@@ -107,7 +118,8 @@ tenure_probabilities_2019 <- unnested_trial_tenure_2019 %>%
 tenure_probabilities_sf_2019 <- 
   left_join(tenure_probabilities_2019, trial_tenure_2019, by="property_ID") %>% 
   left_join(., DAs_raffle, by = "GeoUID") %>% 
-  select(property_ID, GeoUID, dwellings.x, prob_condo, prob_renter, prob_owner, geometry) %>% #number_condo, number_renter, number_owner,
+  select(property_ID, GeoUID, dwellings.x, prob_condo, prob_renter, prob_owner, 
+         geometry) %>% #number_condo, number_renter, number_owner,
   rename(dwellings=dwellings.x) %>% 
   st_as_sf()
 
