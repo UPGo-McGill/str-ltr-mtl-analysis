@@ -16,9 +16,26 @@
 
 source("R/01_startup.R")
 
+
+# Load previous data ------------------------------------------------------
+
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/national_comparison.Rdata")
+load("output/raffle_condo.Rdata")
+
+
+# Prepare new objects -----------------------------------------------------
+
+# 2019 revenue
+revenue_2019 <-
+  daily %>%
+  filter(housing,
+         date <= LTM_end_date, date >= LTM_start_date,
+         status == "R") %>%
+  group_by(property_ID) %>%
+  summarize(revenue_LTM = sum(price)) %>% 
+  inner_join(property, .)
 
 
 # Active daily listings ---------------------------------------------------
@@ -39,16 +56,6 @@ load("output/national_comparison.Rdata")
 #'  
 #'  Active daily listings peaked in August 2018 [9] at 11,8100 [9], and have 
 #'  since declined. 
-
-# 2019 revenue
-revenue_2019 <-
-  daily %>%
-  filter(housing,
-         date <= LTM_end_date, date >= LTM_start_date,
-         status == "R") %>%
-  group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price)) %>% 
-  inner_join(property, .)
 
 #' [1] Average active and blocked daily listings in 2019
 daily %>% 
@@ -155,7 +162,7 @@ national_comparison %>%
          revenue_per_listing = prettyNum(round(revenue_per_listing, -2), ","))
 
 
-### Location of STR listings and revenues in Montreal ######################################################
+# Location of STR listings and revenue ------------------------------------
 
 # By borough
 boroughs_breakdown <- tibble(Borough = character(length = length(boroughs$borough)), 
@@ -228,7 +235,9 @@ boroughs_breakdown %>%
              decimals = 0)
 
 
-### STR listing types and sizes in Montreal ######################################################
+# STR listing types and sizes ---------------------------------------------
+
+
 
 unique_listing_type <- unique(daily$listing_type)[1:3]
 
@@ -323,13 +332,37 @@ property %>%
   group_by(bedrooms) %>% 
   summarize(perc_bedrooms = sum(percentage)) 
 
+
+
+
+
+
 ### STR in condos in Montreal ######################################################
+
+active_condos_2017 <- 
+  daily %>% 
+  filter(date >= "2017-01-01", date <= "2017-12-31", status != "B") %>% 
+  left_join(listing_probabilities_2019) %>% 
+  group_by(date, borough) %>% 
+  summarize(n_condo = sum(p_condo, na.rm = TRUE)) %>% 
+  group_by(borough) %>% 
+  summarize(n_condo_2017 = mean(n_condo))
+
+active_condos_2019 <- 
+  daily %>% 
+  filter(date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  left_join(listing_probabilities_2019) %>% 
+  group_by(date, borough) %>% 
+  summarize(n_condo = sum(p_condo, na.rm = TRUE)) %>% 
+  group_by(borough) %>% 
+  summarize(n_condo_2019 = mean(n_condo))
+
+inner_join(active_condos_2017, active_condos_2019)
 
 condo_breakdown <- tibble(Borough = character(length = length(boroughs$borough)), 
                           `Number of STRs in condos` = numeric(length = length(boroughs$borough)),
-                          `Percent of STRs in condos, 2019` = numeric(length = length(boroughs$borough)),
-                          `Percent of STRs in condos, 2018` = numeric(length = length(boroughs$borough)),
-                          `Percent of STRs in condos, 2017` = numeric(length = length(boroughs$borough))
+                          `% of STRs in condos, 2019` = numeric(length = length(boroughs$borough)),
+                          `% of STRs in condos, 2017` = numeric(length = length(boroughs$borough))
 )
 
 for (i in 1:length(boroughs$borough)) { 
