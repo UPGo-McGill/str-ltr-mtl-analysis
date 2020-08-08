@@ -28,12 +28,14 @@ load("output/national_comparison.Rdata")
 #'  $222.7 million [3] in 2019—an average of $24,700 [4] per daily active 
 #'  listing or $41,800 [5] per active host. There was also a daily average of 
 #'  12,460 [1] listings which were visible on the Airbnb and VRBO websites but 
-#'  were blocked by the host from receiving reservations. When these blocked but 
-#'  inactive listings are included, the average listing earned [6] $9,400 last 
-#'  year, and the average host earned $16,800 [7]. Finally, there was a daily 
-#'  average of 240 [8] listings that were not located in private housing units 
-#'  (B&Bs, hotels, etc.), which have been excluded from the analysis in this 
-#'  report. 
+#'  were blocked by the host from receiving reservations. The presence of these 
+#'  listings can erroneously suggest that a city’s STR market is larger than it 
+#'  is; in the case of Montreal, blocked listings outnumber listings which are 
+#'  actually active. When these blocked but inactive listings are included, the 
+#'  average listing earned [6] $9,400 last year, and the average host earned 
+#'  $16,800 [7]. Finally, there was a daily average of 240 [8] listings that 
+#'  were not located in private housing units #'  (B&Bs, hotels, etc.), which 
+#'  have been excluded from the analysis in this report. 
 #'  
 #'  Active daily listings peaked in August 2018 [9] at 11,8100 [9], and have 
 #'  since declined. 
@@ -50,8 +52,7 @@ revenue_2019 <-
 
 #' [1] Average active and blocked daily listings in 2019
 daily %>% 
-  filter(housing, date >= LTM_start_date, 
-         date <= LTM_end_date) %>% 
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date) %>% 
   count(date, B = status == "B") %>% 
   group_by(B) %>% 
   summarize(round(mean(n), digit = -1))
@@ -118,19 +119,40 @@ daily %>%
 # Montreal in comparison with other major Canadian cities -----------------
 
 #' In 2019, Montreal had the second largest STR market in the country by both 
-#' active listing numbers (9,000 [1]) and host revenue ($222.7 million [2]), 
+#' active listing numbers (9,100 [1]) and host revenue ($222.7 million [2]), 
 #' falling in both cases behind Toronto (Table 2.1). However, in relative terms 
 #' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
 #' had the most active listings per 1000 households (13.4 [3] compared to 
-#' 10.7 [4] in Montreal) and the most revenue per listing ($38,500 [5] compared 
-#' to $24,700 [6] in Montreal).
+#' 10.7 [3] in Montreal) and the most revenue per listing ($38,500 [4] compared 
+#' to $24,700 [4] in Montreal).
 
-national_comparison
+#' [1] Daily active listings
+daily %>% 
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date) %>% 
+  count(date, B = status == "B") %>% 
+  group_by(B) %>% 
+  summarize(round(mean(n), digit = -1))
 
+#' [2] Annual host revenue
+prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
 
+#' [3] Vancouver and Montreal listings per 1000 households
+national_comparison %>% 
+  filter(city %in% c("Montreal", "Vancouver")) %>% 
+  select(city, listings_per_1000)
 
+#' [4] Vancouver and Montreal revenue per listing
+national_comparison %>% 
+  filter(city %in% c("Montreal", "Vancouver")) %>% 
+  select(city, revenue_per_listing)
 
-
+#' Table 2.1
+national_comparison %>% 
+  mutate(active_daily_listings = prettyNum(round(active_daily_listings, -1), 
+                                           ","),
+         listings_per_1000 = round(listings_per_1000, 1),
+         revenue = prettyNum(round(revenue, -5), ","),
+         revenue_per_listing = prettyNum(round(revenue_per_listing, -2), ","))
 
 
 ### Location of STR listings and revenues in Montreal ######################################################

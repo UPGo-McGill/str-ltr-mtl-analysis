@@ -59,9 +59,9 @@ national_comparison <-
   filter(status != "B", housing) %>% 
   group_by(city) %>% 
   summarize(active_daily_listings = n() / 365, .groups = "drop") %>% 
-  left_join(select(st_drop_geometry(CSD), name, Households), 
+  left_join(select(st_drop_geometry(CSD), name, Dwellings), 
             by = c("city" = "name")) %>% 
-  mutate(listings_per_1000 = 1000 * active_daily_listings / Households) %>% 
+  mutate(listings_per_1000 = 1000 * active_daily_listings / Dwellings) %>% 
   select(-Households)
 
 exchange_rates <- convert_currency(start_date = "2019-01-01", 
