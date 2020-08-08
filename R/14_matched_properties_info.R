@@ -38,14 +38,15 @@ locations_roll_number <-
   select(-id) %>% 
   distinct() %>% 
   filter(!is.na(location) | !is.na(roll_number)) %>% 
-  rename(property_ID = ab_id)
+  rename(property_ID = ab_id) %>% 
+  group_by(property_ID) %>% 
+  summarize(roll_number = list(roll_number),
+            location = list(location))
 
 
 listings_info <- 
 left_join(listings_info, locations_roll_number)
 
-listings_info %>% 
-  View()
 
 # Adding a FREH column -----------------------------------------------------------------
 # If listing has been FREH once in its lifetime
