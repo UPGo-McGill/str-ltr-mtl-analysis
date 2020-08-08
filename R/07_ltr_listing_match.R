@@ -80,10 +80,7 @@ ltr <-
   group_by(id) %>% 
   summarize(property_ID = list(property_ID)) %>% 
   left_join(ltr, .) %>% 
-  select(-geometry, everything(), geometry)
-
-ltr <- 
-  ltr %>% 
+  select(-geometry, everything(), geometry) %>% 
   mutate(property_ID = map(property_ID, ~unique(unlist(.x))))
 
 rm(property_nest, ltr_nest)

@@ -163,7 +163,7 @@ rm(kj_with_geom, kj_without_geom)
 cl <-
   cl %>% 
   select(id, created:furnished, title, text, photos) %>% 
-  separate(location, c("lon", "lat"), sep = ";") %>% 
+  separate(location, c("lat", "lon"), sep = ";") %>% 
   mutate(city = "Montreal",
          bedrooms = as.numeric(bedrooms),
          bathrooms = as.numeric(bathrooms),
