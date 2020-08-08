@@ -25,12 +25,12 @@ DAs_raffle <-
                 "v_CA16_4837", "v_CA16_4838"),
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
-  select(GeoUID, CSD_UID, Population, Dwellings, 
-         "v_CA16_4840: Total - Occupied private dwellings by condominium status - 25% sample data",
-         "v_CA16_4841: Condominium", "v_CA16_4842: Not condominium", 
-         "v_CA16_4836: Total - Private households by tenure - 25% sample data", 
-         "v_CA16_4837: Owner", 
-         "v_CA16_4838: Renter") %>% 
+  select(
+    GeoUID, CSD_UID, Population, Dwellings, 
+    "v_CA16_4840: Total - Occupied private dwellings by condominium status - 25% sample data",
+    "v_CA16_4841: Condominium", "v_CA16_4842: Not condominium", 
+    "v_CA16_4836: Total - Private households by tenure - 25% sample data", 
+    "v_CA16_4837: Owner", "v_CA16_4838: Renter") %>% 
   set_names(c("GeoUID", "CMA_UID", "population", "dwellings", "parent_condo", 
               "condo", "not_condo", "parent_tenure", "owner", "renter", 
               "geometry")) %>% 
@@ -43,24 +43,41 @@ DAs_raffle <-
   st_as_sf(agr = "constant")
 
 
-# Get properties that were only active in 2019 ----------------------------
+# Get properties that were only active in 2017, 2018 and 2019 -------------
+
+active_properties_2017 <- 
+  daily %>% 
+  filter(date >= "2017-01-01", date <= "2017-12-31",
+         status %in% c("A", "R")) %>% 
+  pull(property_ID) %>% 
+  unique() %>% 
+  {filter(property, property_ID %in% .)}
+
+active_properties_2018 <- 
+  daily %>% 
+  filter(date >= "2018-01-01", date <= "2018-12-31",
+         status %in% c("A", "R")) %>% 
+  pull(property_ID) %>% 
+  unique() %>% 
+  {filter(property, property_ID %in% .)}
 
 active_properties_2019 <- 
   daily %>% 
-  filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
-  filter(status == "A" | status == "R") %>% 
-  group_by(property_ID) %>% 
-  count()
-
-active_properties_2019 <- property %>%
-  filter(property_ID %in% active_properties_2019$property_ID)
+  filter(date >= LTM_start_date, date <= LTM_end_date,
+         status %in% c("A", "R")) %>% 
+  pull(property_ID) %>% 
+  unique() %>% 
+  {filter(property, property_ID %in% .)}
 
 
-### Conduct the raffle ################################################ 
+# Do new raffle with diagnostic == TRUE -----------------------------------
 
-raffle_2019 <- 
-  active_properties_2019 %>% 
-  strr_raffle(DAs_raffle, GeoUID, dwellings, seed=1, diagnostic = TRUE) 
+raffle_condo <-
+  property %>% 
+  filter(property_ID %in% c(active_properties_2017$property_ID,
+                            active_properties_2018$property_ID,
+                            active_properties_2019$property_ID)) %>% 
+  strr_raffle(DAs_raffle, GeoUID, dwellings, seed = 1, diagnostic = TRUE) 
 
 
 ### Add geometries and census variables to the raffle ################################################ 
