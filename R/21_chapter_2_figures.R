@@ -166,12 +166,11 @@ active_DA +
 
 load("output/raffle_condo.Rdata")
 
-tenure_probabilities_sf_2019 %>% 
-  group_by(GeoUID) %>% 
-  summarize(`Percentage of condo STRs`=sum(prob_condo)/n()) %>% 
+DA_probabilities_2019 %>% 
   ggplot()+
-  geom_sf(aes(fill=`Percentage of condo STRs`), colour=NA)+
-  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
+  geom_sf(aes(fill=p_condo), colour=NA)+
+  scale_fill_gradientn(name="Percentage of condo STRs",
+                       colors = col_palette[c(3, 4, 1)],
                        labels = scales::percent)+ #limits = c(0,1000)
   theme_void()+
   theme(legend.position = "bottom",
