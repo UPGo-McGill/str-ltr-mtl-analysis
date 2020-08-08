@@ -13,12 +13,21 @@
 #' - `montreal_boroughs_2019.shp`: Shapefile of Montreal borough boundaries
 
 source("R/01_startup.R")
+library(cancensus)
+
+
+# Quebec province ---------------------------------------------------------
+
+province <- 
+  get_census("CA16", regions = list(PR = "24"), geo_format = "sf") %>% 
+  st_transform(32618) %>% 
+  select(geometry)
 
 
 # Montreal DAs ------------------------------------------------------------
 
 DA <-
-  cancensus::get_census(
+  get_census(
     dataset = "CA16", regions = list(CSD = "2466023"), level = "DA",
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
@@ -33,7 +42,9 @@ boroughs <-
   read_sf("data/shapefiles/montreal_boroughs_2019.shp") %>% 
   filter(TYPE == "Arrondissement") %>% 
   select(borough = NOM) %>% 
-  st_transform(32618)
+  st_set_agr("constant") %>% 
+  st_transform(32618) %>% 
+  st_intersection(province)
 
 boroughs <- 
   DA %>% 
@@ -54,10 +65,10 @@ city <-
   st_combine() %>% 
   st_union() %>% 
   st_cast("POLYGON") %>% 
-  st_union() %>% 
+  st_union() %>% plot()
   smoothr::fill_holes(400)
 
 
 # Save output -------------------------------------------------------------
 
-save(DA, boroughs, city, file = "output/geometry.Rdata")
+save(province, DA, boroughs, city, file = "output/geometry.Rdata")
