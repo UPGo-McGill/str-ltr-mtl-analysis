@@ -21,25 +21,22 @@ load("output/str_processed.Rdata")
 DAs_raffle <-
   cancensus::get_census(
     dataset = "CA16", regions = list(CSD = c("2466023")), level = "DA",
-    vectors = c("v_CA16_4840", "v_CA16_4841", "v_CA16_4842", "v_CA16_4836", 
-                "v_CA16_4837", "v_CA16_4838"),
+    vectors = c("v_CA16_4840", "v_CA16_4841", "v_CA16_4836", "v_CA16_4837", 
+                "v_CA16_4838"),
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
   select(
-    GeoUID, CSD_UID, Population, Dwellings, 
+    GeoUID, Dwellings, 
     "v_CA16_4840: Total - Occupied private dwellings by condominium status - 25% sample data",
-    "v_CA16_4841: Condominium", "v_CA16_4842: Not condominium", 
+    "v_CA16_4841: Condominium",
     "v_CA16_4836: Total - Private households by tenure - 25% sample data", 
     "v_CA16_4837: Owner", "v_CA16_4838: Renter") %>% 
-  set_names(c("GeoUID", "CMA_UID", "population", "dwellings", "parent_condo", 
-              "condo", "not_condo", "parent_tenure", "owner", "renter", 
-              "geometry")) %>% 
+  set_names(c("GeoUID", "dwellings", "parent_condo", "condo", "parent_tenure", 
+              "owner", "renter", "geometry")) %>% 
   mutate(p_condo = condo / parent_condo,
-         p_not_condo = not_condo / parent_condo,
-         p_not_condo = if_else(p_not_condo > 1, 1, p_not_condo),
          p_owner = owner / parent_tenure,
          p_renter = renter / parent_tenure) %>% 
-  select(GeoUID, dwellings, CMA_UID, p_condo:p_renter) %>% 
+  select(GeoUID, dwellings, p_condo:p_renter) %>% 
   as_tibble() %>% 
   st_as_sf(agr = "constant")
 
@@ -95,40 +92,52 @@ rm(raffle_condo, active_properties_2017, active_properties_2018,
    active_properties_2019)
 
 
-# Add geometries and census variables to the raffle -----------------------
+# Probability helper functions --------------------------------------------
 
-tenure_probabilities_2019 <-
-  raffle_condo_2019 %>% 
-  st_drop_geometry() %>%
-  unnest(candidates) %>% 
-  left_join(st_drop_geometry(DAs_raffle), by = c("poly_ID" = "GeoUID")) %>% 
-  group_by(property_ID) %>% 
-  summarize(across(c(p_condo, p_renter, p_owner), 
-                   ~sum(.x * probability / sum(probability))))
+calculate_listing_prob <- function(df) {
+  df %>% 
+    st_drop_geometry() %>%
+    unnest(candidates) %>% 
+    left_join(st_drop_geometry(DAs_raffle), by = c("poly_ID" = "GeoUID")) %>% 
+    group_by(property_ID) %>% 
+    summarize(across(c(p_condo, p_renter, p_owner), 
+                     ~sum(.x * probability / sum(probability)))) 
+}
+
+calculate_DA_prob <- function(df) {
+  df %>% 
+    st_drop_geometry() %>%
+    select(property_ID, candidates) %>% 
+    unnest(candidates) %>% 
+    left_join(st_drop_geometry(DAs_raffle), by = c("poly_ID" = "GeoUID")) %>%
+    group_by(property_ID) %>% 
+    mutate(across(c(p_condo, p_renter, p_owner), 
+                  ~{.x * probability / sum(probability)})) %>% 
+    group_by(GeoUID = poly_ID) %>% 
+    summarize(across(c(p_condo, p_renter, p_owner), sum, na.rm = TRUE)) %>% 
+    rename(n_condo = p_condo, n_renter = p_renter, n_owner = p_owner) %>% 
+    mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, .x))) %>% 
+    left_join(DAs_raffle) %>% 
+    st_as_sf()
+  
+}
 
 
-### Add final sf to the raffle ################################################ 
+# Calculate probabilities -------------------------------------------------
 
-tenure_probabilities_sf_2019 <- 
-  tenure_probabilities_2019 %>% 
-  left_join(trial_tenure_2019, by = "property_ID") %>% 
-  left_join(DAs_raffle, by = "GeoUID") %>% 
-  select(property_ID, GeoUID, dwellings = dwellings.x, prob_condo, prob_renter, 
-         prob_owner, geometry) %>% #number_condo, number_renter, number_owner,
-  st_as_sf()
+listing_probabilities_2017 <- calculate_listing_prob(raffle_condo_2017)
+DA_probabilities_2017 <- calculate_DA_prob(raffle_condo_2017)
 
+listing_probabilities_2018 <- calculate_listing_prob(raffle_condo_2018)
+DA_probabilities_2018 <- calculate_DA_prob(raffle_condo_2018)
 
-### Initial proportions for graph ##############################################
-
-DAs_raffle_p_condo <- 
-  DAs_raffle %>% 
-  select(GeoUID, p_condo) %>% 
-  st_drop_geometry()
+listing_probabilities_2019 <- calculate_listing_prob(raffle_condo_2019)
+DA_probabilities_2019 <- calculate_DA_prob(raffle_condo_2019)
 
 
 # Save output -------------------------------------------------------------
 
-save(tenure_probabilities_sf_2019, DAs_raffle_p_condo, 
+save(listing_probabilities_2017, DA_probabilities_2017, 
+     listing_probabilities_2018, DA_probabilities_2018, 
+     listing_probabilities_2019, DA_probabilities_2019, 
      file = "output/raffle_condo.Rdata")
-
-
