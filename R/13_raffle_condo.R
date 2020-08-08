@@ -84,11 +84,11 @@ raffle_condo_2017 <-
 
 raffle_condo_2018 <- 
   raffle_condo %>% 
-  filter(property_ID %in% active_properties_2017)
+  filter(property_ID %in% active_properties_2018)
 
 raffle_condo_2019 <- 
   raffle_condo %>% 
-  filter(property_ID %in% active_properties_2017)
+  filter(property_ID %in% active_properties_2019)
 
 
 ### Add geometries and census variables to the raffle ################################################ 
