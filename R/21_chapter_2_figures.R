@@ -179,14 +179,14 @@ DA_probabilities_2019 %>%
 
 ### FIGURE 2.4 - Relationship between the percentage of condos and STR concentration by borough ####
 
-tenure_probabilities_sf_2019 %>%
-  left_join(., DAs_raffle_p_condo, by="GeoUID") %>% 
-  st_join(., boroughs) %>%
-  st_drop_geometry() %>% 
+listing_probabilities_2019 %>%
+  left_join(., property, by="property_ID") %>%         #join to property_ID to get the borough
+  left_join(., DA, by="GeoUID") %>%                    #join to DA to get the dwellings
+  #st_drop_geometry() %>% 
   group_by(GeoUID, borough) %>% 
   summarize(`Percentage of STRs by dwellings`= n()/(sum(dwellings)/n()),
-            `Percentage of DA that is condos` = sum(p_condo)/n(),
-            `Percentage of condo in STRs`=sum(prob_condo)/n()) %>% 
+            `Percentage of DA that is condos` = sum(p_condo)/n()
+            ) %>%
   filter(`Percentage of STRs by dwellings` <0.5) %>% 
   ggplot(aes(x=`Percentage of DA that is condos`, 
              y=`Percentage of STRs by dwellings`, 
@@ -200,7 +200,7 @@ tenure_probabilities_sf_2019 %>%
   scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
   theme_minimal()+
   theme(aspect.ratio=1,
-        legend.position = "right",
+        legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank())
 
