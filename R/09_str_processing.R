@@ -70,4 +70,4 @@ rm(daily_GH, pb, status_fun, status)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, GH, file = "output/str_processed.Rdata")
+save(property, daily, GH, file = "output/str_processed.Rdata")

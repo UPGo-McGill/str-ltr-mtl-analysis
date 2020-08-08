@@ -43,6 +43,6 @@ col_palette <-
 #   mutate(FamilyName = if_else(str_detect(FontName, "Condensed") == TRUE,
 #                               "Futura Condensed", FamilyName)) %>% 
 #   write_csv(system.file("fontmap", "fonttable.csv", package = "extrafontdb"))
-
-extrafont::loadfonts()
+# 
+# extrafont::loadfonts()
 
