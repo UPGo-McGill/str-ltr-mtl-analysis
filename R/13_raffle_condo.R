@@ -41,18 +41,11 @@ DAs_raffle <-
   st_as_sf(agr = "constant")
 
 
-# Get properties that were only active in 2017, 2018 and 2019 -------------
+# Get properties that were only active in 2017 and 2019 -------------------
 
 active_properties_2017 <- 
   daily %>% 
   filter(date >= "2017-01-01", date <= "2017-12-31",
-         status %in% c("A", "R")) %>% 
-  pull(property_ID) %>% 
-  unique()
-
-active_properties_2018 <- 
-  daily %>% 
-  filter(date >= "2018-01-01", date <= "2018-12-31",
          status %in% c("A", "R")) %>% 
   pull(property_ID) %>% 
   unique()
@@ -69,8 +62,7 @@ active_properties_2019 <-
 
 raffle_condo <-
   property %>% 
-  filter(property_ID %in% c(active_properties_2017, active_properties_2018, 
-                            active_properties_2019)) %>% 
+  filter(property_ID %in% c(active_properties_2017, active_properties_2019)) %>% 
   strr_raffle(DAs_raffle, GeoUID, dwellings, seed = 1, diagnostic = TRUE) 
 
 
@@ -80,16 +72,11 @@ raffle_condo_2017 <-
   raffle_condo %>% 
   filter(property_ID %in% active_properties_2017)
 
-raffle_condo_2018 <- 
-  raffle_condo %>% 
-  filter(property_ID %in% active_properties_2018)
-
 raffle_condo_2019 <- 
   raffle_condo %>% 
   filter(property_ID %in% active_properties_2019)
 
-rm(raffle_condo, active_properties_2017, active_properties_2018,
-   active_properties_2019)
+rm(raffle_condo, active_properties_2017, active_properties_2019)
 
 
 # Probability helper functions --------------------------------------------
@@ -128,9 +115,6 @@ calculate_DA_prob <- function(df) {
 listing_probabilities_2017 <- calculate_listing_prob(raffle_condo_2017)
 DA_probabilities_2017 <- calculate_DA_prob(raffle_condo_2017)
 
-listing_probabilities_2018 <- calculate_listing_prob(raffle_condo_2018)
-DA_probabilities_2018 <- calculate_DA_prob(raffle_condo_2018)
-
 listing_probabilities_2019 <- calculate_listing_prob(raffle_condo_2019)
 DA_probabilities_2019 <- calculate_DA_prob(raffle_condo_2019)
 
@@ -138,6 +122,5 @@ DA_probabilities_2019 <- calculate_DA_prob(raffle_condo_2019)
 # Save output -------------------------------------------------------------
 
 save(listing_probabilities_2017, DA_probabilities_2017, 
-     listing_probabilities_2018, DA_probabilities_2018, 
      listing_probabilities_2019, DA_probabilities_2019, 
      file = "output/raffle_condo.Rdata")

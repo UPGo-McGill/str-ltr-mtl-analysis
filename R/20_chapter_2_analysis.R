@@ -21,8 +21,6 @@ source("R/01_startup.R")
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
-load("output/national_comparison.Rdata")
-load("output/raffle_condo.Rdata")
 
 
 # Prepare new objects -----------------------------------------------------
@@ -125,6 +123,8 @@ daily %>%
 
 # Montreal in comparison with other major Canadian cities -----------------
 
+load("output/national_comparison.Rdata")
+
 #' In 2019, Montreal had the second largest STR market in the country by both 
 #' active listing numbers (9,100 [1]) and host revenue ($222.7 million [2]), 
 #' falling in both cases behind Toronto (Table 2.1). However, in relative terms 
@@ -164,66 +164,38 @@ national_comparison %>%
 
 # Location of STR listings and revenue ------------------------------------
 
-# By borough
-boroughs_breakdown <- tibble(Borough = character(length = length(boroughs$borough)), 
-                             `Daily active listings (average)` = numeric(length = length(boroughs$borough)),
-                             `Annual revenue (CAD)` = numeric(length = length(boroughs$borough)),
-                             `% of all listings` = numeric(length = length(boroughs$borough)),
-                             `% of annual revenue` = numeric(length = length(boroughs$borough)),
-                             `Active listings as % of dwellings` = numeric(length = length(boroughs$borough))
-)
-
-
-for (i in 1:length(boroughs$borough)) {
-  
-  boroughs_breakdown[i,1] <- boroughs$borough[[i]]
-  
-  boroughs_breakdown[i,2] <- daily %>%
-    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
-           borough == boroughs$borough[[i]]) %>%
-    count(date) %>% 
-    summarize(mean(n))
-  
-  boroughs_breakdown[i,3] <- daily %>%
-    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
-           borough == boroughs$borough[[i]]) %>%
-    summarize(sum(price ))
-  
-  boroughs_breakdown[i,4] <- daily %>%
-    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
-           borough == boroughs$borough[[i]]) %>%
-    nrow() /
-    daily %>%
-    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
-    nrow()
-  
-  boroughs_breakdown[i,5] <- daily %>%
-    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
-           borough == boroughs$borough[[i]]) %>%
-    summarize(sum(price)) /
-    daily %>%
-    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date) %>%
-    summarize(sum(price))
-  
-  boroughs_breakdown[i,6] <- daily %>%
-    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
-           borough == boroughs$borough[[i]]) %>%
-    group_by(borough) %>% 
-    count(date) %>%
-    summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
-    left_join(select(st_drop_geometry(boroughs), borough, dwellings), by = "borough") %>%
-    mutate(percentage = `Daily active listings (average)` / dwellings) %>% 
-    summarize(percentage)
-  
-}
+boroughs_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>% 
+  group_by(date, borough) %>% 
+  summarize(n = n(),
+            revenue = sum(price[status == "R"])) %>% 
+  left_join(st_drop_geometry(boroughs)) %>% 
+  group_by(borough, dwellings) %>% 
+  summarize(active_listings = mean(n),
+            annual_rev = sum(revenue), 
+            .groups = "drop") %>% 
+  mutate(listings_pct = active_listings / sum(active_listings),
+         rev_pct = annual_rev / sum(annual_rev),
+         listings_pct_dwellings = active_listings / dwellings) %>% 
+  select(-dwellings) %>% 
+  set_names(c("Borough",
+              "Daily active listings (average)",
+              "Annual revenue (CAD)",
+              "% of all listings",
+              "% of annual revenue",
+              "Active listings as % of dwellings"))
 
 boroughs_breakdown %>% 
   filter(`Daily active listings (average)` > 100) %>% 
   arrange(desc(`Daily active listings (average)`)) %>%
-  mutate(`Daily active listings (average)` = round(`Daily active listings (average)`, digit=-1),
+  mutate(`Daily active listings (average)` = 
+           round(`Daily active listings (average)`, digit = -1),
          `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
-         `Annual revenue (CAD)` = paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
-                                         str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
+         `Annual revenue (CAD)` = 
+           paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
+                  str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
   gt() %>% 
   tab_header(
     title = "Borough breakdown",
@@ -335,9 +307,9 @@ property %>%
 
 
 
+# STRs and housing tenure -------------------------------------------------
 
-
-### STR in condos in Montreal ######################################################
+load("output/raffle_condo.Rdata")
 
 active_condos_2017 <- 
   daily %>% 
@@ -346,7 +318,7 @@ active_condos_2017 <-
   group_by(date, borough) %>% 
   summarize(n_condo = sum(p_condo, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
-  summarize(n_condo_2017 = mean(n_condo))
+  summarize(n_condo_listings_2017 = mean(n_condo))
 
 active_condos_2019 <- 
   daily %>% 
@@ -355,9 +327,34 @@ active_condos_2019 <-
   group_by(date, borough) %>% 
   summarize(n_condo = sum(p_condo, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
-  summarize(n_condo_2019 = mean(n_condo))
+  summarize(n_condo_listings_2019 = mean(n_condo))
 
-inner_join(active_condos_2017, active_condos_2019)
+borough_condos <- 
+  DA_probabilities_2019 %>% 
+  mutate(across(c(p_condo, p_owner, p_renter), ~{.x * dwellings})) %>% 
+  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
+  select(dwellings:p_renter, geometry) %>% 
+  st_interpolate_aw(boroughs, extensive = TRUE) %>% 
+  st_drop_geometry() %>% 
+  select(-Group.1) %>% 
+  rename(dwellings_agg = dwellings,
+         n_condo = p_condo,
+         n_owner = p_owner,
+         n_renter = p_renter) %>% 
+  cbind(boroughs, .) %>% 
+  as_tibble() %>% 
+  st_as_sf() %>% 
+  mutate(across(c(n_condo, n_owner, n_renter), 
+                ~{.x * dwellings / dwellings_agg})) %>% 
+  select(-dwellings_agg)
+
+borough_condos %>% 
+  left_join(active_condos_2017) %>% 
+  left_join(active_condos_2019) %>% 
+  relocate(geometry, .after = last_col()) %>% 
+  mutate(`Number of STRs in condos` = round(n_condo_listings_2019, digits = 1),
+         `% of STRs in condos (2019)` = n_condo_listings_2019 / )
+  
 
 condo_breakdown <- tibble(Borough = character(length = length(boroughs$borough)), 
                           `Number of STRs in condos` = numeric(length = length(boroughs$borough)),

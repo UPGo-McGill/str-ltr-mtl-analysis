@@ -36,7 +36,9 @@ GH <-
   property %>% 
   strr_ghost(start_date = "2016-01-01", end_date = max(daily$date))
 
-# Add daily status to GH
+
+# Add daily status to GH --------------------------------------------------
+
 daily_GH <- 
   daily %>% 
   filter(property_ID %in% unique(unlist(GH$property_IDs)))
