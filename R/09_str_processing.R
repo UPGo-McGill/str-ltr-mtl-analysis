@@ -14,6 +14,7 @@
 
 source("R/01_startup.R")
 library(foreach)
+doParallel::registerDoParallel()
 
 
 # Load previous data ------------------------------------------------------

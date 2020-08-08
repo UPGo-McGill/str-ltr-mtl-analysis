@@ -33,10 +33,18 @@ boroughs <-
   read_sf("data/shapefiles/montreal_boroughs_2019.shp") %>% 
   filter(TYPE == "Arrondissement") %>% 
   select(borough = NOM) %>% 
-  st_transform(32618) %>%
-  st_join(DA) %>%
-  group_by(borough) %>%
-  summarize(dwellings = sum(dwellings))
+  st_transform(32618)
+
+boroughs <- 
+  DA %>% 
+  select(dwellings) %>% 
+  st_interpolate_aw(boroughs, extensive = TRUE) %>% 
+  st_drop_geometry() %>% 
+  select(dwellings) %>% 
+  cbind(boroughs, .) %>% 
+  as_tibble() %>% 
+  st_as_sf() %>% 
+  arrange(borough)
 
 
 # Montreal CSD ------------------------------------------------------------

@@ -18,9 +18,7 @@ source("R/01_startup.R")
 # Load previous data ------------------------------------------------------
 
 load("output/str_processed.Rdata")
-
 load("output/matches_processed.Rdata")
-
 dl_location <- "/Volumes/Data/Scrape photos/mtl"
 
 
