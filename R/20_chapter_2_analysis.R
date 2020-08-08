@@ -8,18 +8,12 @@ load("output/geometry.Rdata")
 
 # Active daily listings ---------------------------------------------------
 
-# Average active daily listings in 2019
+# Average active and blocked daily listings in 2019
 daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date, 
+  filter(housing, date >= LTM_start_date, 
          date <= LTM_end_date) %>% 
-  count(date) %>% 
-  summarize(round(mean(n), digit = -1))
-
-# Average listings blocked for reservations in 2019
-daily %>% 
-  filter(housing, status == "B", date >= LTM_start_date, 
-         date <= LTM_end_date) %>% 
-  count(date) %>% 
+  count(date, B = status == "B") %>% 
+  group_by(B) %>% 
   summarize(round(mean(n), digit = -1))
 
 # Average number of hosts (taking out blocked 365 days)
@@ -30,7 +24,7 @@ daily %>%
   count(date) %>% 
   summarize(round(mean(n), digit = -1))
 
-# How many active listings out of housing
+# Non-housing active listings
 daily %>% 
   filter(!housing, status != "B", date >= LTM_start_date, 
          date <= LTM_end_date) %>%
@@ -46,7 +40,7 @@ daily %>%
 daily %>% 
   filter(housing, status != "B") %>% 
   count(date) %>% 
-  filter(n >= 11800)
+  filter(n == max(n))
 
 
 # Active housing listings in 2019
