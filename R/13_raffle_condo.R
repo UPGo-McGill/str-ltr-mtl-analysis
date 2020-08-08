@@ -35,7 +35,8 @@ DAs_raffle <-
               "condo", "not_condo", "parent_tenure", "owner", "renter", 
               "geometry")) %>% 
   mutate(p_condo = condo / parent_condo,
-         p_not_condo = max(not_condo / parent_condo, 1, na.rm = TRUE),
+         p_not_condo = not_condo / parent_condo,
+         p_not_condo = if_else(p_not_condo > 1, 1, p_not_condo),
          p_owner = owner / parent_tenure,
          p_renter = renter / parent_tenure) %>% 
   select(GeoUID, dwellings, CMA_UID, p_condo:p_renter) %>% 
@@ -90,49 +91,44 @@ raffle_condo_2019 <-
   raffle_condo %>% 
   filter(property_ID %in% active_properties_2019)
 
-
-### Add geometries and census variables to the raffle ################################################ 
-
-trial_tenure_2019 <- left_join(st_drop_geometry(raffle_2019), st_drop_geometry(DAs_raffle), by="GeoUID")
-
-unnested_trial_tenure_2019 <- trial_tenure_2019 %>% 
-  unnest(candidates)
-
-unnested_trial_tenure_2019 <- unnested_trial_tenure_2019 %>% 
-  left_join(., st_drop_geometry(DAs_raffle), by = c("poly_ID" = "GeoUID")) 
+rm(raffle_condo, active_properties_2017, active_properties_2018,
+   active_properties_2019)
 
 
-### Add geometries and census variables to the raffle ################################################ 
+# Add geometries and census variables to the raffle -----------------------
 
-tenure_probabilities_2019 <- unnested_trial_tenure_2019 %>% 
-  ungroup() %>% 
+tenure_probabilities_2019 <-
+  raffle_condo_2019 %>% 
+  st_drop_geometry() %>%
+  unnest(candidates) %>% 
+  left_join(st_drop_geometry(DAs_raffle), by = c("poly_ID" = "GeoUID")) %>% 
   group_by(property_ID) %>% 
-  summarize(prob_condo = sum(p_condo.x*(probability/sum(probability))),
-            prob_renter = sum(p_renter.x*(probability/sum(probability))),
-            prob_owner = sum(p_owner.x*(probability/sum(probability)))
-  ) 
+  summarize(across(c(p_condo, p_renter, p_owner), 
+                   ~sum(.x * probability / sum(probability))))
 
 
 ### Add final sf to the raffle ################################################ 
 
 tenure_probabilities_sf_2019 <- 
-  left_join(tenure_probabilities_2019, trial_tenure_2019, by="property_ID") %>% 
-  left_join(., DAs_raffle, by = "GeoUID") %>% 
-  select(property_ID, GeoUID, dwellings.x, prob_condo, prob_renter, prob_owner, 
-         geometry) %>% #number_condo, number_renter, number_owner,
-  rename(dwellings=dwellings.x) %>% 
+  tenure_probabilities_2019 %>% 
+  left_join(trial_tenure_2019, by = "property_ID") %>% 
+  left_join(DAs_raffle, by = "GeoUID") %>% 
+  select(property_ID, GeoUID, dwellings = dwellings.x, prob_condo, prob_renter, 
+         prob_owner, geometry) %>% #number_condo, number_renter, number_owner,
   st_as_sf()
 
 
-### Initial proportions for graph ################################################ 
+### Initial proportions for graph ##############################################
 
-DAs_raffle_p_condo <- DAs_raffle %>% 
+DAs_raffle_p_condo <- 
+  DAs_raffle %>% 
   select(GeoUID, p_condo) %>% 
   st_drop_geometry()
 
 
 # Save output -------------------------------------------------------------
 
-save(tenure_probabilities_sf_2019, DAs_raffle_p_condo, file = "output/raffle_condo.Rdata")
+save(tenure_probabilities_sf_2019, DAs_raffle_p_condo, 
+     file = "output/raffle_condo.Rdata")
 
 
