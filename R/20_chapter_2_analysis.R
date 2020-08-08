@@ -1,9 +1,24 @@
 #### Chapter 2 ANALYSIS ####################################################
 
+#' This script produces the tables and facts for chapter 2. It runs quickly.
+#' 
+#' Output:
+#' - None
+#' 
+#' Script dependencies:
+#' - `02_geometry_import.R`
+#' - `09_str_processing.R`
+#' - `10_national_comparison.R`
+#' - `13_raffle_condo.R`
+#' 
+#' External dependencies:
+#' - None
+
 source("R/01_startup.R")
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
+load("output/national_comparison.Rdata")
 
 
 # Active daily listings ---------------------------------------------------
@@ -47,7 +62,8 @@ daily %>%
 property_2019 <-
   property %>%
   filter(housing, property_ID %in% 
-           filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date)$property_ID) %>% 
+           filter(daily, housing, status != "B", date >= LTM_start_date, 
+                  date <= LTM_end_date)$property_ID) %>% 
   filter(created <= LTM_end_date)
 
 
