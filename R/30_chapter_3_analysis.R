@@ -18,7 +18,7 @@ FREH %>%
   pull(FREH_3) %>% 
   round(digit=-2)
 
-# increase since last year
+# increase between 2018 and 2019
 (FREH %>% 
   filter(date == "2020-01-01") %>% 
   pull(FREH_3) -
@@ -33,64 +33,35 @@ FREH %>%
 
 # variation of FREH number per borough
 
-boroughs_FREH_breakdown <- tibble(Borough = character(length = length(boroughs$borough)), 
-                                  `2018 FREH` = numeric(length = length(boroughs$borough)),
-                                  `2019 FREH` = numeric(length = length(boroughs$borough)),
-                                  `Variation` = numeric(length = length(boroughs$borough)),
-)
-
 FREH_borough <- 
   daily %>% 
   filter(date >= "2016-01-01") %>% 
   group_by(date, borough) %>% 
   summarize(across(c(FREH, FREH_3), sum)) %>%
   filter(substr(date, 9, 10) == "01")
-  
 
 
-for (i in 1:length(boroughs$borough)) { # testing a bigger loop, good one with try(), does work. long, since not doing remotely.
-  
-  boroughs_FREH_breakdown[i,1] <- boroughs$borough[[i]]
-  
-  boroughs_FREH_breakdown[i,2] <- 
+FREH_borough %>% 
+  filter(date == "2019-01-01") %>% 
+  rename(`2018 FREH` = FREH_3) %>% 
+  ungroup() %>% 
+  select(-date, -FREH) %>% 
+  left_join(
     FREH_borough %>% 
-       filter(date == "2019-01-01", borough == boroughs$borough[[i]]) %>% 
-       pull(FREH_3)
-  
-  boroughs_FREH_breakdown[i,3] <- 
-    FREH_borough %>% 
-       filter(date == "2020-01-01", borough == boroughs$borough[[i]]) %>% 
-       pull(FREH_3) 
-  
-}
-
-as.data.frame(c("City of Montreal"), FREH %>% 
-                filter(date == "2020-01-01") %>% 
-                pull(FREH_3),
-              FREH %>% 
-                filter(date == "2019-01-01") %>% 
-                pull(FREH_3) )
-
-as.data.frame(Borough = character(c("City of Montreal")), 
-       `2018 FREH` = numeric(FREH %>% 
-                               filter(date == "2020-01-01") %>% 
-                               pull(FREH_3)),
-       `2019 FREH` = numeric(FREH %>% 
-                               filter(date == "2019-01-01") %>% 
-                               pull(FREH_3)),
-       `Variation` = numeric(),
-)
-  
-
-boroughs_FREH_breakdown %>% 
-  add_row(Borough = "City of Montreal", 
-          `2018 FREH` = FREH %>% 
+      filter(date == "2020-01-01") %>% 
+      rename(`2019 FREH` = FREH_3) %>% 
+      ungroup() %>% 
+      select(-date, -FREH)
+  ) %>% 
+  add_row(borough = "City of Montreal", 
+          `2018 FREH` = !! FREH %>% 
             filter(date == "2019-01-01") %>% 
             pull(FREH_3), 
-          `2019 FREH` = FREH %>% 
+          `2019 FREH` = !! FREH %>% 
             filter(date == "2020-01-01") %>% 
-            pull(FREH_3), `Variation` = 0) %>% 
+            pull(FREH_3)) %>% 
   filter(`2019 FREH` > 100) %>% 
+  rename(Borough = borough) %>% 
   arrange(desc(`2019 FREH`)) %>%
   mutate(Variation = (`2019 FREH` - `2018 FREH`) / `2018 FREH`,
          `2019 FREH` = round(`2019 FREH`, digit = -1),
