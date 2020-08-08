@@ -313,21 +313,25 @@ load("output/raffle_condo.Rdata")
 
 active_condos_2017 <- 
   daily %>% 
-  filter(date >= "2017-01-01", date <= "2017-12-31", status != "B") %>% 
-  left_join(listing_probabilities_2019) %>% 
+  filter(housing, date >= "2017-01-01", date <= "2017-12-31", status != "B") %>% 
+  left_join(listing_probabilities_2017) %>% 
   group_by(date, borough) %>% 
-  summarize(n_condo = sum(p_condo, na.rm = TRUE)) %>% 
+  summarize(n_listings = n(),
+            n_condo = sum(p_condo, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
-  summarize(n_condo_listings_2017 = mean(n_condo))
+  summarize(n_listings_2017 = mean(n_listings),
+            n_condo_listings_2017 = mean(n_condo))
 
 active_condos_2019 <- 
   daily %>% 
-  filter(date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
-  summarize(n_condo = sum(p_condo, na.rm = TRUE)) %>% 
+  summarize(n_listings = n(),
+            n_condo = sum(p_condo, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
-  summarize(n_condo_listings_2019 = mean(n_condo))
+  summarize(n_listings_2019 = mean(n_listings),
+            n_condo_listings_2019 = mean(n_condo))
 
 borough_condos <- 
   DA_probabilities_2019 %>% 
@@ -348,87 +352,33 @@ borough_condos <-
                 ~{.x * dwellings / dwellings_agg})) %>% 
   select(-dwellings_agg)
 
-borough_condos %>% 
+condo_breakdown <- 
+  borough_condos %>% 
   left_join(active_condos_2017) %>% 
   left_join(active_condos_2019) %>% 
   relocate(geometry, .after = last_col()) %>% 
   mutate(`Number of STRs in condos` = round(n_condo_listings_2019, digits = 1),
-         `% of STRs in condos (2019)` = n_condo_listings_2019 / )
+         `% of STRs in condos (2019)` = 
+           n_condo_listings_2019 / n_listings_2019,
+         `% change in % of STRs in condos (2017 to 2019)` =
+           (n_condo_listings_2019 / n_listings_2019) / 
+           (n_condo_listings_2017 / n_listings_2017) - 1) %>% 
+  select(Borough = borough, `Number of STRs in condos`, 
+         `% of STRs in condos (2019)`, 
+         `% change in % of STRs in condos (2017 to 2019)`)
   
-
-condo_breakdown <- tibble(Borough = character(length = length(boroughs$borough)), 
-                          `Number of STRs in condos` = numeric(length = length(boroughs$borough)),
-                          `% of STRs in condos, 2019` = numeric(length = length(boroughs$borough)),
-                          `% of STRs in condos, 2017` = numeric(length = length(boroughs$borough))
-)
-
-for (i in 1:length(boroughs$borough)) { 
-  
-  condo_breakdown[i,1] <- boroughs$borough[[i]]
-  
-  condo_breakdown[i,2] <- DA_probabilities_2019 %>%
-    st_intersection(boroughs, .) %>%
-    st_drop_geometry() %>% 
-    filter(borough == boroughs$borough[[i]]) %>% 
-    count(n_condo) %>% 
-    summarize(sum_condo=sum(n_condo))
-  
-  condo_breakdown[i,3] <- (DA_probabilities_2019 %>%
-                             st_intersection(boroughs, .) %>%
-                             st_drop_geometry() %>% 
-                             filter(borough == boroughs$borough[[i]]) %>% 
-                             count(n_condo) %>% 
-                             summarize(sum_condo=sum(n_condo))
-  ) / 
-    daily %>%
-    filter(housing == TRUE, status != "B", date >= LTM_start_date, date <= LTM_end_date,
-           borough == boroughs$borough[[i]]) %>%
-    count(property_ID) %>% 
-    nrow()
-  
-  condo_breakdown[i,4] <- (DA_probabilities_2018 %>%
-                             st_intersection(boroughs, .) %>% 
-                             st_drop_geometry() %>%
-                             filter(borough == boroughs$borough[[i]]) %>% 
-                             count(n_condo) %>% 
-                             summarize(sum_condo=sum(n_condo, na.rm=TRUE))
-  ) / 
-    daily %>%
-    filter(housing == TRUE, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
-           borough == boroughs$borough[[i]]) %>%
-    count(property_ID) %>% 
-    nrow()
-  
-  condo_breakdown[i,5] <- (DA_probabilities_2017 %>%
-                             st_intersection(boroughs, .) %>% 
-                             st_drop_geometry() %>% 
-                             filter(borough == boroughs$borough[[i]]) %>% 
-                             count(n_condo) %>% 
-                             summarize(n_condo=sum(n_condo))
-  ) / 
-    daily %>%
-    filter(housing == TRUE, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2),
-           borough == boroughs$borough[[i]]) %>%
-    count(property_ID) %>% 
-    nrow()
-  
-}
-
-condo_breakdown <- condo_breakdown %>% 
-  mutate(`Percentage change in STRs in condos, 2017-2019`= (`Percent of STRs in condos, 2019`-`Percent of STRs in condos, 2017`)/
-           `Percent of STRs in condos, 2017`) %>% 
-  select(-`Percent of STRs in condos, 2018`, -`Percent of STRs in condos, 2017`)
-
 condo_breakdown %>% 
+  st_drop_geometry() %>% 
   arrange(desc(`Number of STRs in condos`)) %>%
   slice(1:11) %>% 
-  mutate(`Number of STRs in condos` = round(`Number of STRs in condos`, digit=-1)
-  ) %>%
+  mutate(`Number of STRs in condos` = round(`Number of STRs in condos`, 
+                                            digit = -1)) %>%
   gt() %>% 
   tab_header(
     title = "Condo breakdown",
-    subtitle = "Number of STRs in condos and percentage of STRs in condos by borough"
-  ) %>%
+    subtitle = 
+      "Number of STRs in condos and percentage of STRs in condos by borough"
+    ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = 3:4, decimals = 1) %>% 
   fmt_number(columns = 2,
