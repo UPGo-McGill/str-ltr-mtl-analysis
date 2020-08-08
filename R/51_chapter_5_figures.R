@@ -2,8 +2,9 @@
 
 source("R/01_startup.R")
 
-load("data/str_montreal.Rdata")
-load("data/ltr_matches.Rdata")
+load("output/str_montreal.Rdata")
+load("output/ltr_matches.Rdata")
+load("output/geometry.Rdata")
 
 ### Unique matches #################################################################
 
@@ -14,23 +15,23 @@ unique_ltr <-
   arrange(desc(scraped)) %>% 
   distinct(id, .keep_all = T)
 
-#unique matching ab_id locations using street address
-ltr_unique_ab_id <- 
+#unique matching property_ID locations using street address
+ltr_unique_property_ID <- 
   ltr %>% 
   st_drop_geometry() %>% 
-  filter(!is.na(ab_id)) %>% 
-  unnest(ab_id) %>% 
-  filter(ab_id %in% filter(property, scraped >= "2020-01-01")$property_ID) %>% 
+  filter(!is.na(property_ID)) %>% 
+  unnest(property_ID) %>% 
+  filter(property_ID %in% filter(property, scraped >= "2020-01-01")$property_ID) %>% 
   arrange(desc(scraped)) %>% 
-  distinct(ab_id) %>% 
-  inner_join(unnest(ltr, ab_id), by = "ab_id") %>% 
+  distinct(property_ID) %>% 
+  inner_join(unnest(ltr, property_ID), by = "property_ID") %>% 
   arrange(desc(scraped)) %>% 
-  distinct(ab_id, .keep_all = T)
+  distinct(property_ID, .keep_all = T)
 
 
 ### FIGURE 11. Concentration of STR listings matched with LTR listings by borough ########################################
 
-ltr_unique_ab_id %>% 
+ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
   left_join(boroughs, .) %>% 
@@ -57,7 +58,7 @@ ltr_unique_ab_id %>%
 
 unique_ltr %>% 
   filter(price >425, price <8000) %>% 
-  mutate(matched = if_else(!is.na(ab_id), TRUE, FALSE)) %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
   summarize(avg_price = mean(price)) %>% 
   ggplot()+
@@ -133,7 +134,7 @@ daily %>%
   filter(revenue_LTM > 0) %>%
   mutate(matched = if_else(host_ID %in% (property %>%
                                            st_drop_geometry() %>%
-                                           filter(property_ID %in% ltr_unique_ab_id$ab_id) %>%
+                                           filter(property_ID %in% ltr_unique_property_ID$property_ID) %>%
                                            pull(host_ID)), TRUE, FALSE)) %>%
   group_by(host_ID, matched) %>% 
   summarize(host_rev = sum(revenue_LTM)) %>% 
@@ -159,13 +160,12 @@ daily %>%
   )
 
 
-?geom_density
 ### Figure 15. Length of stay of matches and non-matches on LTR platforms ##########################
 
 unique_ltr %>% 
   mutate(how_long_they_stay = scraped-created) %>% 
   arrange(desc(how_long_they_stay)) %>% 
-  mutate(matched = if_else(!is.na(ab_id), TRUE, FALSE)) %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   count(how_long_they_stay, matched) %>% 
   group_by(matched) %>% 
   mutate(perc = n/sum(n)) %>% 
@@ -188,16 +188,5 @@ unique_ltr %>%
         legend.text = element_text(#family = "Futura", 
           size = 10)
         )
-
-
-
-
-
-
-
-
-
-
-
 
 
