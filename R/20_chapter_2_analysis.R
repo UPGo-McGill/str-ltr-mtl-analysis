@@ -135,10 +135,10 @@ load("output/national_comparison.Rdata")
 
 #' [1] Daily active listings
 daily %>% 
-  filter(housing, date >= LTM_start_date, date <= LTM_end_date) %>% 
-  count(date, B = status == "B") %>% 
-  group_by(B) %>% 
-  summarize(round(mean(n), digit = -1))
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>% 
+  count(date) %>% 
+  summarize(active_listings = round(mean(n), digit = -1))
 
 #' [2] Annual host revenue
 prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
@@ -179,15 +179,39 @@ boroughs_breakdown <-
   mutate(listings_pct = active_listings / sum(active_listings),
          rev_pct = annual_rev / sum(annual_rev),
          listings_pct_dwellings = active_listings / dwellings) %>% 
-  select(-dwellings) %>% 
+  select(-dwellings)
+
+#' STR activity in Montreal is highly concentrated in the central-city boroughs 
+#' of Ville-Marie and Le Plateau-Mont-Royal (Table 2.2). These two boroughs 
+#' accounted for 32.6% [1] and 25.9% [1] of all listings in 2019 respectively, 
+#' and even higher shares of host revenue (41.2% [1] and 29.6% [1]). The borough 
+#' with the next highest percentage of average number of daily active listings 
+#' is Rosemont-La-Petite-Patrie (8.1% [2]), followed by Le Sud-Ouest (6.9% [2]). 
+#' Each accounts for around 6% [2] of annual STR revenue in the city.
+#' 
+#' Ville-Marie and Le Plateau-Mont-Royal have by far the most STR activity when 
+#' measured in per-capita terms. In Ville-Marie, active STR listings account for 
+#' 4.8% [1] of all the borough’s housing units, while the equivalent figure for 
+#' Le Plateau-Mont-Royal is 3.7% [1] of total dwellings (Figure 2.2).
+
+#' [1] Figures for VM and LPMR
+boroughs_breakdown %>% 
+  slice(c(7, 18)) %>% 
+  select(borough, listings_pct:listings_pct_dwellings)
+
+#' [2] Figures for RLPP and LSO
+boroughs_breakdown %>% 
+  slice(c(8, 14)) %>% 
+  select(borough, listings_pct:rev_pct)
+
+#' Table 2.2
+boroughs_breakdown %>% 
   set_names(c("Borough",
               "Daily active listings (average)",
               "Annual revenue (CAD)",
               "% of all listings",
               "% of annual revenue",
-              "Active listings as % of dwellings"))
-
-boroughs_breakdown %>% 
+              "Active listings as % of dwellings")) %>% 
   filter(`Daily active listings (average)` > 100) %>% 
   arrange(desc(`Daily active listings (average)`)) %>%
   mutate(`Daily active listings (average)` = 
@@ -206,10 +230,17 @@ boroughs_breakdown %>%
   fmt_number(columns = 2,
              decimals = 0)
 
+# Need to add Montreal row, with % listings per dwelling
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>% 
+  count(date) %>% 
+  summarize(active_listings = round(mean(n), digit = -1)) %>% 
+  pull(active_listings) %>% 
+  {. / sum(boroughs$dwellings)}
 
-# STR listing types and sizes ---------------------------------------------
 
-
+# Listing types and sizes -------------------------------------------------
 
 unique_listing_type <- unique(daily$listing_type)[1:3]
 
