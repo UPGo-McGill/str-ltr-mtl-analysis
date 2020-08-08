@@ -243,4 +243,4 @@ rm(all_blocked_june, activity_in_may, all_blocked_april, activity_in_march,
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, exchange_rate, file = "output/str_raw.Rdata")
+save(property, daily, host, exchange_rates, file = "output/str_raw.Rdata")

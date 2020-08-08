@@ -1,4 +1,4 @@
-#### Chapter 2 ANALYSIS ####################################################
+#### 20 CHAPTER 2 ANALYSIS ####################################################0
 
 #' This script produces the tables and facts for chapter 2. It runs quickly.
 #' 
@@ -23,7 +23,32 @@ load("output/national_comparison.Rdata")
 
 # Active daily listings ---------------------------------------------------
 
-# Average active and blocked daily listings in 2019
+#'  In 2019 there was an average of 9,010 [1] active daily listings (Figure 1) 
+#'  operated by an average of 5,330 [2] hosts. These hosts collectively earned 
+#'  $222.7 million [3] in 2019—an average of $24,700 [4] per daily active 
+#'  listing or $41,800 [5] per active host. There was also a daily average of 
+#'  12,460 [1] listings which were visible on the Airbnb and VRBO websites but 
+#'  were blocked by the host from receiving reservations. When these blocked but 
+#'  inactive listings are included, the average listing earned [6] $9,400 last 
+#'  year, and the average host earned $16,800 [7]. Finally, there was a daily 
+#'  average of 240 [8] listings that were not located in private housing units 
+#'  (B&Bs, hotels, etc.), which have been excluded from the analysis in this 
+#'  report. 
+#'  
+#'  Active daily listings peaked in August 2018 [9] at 11,8100 [9], and have 
+#'  since declined. 
+
+# 2019 revenue
+revenue_2019 <-
+  daily %>%
+  filter(housing,
+         date <= LTM_end_date, date >= LTM_start_date,
+         status == "R") %>%
+  group_by(property_ID) %>%
+  summarize(revenue_LTM = sum(price)) %>% 
+  inner_join(property, .)
+
+#' [1] Average active and blocked daily listings in 2019
 daily %>% 
   filter(housing, date >= LTM_start_date, 
          date <= LTM_end_date) %>% 
@@ -31,114 +56,82 @@ daily %>%
   group_by(B) %>% 
   summarize(round(mean(n), digit = -1))
 
-# Average number of hosts (taking out blocked 365 days)
+#' [2] Average number of hosts (taking out blocked 365 days)
 daily %>% 
   filter(housing, status != "B", date >= LTM_start_date, 
          date <= LTM_end_date) %>%
   count(date, host_ID) %>% 
   count(date) %>% 
-  summarize(round(mean(n), digit = -1))
+  summarize(hosts = round(mean(n), digit = -1))
 
-# Non-housing active listings
+#' [3] Total annual revenue
+prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
+
+#' [4] Average revenue per active listing
+(sum(revenue_2019$revenue_LTM) /
+    daily %>% 
+    filter(housing, status != "B", date >= LTM_start_date, 
+           date <= LTM_end_date) %>% 
+    count(date) %>% 
+    summarize(avg_rev_per_active = round(mean(n)))) %>% 
+  round(digit = -2) %>% 
+  prettyNum(",")
+
+#' [5] Average revenue per active host
+(sum(revenue_2019$revenue_LTM) /
+    daily %>% 
+    filter(housing, status != "B", date >= LTM_start_date, 
+           date <= LTM_end_date) %>%
+    group_by(date) %>% 
+    summarize(n_hosts = length(unique(host_ID))) %>% 
+    summarize(avg_n_hosts = round(mean(n_hosts)))) %>% 
+  round(digit = -2) %>% 
+  prettyNum(",")
+
+#' [6] Average revenue per all listings
+prettyNum(round(mean(revenue_2019$revenue_LTM), digit = -2), ",")
+
+#' [7] Average revenue per all hosts
+revenue_2019 %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(host_ID)) %>%
+  group_by(host_ID) %>% 
+  summarize("host_rev" = sum(revenue_LTM)) %>% 
+  summarize("avg_host_rev" = prettyNum(round(mean(host_rev), digit = -2), ","))
+
+#' [8] Non-housing active listings
 daily %>% 
   filter(!housing, status != "B", date >= LTM_start_date, 
          date <= LTM_end_date) %>%
   count(date) %>% 
-  summarize(round(mean(n), digit = -1))
+  summarize(non_housing = round(mean(n), digit = -1))
 
-# Highest sum of daily listing activity
+#' [9] Date and amount of highest activity
 daily %>% 
   filter(housing, status != "B") %>% 
   count(date) %>% 
-  summarize(round(max(n), digit = -1))
-
-daily %>% 
-  filter(housing, status != "B") %>% 
-  count(date) %>% 
-  filter(n == max(n))
+  filter(n == max(n)) %>% 
+  group_by(date) %>% 
+  summarize(daily_max = round((n), digit = -1))
 
 
-# Active housing listings in 2019
-property_2019 <-
-  property %>%
-  filter(housing, property_ID %in% 
-           filter(daily, housing, status != "B", date >= LTM_start_date, 
-                  date <= LTM_end_date)$property_ID) %>% 
-  filter(created <= LTM_end_date)
+# Montreal in comparison with other major Canadian cities -----------------
 
+#' In 2019, Montreal had the second largest STR market in the country by both 
+#' active listing numbers (9,000 [1]) and host revenue ($222.7 million [2]), 
+#' falling in both cases behind Toronto (Table 2.1). However, in relative terms 
+#' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
+#' had the most active listings per 1000 households (13.4 [3] compared to 
+#' 10.7 [4] in Montreal) and the most revenue per listing ($38,500 [5] compared 
+#' to $24,700 [6] in Montreal).
 
-# 2019 revenue
-revenue_2019 <- 
-  daily %>%
-  filter(housing,
-         date <= LTM_end_date, date >= LTM_start_date,
-         status == "R") %>%
-  group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price) ) %>% 
-  inner_join(property, .)
-
-round(sum(revenue_2019$revenue_LTM), digit =-5)
-round(mean(revenue_2019$revenue_LTM), digit =-2)
-
-# average listings revenue per average of daily active listings
-(sum(revenue_2019$revenue_LTM) /
-  filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
-  count(date) %>% 
-  summarize(round(mean(n)))
-) %>% 
-  round(digit=-2)
-
-# average revenue per host (taking out hosts blocked 365 days)
-revenue_2019 %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(host_ID)) %>% # because if not, grouping the sum of host_ID = NA makes it a top earner, and brings average up
-  group_by(host_ID) %>% 
-  summarize("host_rev" = sum(revenue_LTM)) %>% 
-  summarize(mean(host_rev))
- 
-
-(sum(revenue_2019$revenue_LTM) /
-daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
-  count(host_ID) %>% 
-  nrow()
-) %>% 
-  round(digit=-2)
-
-(sum(revenue_2019$revenue_LTM) /
-daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
-  count(date, host_ID) %>% 
-  count(date) %>% 
-  summarize(round(mean(n)))
-) %>% 
-  round(digit=-2)
-
-
-
-### Montreal in comparison with other major Canadian cities ######################################################
-
-
-#
+national_comparison
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-#
 
 ### Location of STR listings and revenues in Montreal ######################################################
 
