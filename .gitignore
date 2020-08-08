@@ -7,3 +7,4 @@ data/
 *.Rproj
 .DS_Store
 output/
+layout/

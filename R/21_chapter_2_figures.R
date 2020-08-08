@@ -1,4 +1,24 @@
-#### Chapter 2 FIGURES ####################################################
+#### 21 CHAPTER 2 FIGURES ######################################################
+
+#' This script produces the graphs and maps for chapter 2. It runs quickly.
+#' 
+#' Output:
+#' - `figure_2_1.pdf`
+#' - `figure_2_2.pdf`
+#' - `figure_2_3.pdf`
+#' - `figure_2_4.pdf`
+#' - `figure_2_5.pdf`
+#' - `figure_2_6.pdf`
+#' - `figure_2_7.pdf`
+#' - `figure_2_8.pdf`
+#' 
+#' Script dependencies:
+#' - `09_str_processing.R`
+#' - `13_raffle_condo.R`
+#' 
+#' External dependencies:
+#' - The Futura and Futura Condensed fonts, which can be imported in 
+#'   `01_startup.R`
 
 source("R/01_startup.R")
 library(patchwork)
@@ -6,7 +26,8 @@ library(patchwork)
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 
-### FIGURE 2.1 - Active listings ##############################################################
+
+# Figure 2.1 - Active daily listings --------------------------------------
 
 active_listings_type <- 
   daily %>% 
@@ -25,7 +46,7 @@ daily %>%
   geom_line(aes(date, n), colour = col_palette[5], size = 1.5) +
   geom_line(data = active_listings_type, aes(date, n, colour = listing_type),
             size = 0.75) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .2)+
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_colour_manual(name = "", values = col_palette[1:4]) +

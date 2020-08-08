@@ -1,4 +1,4 @@
-#### 13. RAFFLE CONDO ##########################################################
+#### 13 RAFFLE CONDO ###########################################################
 
 #' This script runs slowly, and should be rerun anytime the raw STR data 
 #' changes.
