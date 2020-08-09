@@ -60,7 +60,12 @@ revenue_2019 <-
 #'  have been excluded from the analysis in this report. 
 #'  
 #'  Active daily listings peaked in August 2018 [9] at 11,8100 [9], and have 
-#'  since declined. 
+#'  since declined. There were 5.6% [10] fewer listings active on average in 
+#'  2019 than in 2018. However, host revenue followed the opposite pattern, 
+#'  increasing by 14.9% [10] between 2018 and 2019. These facts point to an 
+#'  increasingly commercializing STR market, where the number of listings is 
+#'  relatively stable but a rising proportion of these listings are operated on 
+#'  a full-time basis.
 
 #' [1] Average active and blocked daily listings in 2019
 daily %>% 
@@ -126,6 +131,14 @@ daily %>%
   filter(n == max(n)) %>% 
   group_by(date) %>% 
   summarize(daily_max = round((n), digit = -1))
+
+#' [10] Active listing YOY change
+daily %>% 
+  filter(housing, status != "B", date >= "2018-01-01", date <= "2019-12-31") %>% 
+  group_by(year_2019 = date >= "2019-01-01") %>% 
+  summarize(active_listings = n() / 365,
+            revenue = sum(price[status == "R"])) %>% 
+  summarize(across(c(active_listings, revenue), ~{(.x[2] - .x[1]) / .x[1]}))
 
 
 # Montreal in comparison with other major Canadian cities -----------------
