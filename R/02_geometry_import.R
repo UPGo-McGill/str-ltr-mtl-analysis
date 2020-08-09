@@ -31,19 +31,22 @@ DA <-
     dataset = "CA16", regions = list(CSD = "2466023"), level = "DA",
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
-  select(GeoUID, CSD_UID, Population, Dwellings) %>% 
-  set_names(c("GeoUID", "CMA_UID", "population", "dwellings", "geometry")) %>% 
+  select(GeoUID, Dwellings) %>% 
+  set_names(c("GeoUID", "dwellings", "geometry")) %>% 
   st_set_agr("constant")
 
 
 # Montreal boroughs -------------------------------------------------------
 
-boroughs <-
+boroughs_raw <-
   read_sf("data/shapefiles/montreal_boroughs_2019.shp") %>% 
   filter(TYPE == "Arrondissement") %>% 
   select(borough = NOM) %>% 
   st_set_agr("constant") %>% 
-  st_transform(32618) %>% 
+  st_transform(32618) 
+
+boroughs <- 
+  boroughs_raw %>% 
   st_intersection(province)
 
 boroughs <- 
@@ -61,7 +64,7 @@ boroughs <-
 # Montreal CSD ------------------------------------------------------------
 
 city <-
-  boroughs %>% 
+  boroughs_raw %>% 
   st_combine() %>% 
   st_union() %>% 
   st_cast("POLYGON") %>% 
@@ -71,4 +74,4 @@ city <-
 
 # Save output -------------------------------------------------------------
 
-save(province, DA, boroughs, city, file = "output/geometry.Rdata")
+save(province, DA, boroughs, boroughs_raw, city, file = "output/geometry.Rdata")

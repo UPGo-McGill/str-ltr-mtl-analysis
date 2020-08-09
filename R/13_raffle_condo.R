@@ -25,12 +25,7 @@ DAs_raffle <-
                 "v_CA16_4838"),
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
-  select(
-    GeoUID, Dwellings, 
-    "v_CA16_4840: Total - Occupied private dwellings by condominium status - 25% sample data",
-    "v_CA16_4841: Condominium",
-    "v_CA16_4836: Total - Private households by tenure - 25% sample data", 
-    "v_CA16_4837: Owner", "v_CA16_4838: Renter") %>% 
+  select(-c(`Shape Area`:Households, CSD_UID:`Area (sq km)`)) %>% 
   set_names(c("GeoUID", "dwellings", "parent_condo", "condo", "parent_tenure", 
               "owner", "renter", "geometry")) %>% 
   mutate(p_condo = condo / parent_condo,

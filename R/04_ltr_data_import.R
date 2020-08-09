@@ -280,7 +280,7 @@ ltr <- st_transform(ltr, 32618)
 
 ltr <- 
   ltr %>% 
-  st_join(boroughs) %>% 
+  st_join(boroughs_raw) %>% 
   select(-dwellings)
 
 ltr <-
@@ -290,7 +290,7 @@ ltr <-
   st_as_sf() %>% 
   select(-CMA_UID, -population)
 
-rm(boroughs, city, DA)
+rm(boroughs, boroughs_raw, city, DA, province)
 
 
 # Save output -------------------------------------------------------------

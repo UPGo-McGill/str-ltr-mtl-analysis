@@ -83,83 +83,69 @@ ggsave("output/figures/figure_2_1.pdf", plot = figure_2_1, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_1.pdf")
 
 
+# Figure 2.2 Active listings as a share of dwellings ----------------------
 
-### FIGURE 2.2 - Active listings density by dissemination areas and borough ####
-
-active_borough <- daily %>%
-  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
+active_borough <-
+  daily %>%
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>%
+  count(borough, date) %>% 
   group_by(borough) %>% 
-  count(date) %>%
-  summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
-  left_join(select(boroughs, borough, dwellings), .) %>% 
-  mutate(percentage = `Daily active listings (average)` / dwellings,
-         `Daily active listings (average)` = round(`Daily active listings (average)`, digit=-1)) %>% 
-  arrange(desc(`Daily active listings (average)`)) %>% 
-  select(borough, `Daily active listings (average)`, dwellings, percentage) %>% 
-  ggplot() +
-  geom_sf(aes(fill = percentage), 
-          lwd= 0, 
-          colour = NA) +
-  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
-                       na.value = "grey80",
-                       limits = c(0, 0.05),
-                       oob = scales::squish,
-                       labels = scales::percent
-  )  +
-  guides(fill = 
-           guide_colorbar(
-             title = "Percentage of daily active listings\n(average) out of total dwellings")) +
-  theme_void() +
-  theme(legend.position = "right",
-        # text = element_text(family = "Futura", face = "plain"),
-        # legend.title = element_text(family = "Futura", face = "bold", 
-        #                             size = 10),
-        # legend.text = element_text(family = "Futura", size = 10)
-  )
-
+  summarize(n = mean(n, na.rm = TRUE)) %>%
+  left_join(boroughs, .) %>% 
+  mutate(percentage = n / dwellings, n = round(n, digit = -1)) %>% 
+  select(borough, n, dwellings, percentage)
 
 active_DA <-
   daily %>%
-  filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
-  left_join(select(st_drop_geometry(property), GeoUID, property_ID), .) %>% 
+  filter(housing, status != "B", date >= LTM_start_date,
+         date <= LTM_end_date) %>%
+  left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>% 
+  count(GeoUID, date) %>% 
   group_by(GeoUID) %>% 
-  count(date, GeoUID) %>% 
-  group_by(GeoUID) %>% 
-  summarize(`Daily active listings (average)` = mean(n, na.rm = T)) %>%
-  left_join(select(DA, GeoUID, dwellings), .) %>% 
-  mutate(percentage = `Daily active listings (average)` / dwellings,
-         percentage = ifelse(dwellings <= 4, NA, percentage)) %>% 
-    arrange(dwellings) %>%
-  ggplot() +
-  geom_sf(aes(fill = percentage), 
-          lwd = NA, 
-          colour = "white") +
-  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
-                       na.value = "grey80",
-                       limits = c(0, 0.05),
-                       oob = scales::squish,
-                       labels = scales::percent
-  ) +
-  guides(fill = 
-           guide_colorbar(
-             title = "Percentage of daily active listings\n(average) out of total dwellings")) +
-  theme_void() +
-  theme(legend.position = "right",
-        # text = element_text(family = "Futura", face = "plain"),
-        # legend.title = element_text(family = "Futura", face = "bold", 
-        #                             size = 10),
-        # legend.text = element_text(family = "Futura", size = 10)
-  )
-  #+
-  #coord_sf( ##### Raffle brang me outside the city of Mtl. 
-  #  xlim = sf::st_bbox(city)[c(1,3)],
-  #  ylim = sf::st_bbox(city)[c(2,4)],
-  #  expand = FALSE)
+  summarize(n = mean(n, na.rm = TRUE)) %>%
+  left_join(DA, .) %>% 
+  mutate(percentage = n / dwellings, n = round(n, digit = -1),
+         percentage = if_else(dwellings <= 4, NA_real_, percentage)) %>% 
+  relocate(geometry, .after = last_col())
 
-active_DA + 
-  active_borough + 
-  plot_layout(ncol = 1) + 
-  plot_layout(guides = 'collect') & theme(legend.position = "right")
+make_listing_map <- function(df) {
+  ggplot(df) +
+    geom_sf(data = province, colour = "transparent", fill = "grey93") +
+    geom_sf(aes(fill = percentage), lwd = 0, colour = NA) +
+    scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
+                         limits = c(0, 0.05), oob = scales::squish, 
+                         labels = scales::percent)  +
+    guides(fill = guide_colourbar(title = "STRs/\ndwelling",
+                                  title.vjust = 1)) + 
+    gg_bbox(active_borough) +
+    theme_void() +
+    theme(text = element_text(family = "Futura", face = "plain"),
+          legend.title = element_text(family = "Futura", face = "bold",
+                                      size = 7),
+          legend.title.align = 0.9,
+          legend.text = element_text(family = "Futura", size = 5),
+          panel.border = element_rect(colour = "white", size = 2))
+}
+
+figure_2_2_left <-
+  active_borough %>% 
+  make_listing_map()
+
+figure_2_2_right <-
+  active_DA %>% 
+  make_listing_map()
+
+figure_2_2 <- 
+  figure_2_2_left + figure_2_2_right + plot_layout(ncol = 2) + 
+  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+
+ggsave("output/figures/figure_2_2.pdf", plot = figure_2_2, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_2.pdf")
+
+
 
 
 ### FIGURE 2.3 - Estimated percentage of listings located in condos ############

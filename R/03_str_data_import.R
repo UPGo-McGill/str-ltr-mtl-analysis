@@ -129,7 +129,7 @@ host <-
 # Add borough to property file
 property <- 
   property %>% 
-  st_join(boroughs) %>% 
+  st_join(boroughs_raw) %>% 
   select(-dwellings)
 
 # Add borough to daily file
@@ -139,7 +139,7 @@ daily <-
   select(property_ID, borough) %>% 
   left_join(daily, ., by = "property_ID")
 
-rm(borough, city, DA)
+rm(boroughs, boroughs_raw, city, DA, province)
 
 
 # Fix April and June plateaus ---------------------------------------------
