@@ -227,6 +227,47 @@ daily %>%
   summarize(change = (revenue[2] - revenue[1]) / revenue[1])
 
 
+# Montreal in comparison with other major Canadian cities -----------------
+
+load("output/national_comparison.Rdata")
+
+#' In 2019, Montreal had the second largest STR market in the country by both 
+#' active listing numbers (9,100 [1]) and host revenue ($222.7 million [2]), 
+#' falling in both cases behind Toronto (Table 2.2). However, in relative terms 
+#' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
+#' had the most active listings per 1000 households (13.4 [3] compared to 
+#' 10.7 [3] in Montreal) and the most revenue per listing ($38,500 [4] compared 
+#' to $24,700 [4] in Montreal).
+
+#' [1] Daily active listings
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>% 
+  count(date) %>% 
+  summarize(active_listings = round(mean(n), digit = -1))
+
+#' [2] Annual host revenue
+prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
+
+#' [3] Vancouver and Montreal listings per 1000 households
+national_comparison %>% 
+  filter(city %in% c("Montreal", "Vancouver")) %>% 
+  select(city, listings_per_1000)
+
+#' [4] Vancouver and Montreal revenue per listing
+national_comparison %>% 
+  filter(city %in% c("Montreal", "Vancouver")) %>% 
+  select(city, revenue_per_listing)
+
+#' Table 2.1
+national_comparison %>% 
+  mutate(active_daily_listings = prettyNum(round(active_daily_listings, -1), 
+                                           ","),
+         listings_per_1000 = round(listings_per_1000, 1),
+         revenue = prettyNum(round(revenue, -5), ","),
+         revenue_per_listing = prettyNum(round(revenue_per_listing, -2), ","))
+
+
 # Location of STR listings and revenue ------------------------------------
 
 boroughs_breakdown <- 
@@ -272,7 +313,7 @@ boroughs_breakdown %>%
   slice(c(8, 14)) %>% 
   select(borough, listings_pct:rev_pct)
 
-#' Table 2.1
+#' Table 2.2
 boroughs_breakdown %>% 
   set_names(c("Borough",
               "Daily active listings (average)",
@@ -306,47 +347,6 @@ daily %>%
   summarize(active_listings = round(mean(n), digit = -1)) %>% 
   pull(active_listings) %>% 
   {. / sum(boroughs$dwellings)}
-
-
-# Montreal in comparison with other major Canadian cities -----------------
-
-load("output/national_comparison.Rdata")
-
-#' In 2019, Montreal had the second largest STR market in the country by both 
-#' active listing numbers (9,100 [1]) and host revenue ($222.7 million [2]), 
-#' falling in both cases behind Toronto (Table 2.2). However, in relative terms 
-#' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
-#' had the most active listings per 1000 households (13.4 [3] compared to 
-#' 10.7 [3] in Montreal) and the most revenue per listing ($38,500 [4] compared 
-#' to $24,700 [4] in Montreal).
-
-#' [1] Daily active listings
-daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date, 
-         date <= LTM_end_date) %>% 
-  count(date) %>% 
-  summarize(active_listings = round(mean(n), digit = -1))
-
-#' [2] Annual host revenue
-prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
-
-#' [3] Vancouver and Montreal listings per 1000 households
-national_comparison %>% 
-  filter(city %in% c("Montreal", "Vancouver")) %>% 
-  select(city, listings_per_1000)
-
-#' [4] Vancouver and Montreal revenue per listing
-national_comparison %>% 
-  filter(city %in% c("Montreal", "Vancouver")) %>% 
-  select(city, revenue_per_listing)
-
-#' Table 2.2
-national_comparison %>% 
-  mutate(active_daily_listings = prettyNum(round(active_daily_listings, -1), 
-                                           ","),
-         listings_per_1000 = round(listings_per_1000, 1),
-         revenue = prettyNum(round(revenue, -5), ","),
-         revenue_per_listing = prettyNum(round(revenue_per_listing, -2), ","))
 
 
 # Listing types and sizes -------------------------------------------------
@@ -447,7 +447,7 @@ active_tenure_2019 <-
 
 borough_tenure <- 
   DA_probabilities_2019 %>% 
-  mutate(across(c(p_condo, p_owner, p_renter), ~{.x * dwellings})) %>% 
+  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
   mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
   select(dwellings:p_renter, geometry) %>% 
   st_interpolate_aw(boroughs, extensive = TRUE) %>% 
@@ -455,49 +455,24 @@ borough_tenure <-
   select(-Group.1) %>% 
   rename(dwellings_agg = dwellings,
          n_condo = p_condo,
-         n_owner = p_owner,
          n_renter = p_renter) %>% 
   cbind(boroughs, .) %>% 
   as_tibble() %>% 
   st_as_sf() %>% 
-  mutate(across(c(n_condo, n_owner, n_renter), 
+  mutate(across(c(n_condo, n_renter), 
                 ~{.x * dwellings / dwellings_agg})) %>% 
   select(-dwellings_agg)
 
-tenure_breakdown <- 
-  borough_condos %>% 
-  left_join(active_condos_2017) %>% 
-  left_join(active_condos_2019) %>% 
-  relocate(geometry, .after = last_col()) %>% 
-  mutate(`Number of STRs in condos` = round(n_condo_listings_2019, digits = 1),
-         `% of STRs in condos (2019)` = 
-           n_condo_listings_2019 / n_listings_2019,
-         `% change in % of STRs in condos (2017 to 2019)` =
-           (n_condo_listings_2019 / n_listings_2019) / 
-           (n_condo_listings_2017 / n_listings_2017) - 1) %>% 
-  select(Borough = borough, `Number of STRs in condos`, 
-         `% of STRs in condos (2019)`, 
-         `% change in % of STRs in condos (2017 to 2019)`)
-  
-condo_breakdown %>% 
-  st_drop_geometry() %>% 
-  arrange(desc(`Number of STRs in condos`)) %>%
-  slice(1:11) %>% 
-  mutate(`Number of STRs in condos` = round(`Number of STRs in condos`, 
-                                            digit = -1)) %>%
-  gt() %>% 
-  tab_header(
-    title = "Condo breakdown",
-    subtitle = 
-      "Number of STRs in condos and percentage of STRs in condos by borough"
-    ) %>%
-  opt_row_striping() %>% 
-  fmt_percent(columns = 3:4, decimals = 1) %>% 
-  fmt_number(columns = 2,
-             decimals = 0)
-
-
-
+tenure_breakdown <-
+  borough_tenure %>% 
+  left_join(active_tenure_2017) %>% 
+  left_join(active_tenure_2019) %>% 
+  relocate(geometry, .after = last_col()) %>%
+  transmute(borough, n_condo_2017, n_renter_2017, n_condo_2019, n_renter_2019,
+            condo_pct_2017 = n_condo_2017 / n_listings_2017,
+            condo_pct_2019 = n_condo_2019 / n_listings_2019,
+            renter_pct_2017 = n_renter_2017 / n_listings_2017,
+            renter_pct_2019 = n_renter_2019 / n_listings_2019)
 
 #' Of all the listings active during 2019, 11.2% [1] were identified as 
 #' condominiums in this way, making condominiums the second most common 
@@ -550,10 +525,47 @@ property %>%
   st_drop_geometry() %>% 
   summarize(cor = cor(p_condo, condo_pct, use = "complete.obs"))
 
+#' Table 2.4
+tenure_breakdown %>% 
+  st_drop_geometry() %>% 
+  mutate(listings_2017 = n_condo_2017 / condo_pct_2017,
+         listings_2019 = n_condo_2019 / condo_pct_2019) %>% 
+  summarize(
+    borough = "City of Montreal",
+    n_condo_2017 = sum(n_condo_2017),
+    n_renter_2017 = sum(n_renter_2017),
+    n_condo_2019 = sum(n_condo_2019),
+    n_renter_2019 = sum(n_renter_2019),
+    condo_pct_2017 = n_condo_2017 / sum(listings_2017),
+    condo_pct_2019 = n_condo_2019 / sum(listings_2019),
+    renter_pct_2017 = n_renter_2017 / sum(listings_2017),
+    renter_pct_2019 = n_renter_2019 / sum(listings_2019)) %>% 
+  bind_rows(st_drop_geometry(tenure_breakdown)) %>% 
+  mutate(`Number of STRs in condos` = round(n_condo_2019, digits = 1),
+         `% of STRs in condos (2019)` = condo_pct_2019,
+         `% change in % of STRs in condos (2017 to 2019)` =
+           (condo_pct_2019 - condo_pct_2017) / condo_pct_2017,
+         `Number of STRs in rental units` = round(n_renter_2019, digits = 1),
+         `% of STRs in rental units (2019)` = renter_pct_2019,
+         `% change in % of STRs in rental units (2017 to 2019)` =
+           (renter_pct_2019 - renter_pct_2017) / renter_pct_2017) %>% 
+  select(-c(n_condo_2017:renter_pct_2019)) %>% 
+  rename(Borough = borough) %>% 
+  arrange(desc(`Number of STRs in condos`)) %>%
+  slice(1:12) %>% 
+  mutate(`Number of STRs in condos` = round(`Number of STRs in condos`, 
+                                            digit = -1),
+         `Number of STRs in rental units` = 
+           round(`Number of STRs in rental units`, digit = -1)) %>%
+  gt() %>% 
+  tab_header(title = "Tenure breakdown",
+             subtitle = "STRs in condominiums and rental units by borough") %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = c(3:4, 6:7), decimals = 1) %>% 
+  fmt_number(columns = c(2, 5), decimals = 0)
 
 
-
-
+# Revenue distribution ----------------------------------------------------
 
 
 

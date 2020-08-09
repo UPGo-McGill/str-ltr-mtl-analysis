@@ -99,7 +99,6 @@ calculate_DA_prob <- function(df) {
     mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, .x))) %>% 
     left_join(DAs_raffle) %>% 
     st_as_sf()
-  
 }
 
 
