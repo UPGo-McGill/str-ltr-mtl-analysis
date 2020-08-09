@@ -571,5 +571,3 @@ daily %>%
   filter(date == key_date)
 
 
-
-
