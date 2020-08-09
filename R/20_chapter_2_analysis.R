@@ -300,6 +300,30 @@ daily %>%
   summarize(mean(n) + 960) # +960 to account for HA
 
 
+# YGrowth of reservations
+#2018 to 2019
+daily %>% 
+  filter(status == "R", date >= "2018-01-01", 
+         date <= "2018-12-31") %>% 
+  nrow()
+daily %>% 
+  filter(status == "R", date >= "2019-01-01", 
+         date <= "2019-12-31") %>% 
+  nrow()
+
+(daily %>% 
+  filter(status == "R", date >= "2019-01-01", 
+         date <= "2019-12-31") %>% 
+  nrow() - 
+  daily %>% 
+  filter(status == "R", date >= "2018-01-01", 
+         date <= "2018-12-31") %>% 
+  nrow() )/
+  daily %>% 
+  filter(status == "R", date >= "2018-01-01", 
+         date <= "2018-12-31") %>% 
+  nrow()
+
 
 # YOY growth of revenue
 # 2019 to 2020
@@ -565,7 +589,5 @@ daily %>%
   group_by(date) %>% 
   summarize(Listings = sum(multi)) %>% 
   filter(date == key_date)
-
-
 
 
