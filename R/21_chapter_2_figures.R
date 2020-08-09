@@ -104,7 +104,7 @@ figure_2_2 <-
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(-1, NA), 
                      labels = scales::percent) +
-  scale_color_manual(name = NULL, values = col_palette[c(5,1)]) +
+  scale_color_manual(name = NULL, values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
@@ -252,12 +252,12 @@ figure_2_5 <-
   geom_point(data = filter(condo_scatter, borough == "Other"),
              colour = "grey") +
   geom_point(data = filter(condo_scatter, borough == "Le Plateau-Mont-Royal"),
-             colour = col_palette[3]) +
+             colour = col_palette[5]) +
   geom_point(data = filter(condo_scatter, borough == "Ville-Marie"),
              colour = col_palette[1]) +
   geom_smooth(method = lm, se = FALSE) +
   scale_colour_manual(name = "Borough", 
-                      values = c("grey", col_palette[3], col_palette[1])) +
+                      values = c("grey", col_palette[c(5, 1)])) +
   scale_x_continuous(name = "% condominiums",
                      labels = scales::percent) +
   scale_y_continuous(name = "% STRs", 
@@ -275,66 +275,65 @@ ggsave("output/figures/figure_2_5.pdf", plot = figure_2_5, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_5.pdf")
 
 
+# Figure 2.6 Host revenue distribution ------------------------------------
 
-### FIGURE 2.6 - STR host revenue distribution in Montreal #####################################################
-
-color <- colorRampPalette(RColorBrewer::brewer.pal(name="RdYlBu", n = 9))(10)
-
-
-weighted_bar_graph <- daily %>%
-  filter(housing == TRUE, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>%
+percentiles <- 
+  daily %>%
+  filter(housing == TRUE, date >= LTM_start_date, date <= LTM_end_date, 
+         status == "R") %>%
   group_by(host_ID) %>%
-  summarize(rev = sum(price)) %>% #*exchange_rate
-  filter(rev > 0) %>%
-  summarize(
-    `Top 10%` = sum(rev[rev > quantile(rev, c(0.90))] / sum(rev)),
-    `Top 20%` = sum(rev[rev > quantile(rev, c(0.80))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.90))] / sum(rev)),
-    `Top 30%` = sum(rev[rev > quantile(rev, c(0.70))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.80))] / sum(rev)),
-    `Top 40%` = sum(rev[rev > quantile(rev, c(0.60))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.70))] / sum(rev)),
-    `Top 50%` = sum(rev[rev > quantile(rev, c(0.50))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.60))] / sum(rev)),
-    `Top 60%` = sum(rev[rev > quantile(rev, c(0.40))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.50))] / sum(rev)),
-    `Top 70%` = sum(rev[rev > quantile(rev, c(0.30))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.40))] / sum(rev)),
-    `Top 80%` = sum(rev[rev > quantile(rev, c(0.20))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.30))] / sum(rev)),
-    `Top 90%` = sum(rev[rev > quantile(rev, c(0.10))] / sum(rev)) - sum(rev[rev > quantile(rev, c(0.20))] / sum(rev)),
-    `Top 100%` = sum(rev[rev > quantile(rev, c(0.00))] / sum(rev))- sum(rev[rev > quantile(rev, c(0.10))] / sum(rev))
-  )%>% 
-  gather(`Top 10%`, `Top 20%`, `Top 30%`, `Top 40%`, `Top 50%`, 
-         `Top 60%`, `Top 70%`, `Top 80%`, `Top 90%`, `Top 100%`, 
-         key = "percentile", value = "value") %>% 
-  mutate(percentile = factor(percentile, 
-                             levels = c('Top 10%', 'Top 20%', 'Top 30%', 'Top 40%', 'Top 50%', 
-                                        'Top 60%', 'Top 70%', 'Top 80%', 'Top 90%', 'Top 100%'))
-  ) 
+  summarize(rev = sum(price)) %>% 
+  filter(rev > 0) %>% 
+  summarize(top_10 = sum(rev[rev > quantile(rev, c(0.90))] / sum(rev)),
+            top_20 = sum(rev[rev > quantile(rev, c(0.80))] / sum(rev)) - top_10,
+            top_30 = sum(rev[rev > quantile(rev, c(0.70))] / sum(rev)) - top_20,
+            top_40 = sum(rev[rev > quantile(rev, c(0.60))] / sum(rev)) - top_30,
+            top_50 = sum(rev[rev > quantile(rev, c(0.50))] / sum(rev)) - top_40,
+            top_60 = sum(rev[rev > quantile(rev, c(0.40))] / sum(rev)) - top_50,
+            top_70 = sum(rev[rev > quantile(rev, c(0.30))] / sum(rev)) - top_60,
+            top_80 = sum(rev[rev > quantile(rev, c(0.20))] / sum(rev)) - top_70,
+            top_90 = sum(rev[rev > quantile(rev, c(0.10))] / sum(rev)) - top_80,
+            top_100 = sum(rev[rev > quantile(rev, c(0.00))] / sum(rev)) - top_90
+            ) %>% 
+  pivot_longer(starts_with("top"), names_to = "percentile", 
+               values_to = "value") %>% 
+  mutate(percentile = factor(percentile, levels = paste0("top_", 1:10*10))) %>% 
+  mutate(perfect_distribution = 0.1,
+         ventile = 1:10,
+         dummy_1 = perfect_distribution,
+         dummy_2 = value)
 
-weighted_bar_graph$perfect_distribution <- 0.1
-weighted_bar_graph$ventile <- 1:10
-weighted_bar_graph$dummy1 <- weighted_bar_graph$perfect_distribution
-weighted_bar_graph$dummy2 <- weighted_bar_graph$value
+color <- colorRampPalette(col_palette[c(1, 4, 3)])(10)
 
-
-stacked_area_graph <- weighted_bar_graph %>%  
-  rename("0"=perfect_distribution, "1"=value, "0.25"=dummy1, "0.75"=dummy2) %>%
-  pivot_longer(c("0","0.25", "0.75", "1")) %>% 
-  ggplot()+
-  geom_area(aes(x=(as.numeric(name)), y=value, group=ventile, fill=ventile), colour="white", lwd=1.5)+
+# figure_2_6 <-
+  percentiles %>%  
+  rename("0" = perfect_distribution, "1" = value, "0.25" = dummy_1, 
+         "0.75" = dummy_2) %>%
+  pivot_longer(c("0","0.25", "0.75", "1"), names_to = "position") %>% 
+  mutate(name = as.numeric(position)) %>% 
+  ggplot(aes(position, value, group = ventile, fill = ventile)) +
+  geom_area(colour = "white", lwd = 1.5) +
   scale_y_continuous(position = "left", 
                      breaks = seq(0, 1, by = 0.05), 
-                     label = c(" ", "Top 100%", " ","Top 90%", " ", "Top 80%"," ", "Top 70%", " ", "Top 60%", 
-                               " ", "Top 50%", " ", "Top 40%", " ", "Top 30%", " ", "Top 20%", " ", "Top 10%", " "))+
-  scale_fill_gradientn(colours=color)+
-  theme_void()+
+                     label = c(" ", "Top 100%", " ", "Top 90%", " ", "Top 80%",
+                               " ", "Top 70%", " ", "Top 60%", " ", "Top 50%", 
+                               " ", "Top 40%", " ", "Top 30%", " ", "Top 20%", 
+                               " ", "Top 10%", " ")) +
+  scale_fill_gradientn(colours = color) +
+  theme_void() +
   theme(legend.position = "none",
         axis.text.y = element_text(angle = 20, hjust = 1),
         axis.title.x = element_blank(), 
         axis.title.y = element_blank(),
         axis.text.x = element_blank())
 
-# use ggsave to change height of graph
+ggsave("output/figures/figure_2_6.pdf", plot = figure_2_6, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
-ggsave("Downloads/stacked_area_graph.pdf", plot = stacked_area_graph, width =7, 
-       height = 8, units = "in")
+extrafont::embed_fonts("output/figures/figure_2_6.pdf")
 
-### FIGURE 2.7 - Multilistings #####################################################
+
+# Figure 2.7 Multilistings ------------------------------------------------
 
 daily %>% 
   filter(status != "B") %>% 
