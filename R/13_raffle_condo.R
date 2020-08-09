@@ -21,15 +21,13 @@ load("output/str_processed.Rdata")
 DAs_raffle <-
   cancensus::get_census(
     dataset = "CA16", regions = list(CSD = c("2466023")), level = "DA",
-    vectors = c("v_CA16_4840", "v_CA16_4841", "v_CA16_4836", "v_CA16_4837", 
-                "v_CA16_4838"),
+    vectors = c("v_CA16_4840", "v_CA16_4841", "v_CA16_4836", "v_CA16_4838"),
     geo_format = "sf") %>% 
   st_transform(32618) %>% 
   select(-c(`Shape Area`:Households, CSD_UID:`Area (sq km)`)) %>% 
   set_names(c("GeoUID", "dwellings", "parent_condo", "condo", "parent_tenure", 
-              "owner", "renter", "geometry")) %>% 
+              "renter", "geometry")) %>% 
   mutate(p_condo = condo / parent_condo,
-         p_owner = owner / parent_tenure,
          p_renter = renter / parent_tenure) %>% 
   select(GeoUID, dwellings, p_condo:p_renter) %>% 
   as_tibble() %>% 
@@ -93,11 +91,11 @@ calculate_DA_prob <- function(df) {
     unnest(candidates) %>% 
     left_join(st_drop_geometry(DAs_raffle), by = c("poly_ID" = "GeoUID")) %>%
     group_by(property_ID) %>% 
-    mutate(across(c(p_condo, p_renter, p_owner), 
+    mutate(across(c(p_condo, p_renter), 
                   ~{.x * probability / sum(probability)})) %>% 
     group_by(GeoUID = poly_ID) %>% 
-    summarize(across(c(p_condo, p_renter, p_owner), sum, na.rm = TRUE)) %>% 
-    rename(n_condo = p_condo, n_renter = p_renter, n_owner = p_owner) %>% 
+    summarize(across(c(p_condo, p_renter), sum, na.rm = TRUE)) %>% 
+    rename(n_condo = p_condo, n_renter = p_renter) %>% 
     mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, .x))) %>% 
     left_join(DAs_raffle) %>% 
     st_as_sf()

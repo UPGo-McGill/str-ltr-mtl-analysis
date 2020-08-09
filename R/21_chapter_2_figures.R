@@ -78,7 +78,46 @@ ggsave("output/figures/figure_2_1.pdf", plot = figure_2_1, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_1.pdf")
 
 
-# Figure 2.2 Active listings as a share of dwellings ----------------------
+# Figure 2.2 YOY listing and revenue growth rates -------------------------
+
+daily_variation <- 
+  daily %>% 
+  filter(housing, status != "B", date >= "2015-12-16", date != "2020-02-29") %>% 
+  group_by(date) %>% 
+  summarize("Active listings" = n(), Revenue = sum(price[status == "R"])) %>% 
+  mutate(across(where(is.numeric), 
+                function(x) slide_dbl(x, ~{(.x[366] - .x[1]) / .x[1]}, 
+                                      .before = 365, .complete = FALSE))) %>% 
+  pivot_longer(-date, names_to = "var", values_to = "value") %>% 
+  group_by(var) %>% 
+  mutate(value = slide_dbl(value, mean, .before = 13, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(date >= "2017-05-01")
+
+figure_2_2 <- 
+  daily_variation %>% 
+  ggplot(aes(date, value, colour = var)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+           ymin = -Inf, ymax = Inf, alpha = .2) +
+  geom_line(lwd = 1) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, limits = c(-1, NA), 
+                     labels = scales::percent) +
+  scale_color_manual(name = NULL, values = col_palette[c(5,1)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figures/figure_2_2.pdf", plot = figure_2_2, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_2.pdf")
+
+
+
+# Figure 2.3 Active listings as a share of dwellings ----------------------
 
 active_borough <-
   daily %>%
@@ -107,13 +146,14 @@ active_DA <-
 make_listing_map <- function(df) {
   ggplot(df) +
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
-    geom_sf(aes(fill = percentage), lwd = 0, colour = NA) +
+    geom_sf(aes(fill = percentage),
+            colour = if (nrow(df) == 19) "white" else "transparent") +
     scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
                          limits = c(0, 0.05), oob = scales::squish, 
                          labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "STRs/\ndwelling",
                                   title.vjust = 1)) + 
-    gg_bbox(active_borough) +
+    gg_bbox(df) +
     theme_void() +
     theme(text = element_text(family = "Futura", face = "plain"),
           legend.title = element_text(family = "Futura", face = "bold",
@@ -123,55 +163,12 @@ make_listing_map <- function(df) {
           panel.border = element_rect(colour = "white", size = 2))
 }
 
-figure_2_2_left <-
-  active_borough %>% 
-  make_listing_map()
-
-figure_2_2_right <-
-  active_DA %>% 
-  make_listing_map()
-
-figure_2_2 <- 
-  figure_2_2_left + figure_2_2_right + plot_layout(ncol = 2) + 
-  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
-
-ggsave("output/figures/figure_2_2.pdf", plot = figure_2_2, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
-
-extrafont::embed_fonts("output/figures/figure_2_2.pdf")
-
-
-# Figure 2.3 YOY listing and revenue growth rates -------------------------
-
-daily_variation <- 
-  daily %>% 
-  filter(housing, status != "B", date >= "2015-12-16", date != "2020-02-29") %>% 
-  group_by(date) %>% 
-  summarize("Active listings" = n(), Revenue = sum(price[status == "R"])) %>% 
-  mutate(across(where(is.numeric), 
-                function(x) slide_dbl(x, ~{(.x[366] - .x[1]) / .x[1]}, 
-                                      .before = 365, .complete = FALSE))) %>% 
-  pivot_longer(-date, names_to = "var", values_to = "value") %>% 
-  group_by(var) %>% 
-  mutate(value = slide_dbl(value, mean, .before = 13, .complete = TRUE)) %>% 
-  ungroup() %>% 
-  filter(date >= "2017-05-01")
+figure_2_3_left <- make_listing_map(active_borough)
+figure_2_3_right <-  make_listing_map(active_DA)
 
 figure_2_3 <- 
-  daily_variation %>% 
-  ggplot(aes(date, value, colour = var)) +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
-           ymin = -Inf, ymax = Inf, alpha = .2) +
-  geom_line(lwd = 1) +
-  scale_x_date(name = NULL) +
-  scale_y_continuous(name = NULL, limits = c(-1, NA), 
-                     labels = scales::percent) +
-  scale_color_manual(name = NULL, values = col_palette[c(5,1)]) +
-  theme_minimal() +
-  theme(legend.position = "bottom",
-        panel.grid.minor.x = element_blank(),
-        text = element_text(family = "Futura"))
+  figure_2_3_left + figure_2_3_right + plot_layout(ncol = 2) + 
+  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_2_3.pdf", plot = figure_2_3, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -179,49 +176,103 @@ ggsave("output/figures/figure_2_3.pdf", plot = figure_2_3, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_3.pdf")
 
 
-
-
-### FIGURE 2.4 - Estimated percentage of listings located in condos ############
+# Figure 2.4 Percentage of listings in condos -----------------------------
 
 load("output/raffle_condo.Rdata")
 
-DA_probabilities_2019 %>% 
-  ggplot()+
-  geom_sf(aes(fill=p_condo), colour=NA)+
-  scale_fill_gradientn(name="Percentage of condo STRs",
-                       colors = col_palette[c(3, 4, 1)],
-                       labels = scales::percent)+ #limits = c(0,1000)
-  theme_void()+
+active_condos_borough <- 
+  daily %>% 
+  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  left_join(listing_probabilities_2019) %>% 
+  group_by(date, borough) %>% 
+  summarize(n_listings = n(),
+            n_condo = sum(p_condo, na.rm = TRUE)) %>% 
+  group_by(borough) %>% 
+  summarize(n_listings_2019 = mean(n_listings),
+            n_condo_listings_2019 = mean(n_condo)) %>% 
+  left_join(boroughs, .) %>% 
+  mutate(p_condo = n_condo_listings_2019 / n_listings_2019)
+
+make_condo_map <- function(df) {
+  ggplot(df) +
+    geom_sf(data = province, colour = "transparent", fill = "grey93") +
+    geom_sf(aes(fill = p_condo), 
+            colour = if (nrow(df) == 19) "white" else "transparent") +
+    scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
+                         limits = c(0, 1), oob = scales::squish, 
+                         labels = scales::percent)  +
+    guides(fill = guide_colourbar(title = "% of STRs\nwhich are condos",
+                                  title.vjust = 1)) + 
+    gg_bbox(df) +
+    theme_void() +
+    theme(text = element_text(family = "Futura", face = "plain"),
+          legend.title = element_text(family = "Futura", face = "bold",
+                                      size = 7),
+          legend.title.align = 0.9,
+          legend.text = element_text(family = "Futura", size = 5),
+          panel.border = element_rect(colour = "white", size = 2))
+}
+
+figure_2_4_left <- make_condo_map(active_condos_borough)
+figure_2_4_right <- make_condo_map(DA_probabilities_2019)
+
+figure_2_4 <- 
+  figure_2_4_left + figure_2_4_right + plot_layout(ncol = 2) + 
+  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+
+ggsave("output/figures/figure_2_4.pdf", plot = figure_2_4, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_4.pdf")
+
+
+# Figure 2.5 condo scatterplot --------------------------------------------
+
+condo_scatter <-
+  listing_probabilities_2019 %>%
+  left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>%
+  count(GeoUID) %>% 
+  left_join(select(DA_probabilities_2019, GeoUID, dwellings, p_condo, geometry), 
+            .) %>% 
+  mutate(str_pct = n / dwellings) %>% 
+  select(GeoUID, dwellings, p_condo, str_pct, geometry) %>% 
+  left_join(select(st_drop_geometry(st_join(st_centroid(DA), boroughs)), 
+                   -dwellings.x, -dwellings.y)) %>% 
+  mutate(borough = case_when(
+    borough == "Ville-Marie" ~ "Ville-Marie",
+    borough == "Le Plateau-Mont-Royal" ~ "Le Plateau-Mont-Royal",
+    TRUE ~ "Other")) %>% 
+  mutate(borough = factor(borough, levels = c("Other", "Le Plateau-Mont-Royal",
+                                              "Ville-Marie")))
+
+figure_2_5 <- 
+  condo_scatter %>% 
+  ggplot(aes(p_condo, str_pct, colour = borough)) +
+  geom_point() + 
+  geom_point(data = filter(condo_scatter, borough == "Other"),
+             colour = "grey") +
+  geom_point(data = filter(condo_scatter, borough == "Le Plateau-Mont-Royal"),
+             colour = col_palette[3]) +
+  geom_point(data = filter(condo_scatter, borough == "Ville-Marie"),
+             colour = col_palette[1]) +
+  geom_smooth(method = lm, se = FALSE) +
+  scale_colour_manual(name = "Borough", 
+                      values = c("grey", col_palette[3], col_palette[1])) +
+  scale_x_continuous(name = "% condominiums",
+                     labels = scales::percent) +
+  scale_y_continuous(name = "% STRs", 
+                     labels = scales::percent_format(accuracy = 1), 
+                     limits = c(NA, 0.5)) +
+  theme_minimal() +
   theme(legend.position = "bottom",
-        #text = element_text(family = "Futura"),
-  )
-
-### FIGURE 2.4 - Relationship between the percentage of condos and STR concentration by borough ####
-
-listing_probabilities_2019 %>%
-  left_join(., property, by="property_ID") %>%         #join to property_ID to get the borough
-  left_join(., DA, by="GeoUID") %>%                    #join to DA to get the dwellings
-  #st_drop_geometry() %>% 
-  group_by(GeoUID, borough) %>% 
-  summarize(`Percentage of STRs by dwellings`= n()/(sum(dwellings)/n()),
-            `Percentage of DA that is condos` = sum(p_condo)/n()
-            ) %>%
-  filter(`Percentage of STRs by dwellings` <0.5) %>% 
-  ggplot(aes(x=`Percentage of DA that is condos`, 
-             y=`Percentage of STRs by dwellings`, 
-             colour = case_when(borough == "Ville-Marie" ~ "Ville-Marie",
-                                borough == "Le Plateau-Mont-Royal" ~ "Le Plateau-Mont-Royal",
-                                TRUE ~ "Other")))+
-  geom_point()+  
-  geom_smooth(method=lm, se=FALSE)+
-  scale_colour_manual(name = "Borough", values=c(col_palette[3], "grey", col_palette[1]))+
-  scale_x_continuous(labels = scales::percent)+
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
-  theme_minimal()+
-  theme(aspect.ratio=1,
-        legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank())
+        text = element_text(family = "Futura"),
+        legend.title = element_text(family = "Futura", face = "bold"))
+
+ggsave("output/figures/figure_2_5.pdf", plot = figure_2_5, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_5.pdf")
 
 
 

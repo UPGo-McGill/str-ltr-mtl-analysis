@@ -103,13 +103,13 @@ property <-
   property %>% 
   strr_raffle(DA, GeoUID, dwellings, seed = 1)
 
-# # Run raffle to assign a parcel to each listing
-# uef <- 
-#   read_sf("data/shapefiles/uniteevaluationfonciere.shp") %>% 
-#   st_transform(32618) %>% 
-#   filter(!is.na(NOMBRE_LOG)) %>% 
-#   as_tibble() %>% 
-#   distinct(ID_UEV, .keep_all = TRUE) %>% 
+# Run raffle to assign a parcel to each listing
+# uef <-
+#   read_sf("data/shapefiles/uniteevaluationfonciere.shp") %>%
+#   st_transform(32618) %>%
+#   filter(!is.na(NOMBRE_LOG)) %>%
+#   as_tibble() %>%
+#   distinct(ID_UEV, .keep_all = TRUE) %>%
 #   st_as_sf()
 # 
 # property <-

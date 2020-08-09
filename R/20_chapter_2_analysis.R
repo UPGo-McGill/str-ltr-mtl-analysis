@@ -141,125 +141,6 @@ daily %>%
   summarize(across(c(active_listings, revenue), ~{(.x[2] - .x[1]) / .x[1]}))
 
 
-# Montreal in comparison with other major Canadian cities -----------------
-
-load("output/national_comparison.Rdata")
-
-#' In 2019, Montreal had the second largest STR market in the country by both 
-#' active listing numbers (9,100 [1]) and host revenue ($222.7 million [2]), 
-#' falling in both cases behind Toronto (Table 2.1). However, in relative terms 
-#' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
-#' had the most active listings per 1000 households (13.4 [3] compared to 
-#' 10.7 [3] in Montreal) and the most revenue per listing ($38,500 [4] compared 
-#' to $24,700 [4] in Montreal).
-
-#' [1] Daily active listings
-daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date, 
-         date <= LTM_end_date) %>% 
-  count(date) %>% 
-  summarize(active_listings = round(mean(n), digit = -1))
-
-#' [2] Annual host revenue
-prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
-
-#' [3] Vancouver and Montreal listings per 1000 households
-national_comparison %>% 
-  filter(city %in% c("Montreal", "Vancouver")) %>% 
-  select(city, listings_per_1000)
-
-#' [4] Vancouver and Montreal revenue per listing
-national_comparison %>% 
-  filter(city %in% c("Montreal", "Vancouver")) %>% 
-  select(city, revenue_per_listing)
-
-#' Table 2.1
-national_comparison %>% 
-  mutate(active_daily_listings = prettyNum(round(active_daily_listings, -1), 
-                                           ","),
-         listings_per_1000 = round(listings_per_1000, 1),
-         revenue = prettyNum(round(revenue, -5), ","),
-         revenue_per_listing = prettyNum(round(revenue_per_listing, -2), ","))
-
-
-# Location of STR listings and revenue ------------------------------------
-
-boroughs_breakdown <- 
-  daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date, 
-         date <= LTM_end_date) %>% 
-  group_by(date, borough) %>% 
-  summarize(n = n(),
-            revenue = sum(price[status == "R"])) %>% 
-  left_join(st_drop_geometry(boroughs)) %>% 
-  group_by(borough, dwellings) %>% 
-  summarize(active_listings = mean(n),
-            annual_rev = sum(revenue), 
-            .groups = "drop") %>% 
-  mutate(listings_pct = active_listings / sum(active_listings),
-         rev_pct = annual_rev / sum(annual_rev),
-         listings_pct_dwellings = active_listings / dwellings) %>% 
-  select(-dwellings)
-
-#' STR activity in Montreal is highly concentrated in the central-city boroughs 
-#' of Ville-Marie and Le Plateau-Mont-Royal (Table 2.2). These two boroughs 
-#' accounted for 32.6% [1] and 25.9% [1] of all listings in 2019 respectively, 
-#' and even higher shares of host revenue (41.2% [1] and 29.6% [1]). The borough 
-#' with the next highest percentage of average number of daily active listings 
-#' is Rosemont-La-Petite-Patrie (8.1% [2]), followed by Le Sud-Ouest (6.9% [2]). 
-#' Each accounts for around 6% [2] of annual STR revenue in the city.
-#' 
-#' Ville-Marie and Le Plateau-Mont-Royal have by far the most STR activity when 
-#' measured in per-capita terms. In Ville-Marie, active STR listings account for 
-#' 4.8% [1] of all the borough’s housing units, while the equivalent figure for 
-#' Le Plateau-Mont-Royal is 3.7% [1] of total dwellings (Figure 2.2).
-
-#' [1] Figures for VM and LPMR
-boroughs_breakdown %>% 
-  slice(c(7, 18)) %>% 
-  select(borough, listings_pct:listings_pct_dwellings)
-
-#' [2] Figures for RLPP and LSO
-boroughs_breakdown %>% 
-  slice(c(8, 14)) %>% 
-  select(borough, listings_pct:rev_pct)
-
-#' Table 2.2
-boroughs_breakdown %>% 
-  set_names(c("Borough",
-              "Daily active listings (average)",
-              "Annual revenue (CAD)",
-              "% of all listings",
-              "% of annual revenue",
-              "Active listings as % of dwellings")) %>% 
-  filter(`Daily active listings (average)` > 100) %>% 
-  arrange(desc(`Daily active listings (average)`)) %>%
-  mutate(`Daily active listings (average)` = 
-           round(`Daily active listings (average)`, digit = -1),
-         `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
-         `Annual revenue (CAD)` = 
-           paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
-                  str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
-  gt() %>% 
-  tab_header(
-    title = "Borough breakdown",
-    subtitle = "Boroughs with more than 100 daily active listings average, 2019"
-  ) %>%
-  opt_row_striping() %>% 
-  fmt_percent(columns = 4:6, decimals = 1) %>% 
-  fmt_number(columns = 2,
-             decimals = 0)
-
-# Need to add Montreal row, with % listings per dwelling
-daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date, 
-         date <= LTM_end_date) %>% 
-  count(date) %>% 
-  summarize(active_listings = round(mean(n), digit = -1)) %>% 
-  pull(active_listings) %>% 
-  {. / sum(boroughs$dwellings)}
-
-
 # STR growth rates --------------------------------------------------------
 
 #' Overall, the year-over-year change in average active listings from 2016 to 
@@ -346,6 +227,128 @@ daily %>%
   summarize(change = (revenue[2] - revenue[1]) / revenue[1])
 
 
+# Location of STR listings and revenue ------------------------------------
+
+boroughs_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1), 
+         date <= LTM_end_date) %>% 
+  group_by(date, borough) %>% 
+  summarize(n = n(),
+            revenue = sum(price[status == "R"])) %>% 
+  left_join(st_drop_geometry(boroughs)) %>% 
+  group_by(borough, dwellings) %>% 
+  summarize(active_listings = mean(n[date >= LTM_start_date]),
+            active_2018 = mean(n[date < LTM_start_date]),
+            active_growth = (active_listings - active_2018) / active_2018,
+            annual_rev = sum(revenue[date >= LTM_start_date]),
+            rev_2018 = sum(revenue[date < LTM_start_date]),
+            rev_growth = (annual_rev - rev_2018) / rev_2018,
+            .groups = "drop") %>% 
+  mutate(listings_pct_dwellings = active_listings / dwellings) %>% 
+  select(borough, active_listings, active_growth, listings_pct_dwellings,
+         annual_rev, rev_growth)
+
+#' STR activity in Montreal is highly concentrated in the central-city boroughs 
+#' of Ville-Marie and Le Plateau-Mont-Royal (Table 2.2). These two boroughs 
+#' accounted for 32.6% [1] and 25.9% [1] of all listings in 2019 respectively, 
+#' and even higher shares of host revenue (41.2% [1] and 29.6% [1]). The borough 
+#' with the next highest percentage of average number of daily active listings 
+#' is Rosemont-La-Petite-Patrie (8.1% [2]), followed by Le Sud-Ouest (6.9% [2]). 
+#' Each accounts for around 6% [2] of annual STR revenue in the city.
+#' 
+#' Ville-Marie and Le Plateau-Mont-Royal have by far the most STR activity when 
+#' measured in per-capita terms. In Ville-Marie, active STR listings account for 
+#' 4.8% [1] of all the borough’s housing units, while the equivalent figure for 
+#' Le Plateau-Mont-Royal is 3.7% [1] of total dwellings (Figure 2.2).
+
+#' [1] Figures for VM and LPMR
+boroughs_breakdown %>% 
+  slice(c(7, 18)) %>% 
+  select(borough, listings_pct:listings_pct_dwellings)
+
+#' [2] Figures for RLPP and LSO
+boroughs_breakdown %>% 
+  slice(c(8, 14)) %>% 
+  select(borough, listings_pct:rev_pct)
+
+#' Table 2.1
+boroughs_breakdown %>% 
+  set_names(c("Borough",
+              "Daily active listings (average)",
+              "Active listing year-over-year growth rate",
+              "Active listings as % of dwellings",
+              "Annual revenue (CAD)",
+              "Annual revenue growth")) %>% 
+  filter(`Daily active listings (average)` > 100) %>% 
+  arrange(desc(`Daily active listings (average)`)) %>%
+  mutate(`Daily active listings (average)` = 
+           round(`Daily active listings (average)`, digit = -1),
+         `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
+         `Annual revenue (CAD)` = 
+           paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
+                  str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>%
+  gt() %>% 
+  tab_header(
+    title = "Borough breakdown",
+    subtitle = "Boroughs with more than 100 daily active listings average, 2019"
+  ) %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = c(3:4, 6), decimals = 1) %>% 
+  fmt_number(columns = 2,
+             decimals = 0)
+
+# Need to add Montreal row, with % listings per dwelling
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>% 
+  count(date) %>% 
+  summarize(active_listings = round(mean(n), digit = -1)) %>% 
+  pull(active_listings) %>% 
+  {. / sum(boroughs$dwellings)}
+
+
+# Montreal in comparison with other major Canadian cities -----------------
+
+load("output/national_comparison.Rdata")
+
+#' In 2019, Montreal had the second largest STR market in the country by both 
+#' active listing numbers (9,100 [1]) and host revenue ($222.7 million [2]), 
+#' falling in both cases behind Toronto (Table 2.2). However, in relative terms 
+#' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
+#' had the most active listings per 1000 households (13.4 [3] compared to 
+#' 10.7 [3] in Montreal) and the most revenue per listing ($38,500 [4] compared 
+#' to $24,700 [4] in Montreal).
+
+#' [1] Daily active listings
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>% 
+  count(date) %>% 
+  summarize(active_listings = round(mean(n), digit = -1))
+
+#' [2] Annual host revenue
+prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
+
+#' [3] Vancouver and Montreal listings per 1000 households
+national_comparison %>% 
+  filter(city %in% c("Montreal", "Vancouver")) %>% 
+  select(city, listings_per_1000)
+
+#' [4] Vancouver and Montreal revenue per listing
+national_comparison %>% 
+  filter(city %in% c("Montreal", "Vancouver")) %>% 
+  select(city, revenue_per_listing)
+
+#' Table 2.2
+national_comparison %>% 
+  mutate(active_daily_listings = prettyNum(round(active_daily_listings, -1), 
+                                           ","),
+         listings_per_1000 = round(listings_per_1000, 1),
+         revenue = prettyNum(round(revenue, -5), ","),
+         revenue_per_listing = prettyNum(round(revenue_per_listing, -2), ","))
+
+
 # Listing types and sizes -------------------------------------------------
 
 listing_type_breakdown <- 
@@ -420,29 +423,29 @@ listing_type_breakdown %>%
 
 load("output/raffle_condo.Rdata")
 
-active_condos_2017 <- 
+active_tenure_2017 <- 
   daily %>% 
   filter(housing, date >= "2017-01-01", date <= "2017-12-31", status != "B") %>% 
   left_join(listing_probabilities_2017) %>% 
   group_by(date, borough) %>% 
-  summarize(n_listings = n(),
-            n_condo = sum(p_condo, na.rm = TRUE)) %>% 
+  summarize(n_listings_2017 = n(),
+            n_condo_2017 = sum(p_condo, na.rm = TRUE),
+            n_renter_2017 = sum(p_renter, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
-  summarize(n_listings_2017 = mean(n_listings),
-            n_condo_listings_2017 = mean(n_condo))
+  summarize(across(where(is.numeric), mean))
 
-active_condos_2019 <- 
+active_tenure_2019 <- 
   daily %>% 
   filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
-  summarize(n_listings = n(),
-            n_condo = sum(p_condo, na.rm = TRUE)) %>% 
+  summarize(n_listings_2019 = n(),
+            n_condo_2019 = sum(p_condo, na.rm = TRUE),
+            n_renter_2019 = sum(p_renter, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
-  summarize(n_listings_2019 = mean(n_listings),
-            n_condo_listings_2019 = mean(n_condo))
+  summarize(across(where(is.numeric), mean))
 
-borough_condos <- 
+borough_tenure <- 
   DA_probabilities_2019 %>% 
   mutate(across(c(p_condo, p_owner, p_renter), ~{.x * dwellings})) %>% 
   mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
@@ -461,7 +464,7 @@ borough_condos <-
                 ~{.x * dwellings / dwellings_agg})) %>% 
   select(-dwellings_agg)
 
-condo_breakdown <- 
+tenure_breakdown <- 
   borough_condos %>% 
   left_join(active_condos_2017) %>% 
   left_join(active_condos_2019) %>% 
@@ -492,6 +495,69 @@ condo_breakdown %>%
   fmt_percent(columns = 3:4, decimals = 1) %>% 
   fmt_number(columns = 2,
              decimals = 0)
+
+
+
+
+#' Of all the listings active during 2019, 11.2% [1] were identified as 
+#' condominiums in this way, making condominiums the second most common 
+#' property type in Montreal. The overwhelming majority (73.5% [1]) were 
+#' identified as “Apartment”, and most of the rest were either “House” 
+#' (5.5% [1]) or “Loft” (4.7% [1]).... There are 12 dissemination areas in 
+#' Montreal in which condominiums are more than 95% of the housing stock [2]. 
+#' These 12 areas contain 104 [3] active STR listings, which by definition must 
+#' be nearly entirely condominiums. And yet only 41.3% [4] of these listings are 
+#' described as condominiums by their hosts; 42.3% [4] are described as 
+#' apartments and 8.7% [4] are described as lofts. In fact, the correlation 
+#' between the proportion of condominiums in a dissemination area and the 
+#' proportion of listings in the area which self-describe as condominiums is 
+#' only 0.07 [5]—barely different from random.
+
+#' [1] Active listing property types
+property %>% 
+  filter(property_ID %in% active_2019) %>% 
+  st_drop_geometry() %>% 
+  count(property_type, sort = TRUE) %>% 
+  mutate(pct = n / sum(n))
+
+#' [2] High-condo DAs
+high_condos <- 
+  DA_probabilities_2019 %>% 
+  filter(p_condo >= 0.95) %>% 
+  pull(GeoUID)
+
+#' [3] Listings in high-condo DAs
+property %>% 
+  filter(property_ID %in% active_2019, GeoUID %in% high_condos) %>% 
+  st_drop_geometry() %>% 
+  nrow()
+
+#' [4] Property types in high-condo DAs
+property %>% 
+  filter(property_ID %in% active_2019, GeoUID %in% high_condos) %>% 
+  st_drop_geometry() %>% 
+  count(property_type, sort = TRUE) %>% 
+  mutate(pct = n / sum(n))
+
+#' [5] Correlation between condo % and condo property_type
+property %>% 
+  filter(property_ID %in% active_2019) %>% 
+  st_drop_geometry() %>% 
+  count(GeoUID, property_type) %>% 
+  group_by(GeoUID) %>% 
+  summarize(condo_pct = n[property_type == "Condominium"] / sum(n)) %>% 
+  left_join(DA_probabilities_2019, .) %>% 
+  st_drop_geometry() %>% 
+  summarize(cor = cor(p_condo, condo_pct, use = "complete.obs"))
+
+
+
+
+
+
+
+
+
 
 
 
