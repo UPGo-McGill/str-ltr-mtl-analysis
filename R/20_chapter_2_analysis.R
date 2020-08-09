@@ -25,12 +25,19 @@ load("output/geometry.Rdata")
 
 # Prepare new objects -----------------------------------------------------
 
+# 2019 active
+active_2019 <- 
+  daily %>%
+  filter(housing, status %in% c("R", "A"), date <= LTM_end_date, 
+         date >= LTM_start_date) %>%
+  pull(property_ID) %>% 
+  unique()
+  
 # 2019 revenue
 revenue_2019 <-
   daily %>%
-  filter(housing,
-         date <= LTM_end_date, date >= LTM_start_date,
-         status == "R") %>%
+  filter(housing, status == "R", date <= LTM_end_date, 
+         date >= LTM_start_date) %>%
   group_by(property_ID) %>%
   summarize(revenue_LTM = sum(price)) %>% 
   inner_join(property, .)
@@ -242,76 +249,63 @@ daily %>%
 
 # Listing types and sizes -------------------------------------------------
 
-unique_listing_type <- unique(daily$listing_type)[1:3]
+listing_type_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date,
+         date <= LTM_end_date) %>% 
+  group_by(listing_type) %>% 
+  summarize(
+    active_listings = n() / 365,
+    revenue = sum(price[status == "R"]),
+    .groups = "drop") %>% 
+  mutate(pct_of_listings = active_listings / sum(active_listings),
+         pct_of_revenue = revenue / sum(revenue))
 
-listing_type_breakdown <- tibble(`Listing Type` = character(length = length(unique_listing_type)), 
-                                 `Daily active listings (average)` = numeric(length = length(unique_listing_type)),
-                                 `Annual revenue (CAD)` = numeric(length = length(unique_listing_type)),
-                                 `% of all listings` = numeric(length = length(unique_listing_type)),
-                                 `% of annual revenue` = numeric(length = length(unique_listing_type)),
-                                 `% average daily listing growth` = numeric(length = length(unique_listing_type))
-)
+listing_type_breakdown <- 
+  daily %>% 
+  filter(housing, status != "B", date >= "2018-01-01", date <= "2018-12-31") %>% 
+  group_by(listing_type) %>% 
+  summarize(active_2018 = n() / 365) %>% 
+  left_join(listing_type_breakdown, .) %>% 
+  mutate(pct_listing_growth = (active_listings - active_2018) / active_2018) %>% 
+  select(-active_2018)
 
+#' The vast majority of STRs in Montreal are entire homes, a category which 
+#' includes single-family homes, townhouses, apartments and condominiums. 
+#' Nearly half of these (43.6% [1]) were one-bedroom housing units, with the 
+#' remainder relatively evenly split between studio apartments (12.6% [1]), 
+#' two-bedroom units (27.6% [1]), and three-or-more-bedroom units (16.1% [1]). 
+#' In 2019 entire-home listings accounted for 75.6% [2] of all daily active 
+#' listings, and 91.0% [3] of total host revenue. Private rooms accounted for 
+#' nearly all of the remainder.
 
-for (i in 1:length(unique_listing_type)) { 
-  
-  listing_type_breakdown[i,1] <- unique_listing_type[[i]]
-  
-  listing_type_breakdown[i,2] <- daily %>%
-    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
-           listing_type == unique_listing_type[[i]]) %>%
-    count(date) %>% 
-    summarize(mean(n))
-  
-  listing_type_breakdown[i,3] <- daily %>%
-    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
-           listing_type == unique_listing_type[[i]]) %>%
-    summarize(sum(price ))
-  
-  listing_type_breakdown[i,4] <- daily %>%
-    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
-           listing_type == unique_listing_type[[i]]) %>%
-    nrow() /
-    daily %>%
-    filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>%
-    nrow()
-  
-  listing_type_breakdown[i,5] <- daily %>%
-    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date,
-           listing_type == unique_listing_type[[i]]) %>%
-    summarize(sum(price)) /
-    daily %>%
-    filter(housing, status == "R", date >= LTM_start_date, date <= LTM_end_date) %>%
-    summarize(sum(price))
-  
-  listing_type_breakdown[i,6] <- (
-    daily %>%
-      filter(housing, status != "B", date >= LTM_start_date, date <= LTM_end_date,
-             listing_type == unique_listing_type[[i]]) %>%
-      count(date) %>%
-      summarize(mean(n, na.rm = T)) -
-      daily %>%
-      filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
-             listing_type == unique_listing_type[[i]]) %>%
-      count(date) %>%
-      summarize(mean(n, na.rm = T))
-  ) /
-    daily %>%
-    filter(housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1),
-           listing_type == unique_listing_type[[i]]) %>%
-    count(date) %>%
-    summarize(mean(n, na.rm = T))
-  
-  
-}
+#' [1] Bedroom counts
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% active_2019, listing_type == "Entire home/apt") %>% 
+  mutate(bedrooms = if_else(bedrooms >= 3, "3+", as.character(bedrooms))) %>% 
+  count(bedrooms) %>% 
+  mutate(percentage = n / sum(n))
 
+#' [2] EH listings and revenue
 listing_type_breakdown %>% 
-  arrange(desc(`Daily active listings (average)`)) %>%
-  mutate(`Daily active listings (average)` = round(`Daily active listings (average)`, digit=-1),
-         `Annual revenue (CAD)` = round(`Annual revenue (CAD)`),
-         `Annual revenue (CAD)` = paste0("$", str_sub(`Annual revenue (CAD)`, 1, -7), ".",
-                                         str_sub(`Annual revenue (CAD)`, -6, -6), " million")) %>% 
-  rename(`% average daily listing growth (YOY 2018-2019)` = `% average daily listing growth`) %>% 
+  filter(listing_type == "Entire home/apt") %>% 
+  select(-active_listings, -revenue)
+
+#' Table 2.3
+listing_type_breakdown %>%
+  mutate(active_listings = round(active_listings, digits = -1),
+         revenue = round(revenue, digits = -5),
+         pct_of_listings = round(pct_of_listings, digits = 3),
+         pct_of_revenue = round(pct_of_revenue, digits = 3),
+         pct_listing_growth = round(pct_listing_growth, digits = 3)) %>% 
+  rename(`Listing type` = listing_type,
+         `Daily active listings (average)` = active_listings,
+         `Annual revenue (CAD)` = revenue,
+         `% of active listings` = pct_of_listings,
+         `% of annual revenue` = pct_of_revenue,
+         `% average daily listing growth (YOY 2018-2019)` = pct_listing_growth
+         ) %>% 
   gt() %>% 
   tab_header(
     title = "Listing type breakdown",
@@ -321,21 +315,6 @@ listing_type_breakdown %>%
   fmt_percent(columns = 4:6, decimals = 1) %>% 
   fmt_number(columns = 2,
              decimals = 0)
-
-
-
-# Bedroom counts
-property %>% 
-  st_drop_geometry() %>% 
-  filter(housing == TRUE,
-         listing_type == "Entire home/apt") %>% 
-  mutate(bedrooms = ifelse(bedrooms >= 3, "3+", bedrooms)) %>% 
-  count(bedrooms) %>% 
-  mutate(percentage = n / sum(n)) %>% 
-  group_by(bedrooms) %>% 
-  summarize(perc_bedrooms = sum(percentage)) 
-
-
 
 
 # STRs and housing tenure -------------------------------------------------
