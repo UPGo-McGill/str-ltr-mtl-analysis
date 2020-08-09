@@ -54,7 +54,6 @@ active_listings <-
 figure_2_1 <- 
   active_listings %>% 
   ggplot(aes(date, n , colour = listing_type, size = listing_type)) +
-  geom_line() +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
   annotate("curve", x = as.Date("2019-08-01"), xend = as.Date("2020-05-01"),
@@ -62,6 +61,7 @@ figure_2_1 <-
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2019-05-01"), y = 11700,
            label = "STRs banned \nby Province", family = "Futura Condensed") +
+  geom_line() +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
@@ -74,7 +74,6 @@ figure_2_1 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        # panel.grid.major.x = element_blank(),
         text = element_text(family = "Futura"))
 
 ggsave("output/figures/figure_2_1.pdf", plot = figure_2_1, width = 8, 
@@ -146,9 +145,47 @@ ggsave("output/figures/figure_2_2.pdf", plot = figure_2_2, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_2.pdf")
 
 
+# Figure 2.3 YOY listing and revenue growth rates -------------------------
+
+daily_variation <- 
+  daily %>% 
+  filter(housing, status != "B", date >= "2016-12-16", date != "2020-02-29") %>% 
+  group_by(date) %>% 
+  summarize("Active listings" = n(), Revenue = sum(price[status == "R"])) %>% 
+  mutate(across(where(is.numeric), 
+                function(x) slide_dbl(x, ~{(.x[366] - .x[1]) / .x[1]}, 
+                                      .before = 365, .complete = FALSE))) %>% 
+  filter(date >= "2017-12-16") %>% 
+  pivot_longer(-date, names_to = "var", values_to = "value") %>% 
+  group_by(var) %>% 
+  mutate(value = slide_dbl(value, mean, .before = 13, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(date >= "2018-01-01")
+
+figure_2_3 <- 
+  daily_variation %>% 
+  ggplot(aes(date, value, colour = var)) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+           ymin = -Inf, ymax = Inf, alpha = .2) +
+  geom_line(lwd = 1) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_color_manual(name = NULL, values = col_palette[c(1,3)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        text = element_text(family = "Futura"))
+
+ggsave("output/figures/figure_2_3.pdf", plot = figure_2_3, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_3.pdf")
 
 
-### FIGURE 2.3 - Estimated percentage of listings located in condos ############
+
+
+### FIGURE 2.4 - Estimated percentage of listings located in condos ############
 
 load("output/raffle_condo.Rdata")
 
@@ -190,99 +227,6 @@ listing_probabilities_2019 %>%
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank())
 
-
-### FIGURE 2.5 - Year-over-year rate of growth of active daily listings ########
-daily_variation <- 
-  left_join(
-    (daily %>% 
-       filter(housing, status == "R", date >= "2017-01-01") %>% 
-       group_by(date) %>% 
-       summarize(daily_rev = sum(price)) %>% 
-       mutate(rev_var = as.numeric(NA)) %>% 
-       filter(date != "2020-02-29")),
-    (daily %>% 
-       filter(housing, status != "B", date >= "2017-01-01") %>% 
-       count(date) %>% 
-       mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n)),
-              n_var = as.numeric(NA)) %>% 
-       filter(date != "2020-02-29")), by = "date")
-
-
-for(i in 366:length(daily_variation$date)) {
-  year1_n <- 
-    daily_variation %>% 
-    filter(date == daily_variation$date[[i]] - years(1)) %>% 
-    pull(n)
-  
-  year2_n <- 
-    daily_variation %>% 
-    filter(date == daily_variation$date[[i]]) %>% 
-    pull(n)
-  
-  daily_variation$n_var[[i]] <- as.numeric((year2_n - year1_n) / year1_n)
-  
-  
-  
-  
-  year1_rev <- 
-    daily_variation %>% 
-    filter(date == daily_variation$date[[i]] - years(1)) %>% 
-    pull(daily_rev)
-  
-  year2_rev <- 
-    daily_variation %>% 
-    filter(date == daily_variation$date[[i]]) %>% 
-    pull(daily_rev)
-  
-  daily_variation$rev_var[[i]] <- as.numeric((year2_rev - year1_rev) / year1_rev)
-  
-}
-
-daily_variation <- 
-  rbind(
-    daily_variation %>% 
-      rename(variation = rev_var) %>% 
-      mutate(group = "Revenue") %>% 
-      select(date, variation, group),
-    
-    daily_variation %>% 
-      rename(variation = n_var) %>% 
-      mutate(group = "Active Listings") %>% 
-      select(date, variation, group)
-  ) %>% 
-  filter(date >= "2018-01-01")
-
-daily_variation %>% 
-  mutate(variation = data.table::frollmean(variation, 14)) %>% 
-  ggplot()+
-  # geom_rect(aes(ymin = 0, ymax = Inf, xmin = as.Date("2018-01-01", "%Y-%m-%d"), xmax = as.Date("2020-01-01", "%Y-%m-%d")), 
-  #           alpha = 0.002, fill = "green")+
-  # geom_rect(aes(ymin = -Inf, ymax = 0, xmin = as.Date("2018-01-01", "%Y-%m-%d"), xmax = as.Date("2020-01-01", "%Y-%m-%d")),
-  #           alpha = 0.002, fill = "red")+
-  geom_line(aes(date, variation, color = group), lwd=1)+
-  #geom_smooth(aes(date, variation, color = group), se = F)+
-  #ggtitle("Bi-weekly variation compared to same date one year before (Frollmean 14)")+
-  xlab("Date (bi-weekly)")+
-  ylab("Variation compared to a year before (%)") +
-  scale_x_date(limits = as.Date(c("2018-01-12","2020-05-31")),
-               date_labels = "%Y (%b)")+
-  # ylim(c(-20,15))+
-  geom_hline(yintercept=0, linetype="dashed", color = "black")+
-  scale_y_continuous(labels = scales::percent)+
-  scale_color_manual(name = " ",
-                     values = col_palette[c(1,3)],
-                     labels = c("Active listings", "Revenue"))+
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-05-31"), ymin = -Inf, ymax = Inf, alpha = .2)+
-  theme_minimal() +
-  theme(legend.position = "right",
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        #text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(#family = "Futura", face = "bold", 
-          size = 10),
-        legend.text = element_text(#family = "Futura", 
-          size = 10)
-  )
 
 
 ### FIGURE 2.6 - STR host revenue distribution in Montreal #####################################################

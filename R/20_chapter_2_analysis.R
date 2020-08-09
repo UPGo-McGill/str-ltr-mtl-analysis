@@ -260,6 +260,88 @@ daily %>%
   {. / sum(boroughs$dwellings)}
 
 
+# STR growth rates --------------------------------------------------------
+
+
+
+
+# YOY growth of average daily active listings
+# 2019 to 2020
+(filter(daily, housing, status != "B", date >= LTM_start_date + years(1), date <= max(daily$date)) %>% 
+   count(date) %>% 
+   summarize(mean(n)) - 
+   filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
+   count(date) %>% 
+   summarize(mean(n))) /
+  filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
+  count(date) %>% 
+  summarize(mean(n))
+
+# 2018 to 2019
+(filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
+    count(date) %>% 
+    summarize(mean(n)) - 
+    filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+    count(date) %>% 
+    summarize(mean(n))) /
+  filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+  count(date) %>% 
+  summarize(mean(n))
+
+# 2017 to 2018
+(filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
+    count(date) %>% 
+    summarize(mean(n)) - 
+    filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
+    count(date) %>% 
+    summarize(mean(n)) + 960) /
+  filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
+  count(date) %>% 
+  summarize(mean(n) + 960) # +960 to account for HA
+
+
+
+# YOY growth of revenue
+# 2019 to 2020
+(daily %>% 
+    filter(housing, date > LTM_end_date, date <= max(date), status == "R") %>% 
+    summarize(sum(price)) -
+    daily %>% 
+    filter(housing, date > LTM_end_date - years(1), date <= max(date) - years(1), status == "R") %>% 
+    summarize(sum(price))
+)/
+  daily %>% 
+  filter(housing, date > LTM_end_date - years(1), date <= max(date) - years(1), status == "R") %>% 
+  summarize(sum(price))
+
+# 2018 to 2019
+(daily %>% 
+    filter(housing, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>% 
+    summarize(sum(price)) -
+    daily %>% 
+    filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
+    summarize(sum(price))
+)/
+  daily %>% 
+  filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
+  summarize(sum(price))
+
+# 2017 to 2018
+(daily %>% 
+    filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
+    summarize(sum(price)) -
+    daily %>% 
+    filter(housing, date >= LTM_start_date - years(2), date <= LTM_end_date - years(2), status == "R") %>% 
+    summarize(sum(price))
+)/
+  daily %>% 
+  filter(housing, date >= LTM_start_date - years(2), date <= LTM_end_date - years(2), status == "R") %>% 
+  summarize(sum(price))
+
+
+
+
+
 # Listing types and sizes -------------------------------------------------
 
 listing_type_breakdown <- 
@@ -408,80 +490,6 @@ condo_breakdown %>%
              decimals = 0)
 
 
-### STR growth #####################################################################
-
-# YOY growth of average daily active listings
-# 2019 to 2020
-(filter(daily, housing, status != "B", date >= LTM_start_date + years(1), date <= max(daily$date)) %>% 
-    count(date) %>% 
-    summarize(mean(n)) - 
-    filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
-    count(date) %>% 
-    summarize(mean(n))) /
-  filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
-  count(date) %>% 
-  summarize(mean(n))
-
-# 2018 to 2019
-(filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
-    count(date) %>% 
-    summarize(mean(n)) - 
-    filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-    count(date) %>% 
-    summarize(mean(n))) /
-  filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-  count(date) %>% 
-  summarize(mean(n))
-
-# 2017 to 2018
-(filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-    count(date) %>% 
-    summarize(mean(n)) - 
-    filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
-    count(date) %>% 
-    summarize(mean(n)) + 960) /
-  filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
-  count(date) %>% 
-  summarize(mean(n) + 960) # +960 to account for HA
-
-
-
-# YOY growth of revenue
-# 2019 to 2020
-(daily %>% 
-    filter(housing, date > LTM_end_date, date <= max(date), status == "R") %>% 
-    summarize(sum(price)) -
-    daily %>% 
-    filter(housing, date > LTM_end_date - years(1), date <= max(date) - years(1), status == "R") %>% 
-    summarize(sum(price))
-)/
-  daily %>% 
-  filter(housing, date > LTM_end_date - years(1), date <= max(date) - years(1), status == "R") %>% 
-  summarize(sum(price))
-
-# 2018 to 2019
-(daily %>% 
-    filter(housing, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>% 
-    summarize(sum(price)) -
-    daily %>% 
-    filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
-    summarize(sum(price))
-)/
-  daily %>% 
-  filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
-  summarize(sum(price))
-
-# 2017 to 2018
-(daily %>% 
-    filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
-    summarize(sum(price)) -
-    daily %>% 
-    filter(housing, date >= LTM_start_date - years(2), date <= LTM_end_date - years(2), status == "R") %>% 
-    summarize(sum(price))
-)/
-  daily %>% 
-  filter(housing, date >= LTM_start_date - years(2), date <= LTM_end_date - years(2), status == "R") %>% 
-  summarize(sum(price))
 
 
 ### STR revenue distribution ######################################################
