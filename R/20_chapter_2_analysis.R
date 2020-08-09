@@ -262,84 +262,88 @@ daily %>%
 
 # STR growth rates --------------------------------------------------------
 
+#' Overall, the year-over-year change in average active listings from 2016 to 
+#' 2017 (12 months) was 18.5% [1], the year-over-year change from 2017 to 2018 
+#' was 0.8% [2], and the year-over-year change from 2018 to 2019 was -5.6% [3]. 
+#' In the first half of 2020, active listings fell much faster thanks to the 
+#' COVID-19 pandemic. The year-over-year change in active daily listings for the 
+#' first half of 2020 (January to June) compared to the first half of 2019 is 
+#' -20.7% [4].
+#' 
+#' Despite there being fewer active listings in 2019 than in 2018, the number of 
+#' reserved nights increased by 13.4% [5], from 1.72 million [6] reserved nights 
+#' to 1.95 million [6] reserved nights, while revenue increased 14.9% [7]. In 
+#' fact, with a few brief exceptions, revenue maintained a positive 
+#' year-over-year growth rate consistently until the COVID-19 pandemic began. 
+#' (Revenue from January to June 2020 is down 47.4% [8] compared to the same 
+#' time last year).
 
+#' [1] YOY listing growth, 2016-2017
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(3),
+         date <= LTM_end_date - years(2)) %>% 
+  group_by(year_2017 = date >= LTM_start_date - years(2)) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
 
+#' [2] YOY listing growth, 2017-2018
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(2),
+         date <= LTM_end_date - years(1)) %>% 
+  group_by(year_2018 = date >= LTM_start_date - years(1)) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
 
-# YOY growth of average daily active listings
-# 2019 to 2020
-(filter(daily, housing, status != "B", date >= LTM_start_date + years(1), date <= max(daily$date)) %>% 
-   count(date) %>% 
-   summarize(mean(n)) - 
-   filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
-   count(date) %>% 
-   summarize(mean(n))) /
-  filter(daily, housing, status != "B", date >= LTM_start_date , date <= max(date) - years(1)) %>% 
-  count(date) %>% 
-  summarize(mean(n))
+#' [3] YOY listing growth, 2018-2019
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n() / 365) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
 
-# 2018 to 2019
-(filter(daily, housing, status != "B", date >= LTM_start_date, date <= LTM_end_date) %>% 
-    count(date) %>% 
-    summarize(mean(n)) - 
-    filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-    count(date) %>% 
-    summarize(mean(n))) /
-  filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-  count(date) %>% 
-  summarize(mean(n))
+#' [4] YOY listing growth, 2019-2020
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date,
+         date <= LTM_end_date + years(1),
+         (date <= "2019-06-30" | date >= LTM_start_date + years(1)),
+         date != "2020-02-29") %>%
+  group_by(year_2020 = date >= LTM_start_date + years(1)) %>% 
+  summarize(n = n() / 181) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
 
-# 2017 to 2018
-(filter(daily, housing, status != "B", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-    count(date) %>% 
-    summarize(mean(n)) - 
-    filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
-    count(date) %>% 
-    summarize(mean(n)) + 960) /
-  filter(daily, housing, status != "B", date >= LTM_start_date - years(2), date <= LTM_end_date - years(2)) %>% 
-  count(date) %>% 
-  summarize(mean(n) + 960) # +960 to account for HA
+#' [5] YOY reservation change, 2018-2019
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n()) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
 
+#' [6] Reservation counts, 2018-2019
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(n = n())
 
+#' [7] YOY revenue change, 2018-2019
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
+  summarize(revenue = sum(price)) %>% 
+  summarize(change = (revenue[2] - revenue[1]) / revenue[1])
 
-# YOY growth of revenue
-# 2019 to 2020
-(daily %>% 
-    filter(housing, date > LTM_end_date, date <= max(date), status == "R") %>% 
-    summarize(sum(price)) -
-    daily %>% 
-    filter(housing, date > LTM_end_date - years(1), date <= max(date) - years(1), status == "R") %>% 
-    summarize(sum(price))
-)/
-  daily %>% 
-  filter(housing, date > LTM_end_date - years(1), date <= max(date) - years(1), status == "R") %>% 
-  summarize(sum(price))
-
-# 2018 to 2019
-(daily %>% 
-    filter(housing, date >= LTM_start_date, date <= LTM_end_date, status == "R") %>% 
-    summarize(sum(price)) -
-    daily %>% 
-    filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
-    summarize(sum(price))
-)/
-  daily %>% 
-  filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
-  summarize(sum(price))
-
-# 2017 to 2018
-(daily %>% 
-    filter(housing, date >= LTM_start_date - years(1), date <= LTM_end_date - years(1), status == "R") %>% 
-    summarize(sum(price)) -
-    daily %>% 
-    filter(housing, date >= LTM_start_date - years(2), date <= LTM_end_date - years(2), status == "R") %>% 
-    summarize(sum(price))
-)/
-  daily %>% 
-  filter(housing, date >= LTM_start_date - years(2), date <= LTM_end_date - years(2), status == "R") %>% 
-  summarize(sum(price))
-
-
-
+#' [7] YOY revenue change, 2018-2019
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date,
+         date <= LTM_end_date + years(1),
+         (date <= "2019-06-30" | date >= LTM_start_date + years(1)),
+         date != "2020-02-29") %>%
+  group_by(year_2020 = date >= LTM_start_date + years(1)) %>% 
+  summarize(revenue = sum(price)) %>% 
+  summarize(change = (revenue[2] - revenue[1]) / revenue[1])
 
 
 # Listing types and sizes -------------------------------------------------

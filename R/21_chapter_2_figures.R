@@ -34,19 +34,15 @@ active_listings <-
   daily %>% 
   filter(housing, status != "B") %>% 
   count(date, listing_type) %>% 
-  mutate(n = if_else(date <= "2017-05-31" & listing_type == "Entire home/apt",
-                     # Adjusted to account for addition of HA on 2017-06-01
-                     n + 800L, n)) %>% 
   group_by(listing_type) %>% 
-  mutate(n = slider::slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
   ungroup()
 
 active_listings <- 
   daily %>% 
   filter(housing, status != "B") %>% 
   count(date) %>% 
-  mutate(n = if_else(date <= "2017-05-31", n + 960, as.numeric(n)),
-         n = data.table::frollmean(n, 7),
+  mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE),
          listing_type = "All listings") %>% 
   bind_rows(active_listings) %>% 
   arrange(date, listing_type)
@@ -149,18 +145,17 @@ extrafont::embed_fonts("output/figures/figure_2_2.pdf")
 
 daily_variation <- 
   daily %>% 
-  filter(housing, status != "B", date >= "2016-12-16", date != "2020-02-29") %>% 
+  filter(housing, status != "B", date >= "2015-12-16", date != "2020-02-29") %>% 
   group_by(date) %>% 
   summarize("Active listings" = n(), Revenue = sum(price[status == "R"])) %>% 
   mutate(across(where(is.numeric), 
                 function(x) slide_dbl(x, ~{(.x[366] - .x[1]) / .x[1]}, 
                                       .before = 365, .complete = FALSE))) %>% 
-  filter(date >= "2017-12-16") %>% 
   pivot_longer(-date, names_to = "var", values_to = "value") %>% 
   group_by(var) %>% 
   mutate(value = slide_dbl(value, mean, .before = 13, .complete = TRUE)) %>% 
   ungroup() %>% 
-  filter(date >= "2018-01-01")
+  filter(date >= "2017-05-01")
 
 figure_2_3 <- 
   daily_variation %>% 
@@ -170,8 +165,9 @@ figure_2_3 <-
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
-  scale_y_continuous(name = NULL, labels = scales::percent) +
-  scale_color_manual(name = NULL, values = col_palette[c(1,3)]) +
+  scale_y_continuous(name = NULL, limits = c(-1, NA), 
+                     labels = scales::percent) +
+  scale_color_manual(name = NULL, values = col_palette[c(5,1)]) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
