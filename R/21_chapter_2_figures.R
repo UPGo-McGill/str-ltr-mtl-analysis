@@ -277,54 +277,83 @@ extrafont::embed_fonts("output/figures/figure_2_5.pdf")
 
 # Figure 2.6 Host revenue distribution ------------------------------------
 
-percentiles <- 
+revenue_colour <- colorRampPalette(col_palette[c(1, 4, 2, 3, 5)])(10)
+
+host_rev <-
   daily %>%
-  filter(housing == TRUE, date >= LTM_start_date, date <= LTM_end_date, 
-         status == "R") %>%
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+         status == "R", !is.na(host_ID)) %>%
   group_by(host_ID) %>%
   summarize(rev = sum(price)) %>% 
-  filter(rev > 0) %>% 
-  summarize(top_10 = sum(rev[rev > quantile(rev, c(0.90))] / sum(rev)),
-            top_20 = sum(rev[rev > quantile(rev, c(0.80))] / sum(rev)) - top_10,
-            top_30 = sum(rev[rev > quantile(rev, c(0.70))] / sum(rev)) - top_20,
-            top_40 = sum(rev[rev > quantile(rev, c(0.60))] / sum(rev)) - top_30,
-            top_50 = sum(rev[rev > quantile(rev, c(0.50))] / sum(rev)) - top_40,
-            top_60 = sum(rev[rev > quantile(rev, c(0.40))] / sum(rev)) - top_50,
-            top_70 = sum(rev[rev > quantile(rev, c(0.30))] / sum(rev)) - top_60,
-            top_80 = sum(rev[rev > quantile(rev, c(0.20))] / sum(rev)) - top_70,
-            top_90 = sum(rev[rev > quantile(rev, c(0.10))] / sum(rev)) - top_80,
-            top_100 = sum(rev[rev > quantile(rev, c(0.00))] / sum(rev)) - top_90
-            ) %>% 
-  pivot_longer(starts_with("top"), names_to = "percentile", 
-               values_to = "value") %>% 
-  mutate(percentile = factor(percentile, levels = paste0("top_", 1:10*10))) %>% 
+  summarize(all = sum(rev),
+            top_10 = sum(rev[rev > quantile(rev, c(0.90))] / all),
+            top_20 = sum(rev[rev > quantile(rev, c(0.80))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.90))] / all),
+            top_30 = sum(rev[rev > quantile(rev, c(0.70))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.80))] / all),
+            top_40 = sum(rev[rev > quantile(rev, c(0.60))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.70))] / all),
+            top_50 = sum(rev[rev > quantile(rev, c(0.50))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.60))] / all),
+            top_60 = sum(rev[rev > quantile(rev, c(0.40))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.50))] / all),
+            top_70 = sum(rev[rev > quantile(rev, c(0.30))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.40))] / all),
+            top_80 = sum(rev[rev > quantile(rev, c(0.20))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.30))] / all),
+            top_90 = sum(rev[rev > quantile(rev, c(0.10))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.20))] / all),
+            top_100 = sum(rev[rev > quantile(rev, c(0.00))] / all) - 
+              sum(rev[rev > quantile(rev, c(0.10))] / all)) %>% 
+  select(-all) %>% 
+  pivot_longer(everything(), names_to = "percentile", values_to = "value") %>% 
+  mutate(percentile = factor(percentile, levels = paste0("top_", 1:10 * 10))) %>% 
   mutate(perfect_distribution = 0.1,
-         ventile = 1:10,
+         decile = 1:10,
          dummy_1 = perfect_distribution,
-         dummy_2 = value)
-
-color <- colorRampPalette(col_palette[c(1, 4, 3)])(10)
-
-# figure_2_6 <-
-  percentiles %>%  
+         dummy_2 = value) %>%  
   rename("0" = perfect_distribution, "1" = value, "0.25" = dummy_1, 
          "0.75" = dummy_2) %>%
   pivot_longer(c("0","0.25", "0.75", "1"), names_to = "position") %>% 
-  mutate(name = as.numeric(position)) %>% 
-  ggplot(aes(position, value, group = ventile, fill = ventile)) +
-  geom_area(colour = "white", lwd = 1.5) +
-  scale_y_continuous(position = "left", 
-                     breaks = seq(0, 1, by = 0.05), 
-                     label = c(" ", "Top 100%", " ", "Top 90%", " ", "Top 80%",
-                               " ", "Top 70%", " ", "Top 60%", " ", "Top 50%", 
-                               " ", "Top 40%", " ", "Top 30%", " ", "Top 20%", 
-                               " ", "Top 10%", " ")) +
-  scale_fill_gradientn(colours = color) +
+  mutate(position = as.numeric(position),
+         display_val = scales::percent(value, .1)) %>% 
+  group_by(position) %>% 
+  mutate(absolute_val = slide_dbl(value, ~{.x[1] / 2 + sum(.x[-1])}, 
+                                  .after = 9)) %>% 
+  ungroup() %>% 
+  mutate(
+    display_val = paste0("earned ", display_val, "\nof revenue"),
+    display_percentile = case_when(
+      percentile == "top_10" ~ "Top 10% of hosts...",
+      percentile == "top_20" ~ "Next 10% of hosts...",
+      TRUE ~ NA_character_))
+
+figure_2_6 <- 
+  host_rev %>% 
+  ggplot(aes(position, value, group = decile, fill = decile)) +
+  geom_area(colour = "white", lwd = 1.2) +
+  geom_text(aes(x = 0.02, y = absolute_val, label = display_percentile), 
+             data = filter(host_rev, position == 0, decile <= 2),
+             family = "Futura", hjust = 0) +
+  geom_text(aes(x = 0.98, y = absolute_val, label = display_val), 
+             data = filter(host_rev, position == 1, decile <= 2),
+             family = "Futura", hjust = 1) +
+  scale_y_continuous(name = "Host percentile", label = scales::label_percent(1),
+                     breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
+                     sec.axis = sec_axis(~., 
+                                         name = "% of total revenue",
+                                         labels = derive(), 
+                                         breaks = derive())) +
+  scale_fill_gradientn(colours = revenue_colour) +
   theme_void() +
   theme(legend.position = "none",
-        axis.text.y = element_text(angle = 20, hjust = 1),
+        text = element_text(family = "Futura"),
+        axis.text.y = element_text(hjust = 1),
+        axis.title.y.left = element_text(
+          angle = 90, margin = margin(0, 10, 0, 0)),
+        axis.title.y.right = element_text(
+          angle = 270, margin = margin(0, 0, 0, 10)),
         axis.title.x = element_blank(), 
-        axis.title.y = element_blank(),
         axis.text.x = element_blank())
 
 ggsave("output/figures/figure_2_6.pdf", plot = figure_2_6, width = 8, 
