@@ -10,7 +10,6 @@
 #' - `figure_2_5.pdf`
 #' - `figure_2_6.pdf`
 #' - `figure_2_7.pdf`
-#' - `figure_2_8.pdf`
 #' 
 #' Script dependencies:
 #' - `09_str_processing.R`
@@ -21,7 +20,6 @@
 #'   `01_startup.R`
 
 source("R/01_startup.R")
-library(slider)
 library(patchwork)
 
 load("output/str_processed.Rdata")

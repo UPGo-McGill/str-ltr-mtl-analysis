@@ -1,11 +1,28 @@
-#### Chapter 3 FIGURES ####################################################
+#### 31 CHAPTER 3 FIGURES ######################################################
+
+#' This script produces the graphs and maps for chapter 3. It runs quickly.
+#' 
+#' Output:
+#' - `figure_3_1.pdf`
+#' - `figure_3_2.pdf`
+#' - `figure_3_3.pdf`
+#' 
+#' Script dependencies:
+#' - `09_str_processing.R`
+#' - `11_FREH_model.R`
+#' 
+#' External dependencies:
+#' - The Futura and Futura Condensed fonts, which can be imported in 
+#'   `01_startup.R`
 
 source("R/01_startup.R")
+library(patchwork)
 
 load("output/str_processed.Rdata")
+load("output/geometry.Rdata")
 
 
-### FIGURE 3.1 - Housing units converted to dedicated STRs in Montreal ###########################################
+# Figure 3.1 Housing loss -------------------------------------------------
 
 # Reuse GH_total from analysis to produce housing loss graph
 GH_total <-
