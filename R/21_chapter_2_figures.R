@@ -279,7 +279,7 @@ extrafont::embed_fonts("output/figures/figure_2_5.pdf")
 
 revenue_colour <- colorRampPalette(col_palette[c(1, 4, 2, 3, 5)])(10)
 
-host_rev <-
+host_deciles <-
   daily %>%
   filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
          status == "R", !is.na(host_ID)) %>%
@@ -329,7 +329,7 @@ host_rev <-
       TRUE ~ NA_character_))
 
 figure_2_6 <- 
-  host_rev %>% 
+  host_deciles %>% 
   ggplot(aes(position, value, group = decile, fill = decile)) +
   geom_area(colour = "white", lwd = 1.2) +
   geom_text(aes(x = 0.02, y = absolute_val, label = display_percentile), 
@@ -338,7 +338,7 @@ figure_2_6 <-
   geom_text(aes(x = 0.98, y = absolute_val, label = display_val), 
              data = filter(host_rev, position == 1, decile <= 2),
              family = "Futura", hjust = 1) +
-  scale_y_continuous(name = "Host percentile", label = scales::label_percent(1),
+  scale_y_continuous(name = "Host decile", label = scales::label_percent(1),
                      breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
                      sec.axis = sec_axis(~., 
                                          name = "% of total revenue",

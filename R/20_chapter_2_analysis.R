@@ -567,39 +567,47 @@ tenure_breakdown %>%
 
 # Revenue distribution ----------------------------------------------------
 
-
-
-
-
-
-
-
-### STR revenue distribution ######################################################
-
-## Host revenue percentiles
-daily %>%
-  filter(housing == TRUE, date <= LTM_end_date, date >= LTM_start_date, status == "R") %>%
+host_rev <-
+  daily %>%
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+         status == "R", !is.na(host_ID)) %>%
   group_by(host_ID) %>%
-  summarize(rev = sum(price)) %>%
-  filter(rev > 0) %>%
-  summarize(
-    `Top 1%`  = sum(rev[rev > quantile(rev, c(0.99))] / sum(rev)),
-    `Top 5%`  = sum(rev[rev > quantile(rev, c(0.95))] / sum(rev)),
-    `Top 10%` = sum(rev[rev > quantile(rev, c(0.90))] / sum(rev)),
-    `Top 20%` = sum(rev[rev > quantile(rev, c(0.80))] / sum(rev))) %>% 
-  gt() %>% 
-  tab_header(
-    title = "% of total STR revenue in the hand of x%  of hosts",
-  ) %>%
-  opt_row_striping() 
+  summarize(rev = sum(price))
+  
+#' Among all the STR hosts who earned revenue in the City of Montreal last year, 
+#' the median revenue was $4,200 [1], while the top host (in this case a network 
+#' of numerous host accounts which we discuss below) earned $12.8 million [2] 
+#' (Table 2.5). Throughout the City of Montreal, there were 37 hosts [3] that 
+#' earned more than $500,000 in 2019. Figure 2.6 #' shows the percentage of the 
+#' total $222.7 million in STR revenue which accrued to each decile of hosts. 
+#' The most successful 10% of hosts earned more than two-thirds (68.8% [4]) of 
+#' all STR revenue. The revenue concentration is even steeper among the top 10%: 
+#' the top 5% earned 58.9% [5] of revenue, while the top 1% of hosts earned 
+#' 40.8% [6] of all revenue. 
 
-## Median host income
-revenue_2019 %>% 
-  st_drop_geometry() %>% 
-  filter(revenue_LTM > 0) %>% 
-  group_by(host_ID) %>% 
-  summarize("host_rev" = sum(revenue_LTM)) %>% 
-  pull(host_rev) %>%
+#' [1] Median host revenue
+median(host_rev$rev)
+
+#' [2] Top earner
+max(host_rev$rev)
+
+#' [3] Hosts above $500,000
+host_rev %>% 
+  filter(rev >= 500000) %>% 
+  nrow()
+
+#' [4] Top 10% revenue
+host_rev %>% summarize(top_10 = sum(rev[rev > quantile(rev, .9)]) / sum(rev))
+  
+#' [4] Top 5% revenue
+host_rev %>% summarize(top_10 = sum(rev[rev > quantile(rev, .95)]) / sum(rev))
+
+#' [4] Top 1% revenue
+host_rev %>% summarize(top_10 = sum(rev[rev > quantile(rev, .99)]) / sum(rev))
+
+#' Table 2.5
+host_rev %>% 
+  pull(rev) %>% 
   quantile() %>% 
   as.list() %>% 
   as_tibble() %>% 
