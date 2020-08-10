@@ -105,10 +105,27 @@ left_join(listings_info, host_properties) %>%
   mutate(n = n-1) %>% # for it to be all "other" listings of a host
   rename(host_other_listings = n)
 
+# Addition of LTR IDs ------------------------------------------------------------------
+ltr_id <- 
+ltr %>% 
+  st_drop_geometry %>% 
+  filter(!is.na(property_ID)) %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(id, .keep_all = T) %>% 
+  unnest(property_ID) %>% 
+  inner_join(select(listings_info, property_ID), by = "property_ID") %>% 
+  group_by(property_ID) %>% 
+  summarize(ltr_ID = list(id))
+
+listings_info <- 
+  left_join(listings_info, ltr_id)
+
+  
+
 # ordering columns ---------------------------------------------------------------------
 listings_info <- 
 listings_info %>% 
-  select(property_ID, housing, listing_type, host_ID, host_other_listings, created, still_listed, still_active, 
+  select(property_ID, ltr_ID, housing, listing_type, host_ID, host_other_listings, created, still_listed, still_active, 
          borough, location, roll_number, FREH, GH)
 
 
@@ -117,11 +134,13 @@ listings_info %>%
 listings_info <- 
 listings_info %>%
   mutate(location = map_chr(location, paste0, collapse = "; ")) %>% 
-  mutate(roll_number = map_chr(roll_number, paste0, collapse = "; "))
+  mutate(roll_number = map_chr(roll_number, paste0, collapse = "; ")) %>% 
+  mutate(ltr_ID = map_chr(ltr_ID, paste0, collapse = "; "))
 
 listings_info <- 
 listings_info %>% 
   rename(`AirBNB ID` = property_ID, 
+         `Kijiji | Craiglist ID` = ltr_ID,
          `In housing unit` = housing,
          `Listing type` = listing_type,
          `Host ID` = host_ID,
@@ -134,5 +153,8 @@ listings_info %>%
          `Roll Number` = roll_number,
          `Frequently rented entire home` = FREH,
          `Ghost hostel` = GH)
+
+listings_info %>% 
+  View()
 
 write.csv(listings_info[1:100,], "output/listings_info.csv")
