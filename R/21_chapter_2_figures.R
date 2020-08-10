@@ -331,10 +331,10 @@ figure_2_6 <-
   ggplot(aes(position, value, group = decile, fill = decile)) +
   geom_area(colour = "white", lwd = 1.2) +
   geom_text(aes(x = 0.02, y = absolute_val, label = display_percentile), 
-             data = filter(host_rev, position == 0, decile <= 2),
+             data = filter(host_deciles, position == 0, decile <= 2),
              family = "Futura", hjust = 0) +
   geom_text(aes(x = 0.98, y = absolute_val, label = display_val), 
-             data = filter(host_rev, position == 1, decile <= 2),
+             data = filter(host_deciles, position == 1, decile <= 2),
              family = "Futura", hjust = 1) +
   scale_y_continuous(name = "Host decile", label = scales::label_percent(1),
                      breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
