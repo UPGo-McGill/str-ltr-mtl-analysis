@@ -1,4 +1,4 @@
-#### Information about mtached properties #################################################
+#### Information about matched properties #################################################
 
 source("R/01_startup.R")
 
@@ -11,7 +11,7 @@ kj_landlord <- readRDS("output/kj_with_landlord.Rds") %>%
   rename(id = kj_id,
          roll_number = Numero_de_matricule)
 
-# Preare the basic of the table ----------------------------------------------------------
+# Prepare the basic of the table ----------------------------------------------------------
 listings_info <- 
   property %>% 
   st_drop_geometry() %>% 
@@ -31,14 +31,14 @@ locations_roll_number <-
   as_tibble() %>% 
   arrange(desc(scraped)) %>% 
   distinct(id, .keep_all = T) %>% 
-  filter(!is.na(ab_id)) %>% 
-  unnest(ab_id) %>% 
-  select(id, ab_id, location) %>% 
+  filter(!is.na(property_ID)) %>% 
+  unnest(property_ID) %>% 
+  select(id, property_ID, location) %>% 
   left_join(kj_landlord) %>% 
   select(-id) %>% 
   distinct() %>% 
   filter(!is.na(location) | !is.na(roll_number)) %>% 
-  rename(property_ID = ab_id) %>% 
+  rename(property_ID = property_ID) %>% 
   group_by(property_ID) %>% 
   summarize(roll_number = list(roll_number),
             location = list(location))
@@ -49,10 +49,10 @@ left_join(listings_info, locations_roll_number)
 
 
 # Adding a FREH column -----------------------------------------------------------------
-# If listing has been FREH once in its lifetime
+# If listing has been following a FREH pattern at least 3 months once in its lifetime
 FREH <- 
   daily %>% 
-  filter(FREH == 1) %>% 
+  filter(FREH_3 >= 0.5) %>% 
   select(property_ID) %>% 
   distinct() %>% 
   mutate(FREH = T)
@@ -114,4 +114,25 @@ listings_info %>%
 
 # save the file ------------------------------------------------------------------------
 
-write.csv(listings_info, "output/listings_info.csv")
+listings_info <- 
+listings_info %>%
+  mutate(location = map_chr(location, paste0, collapse = "; ")) %>% 
+  mutate(roll_number = map_chr(roll_number, paste0, collapse = "; "))
+
+listings_info <- 
+listings_info %>% 
+  rename(`AirBNB ID` = property_ID, 
+         `In housing unit` = housing,
+         `Listing type` = listing_type,
+         `Host ID` = host_ID,
+         `Other listings from the host` = host_other_listings,
+         `Date created` = created,
+         `Still listed` = still_listed,
+         `Still active` = still_active,
+         `Borough` = borough,
+         `Street adress` = location,
+         `Roll Number` = roll_number,
+         `Frequently rented entire home` = FREH,
+         `Ghost hostel` = GH)
+
+write.csv(listings_info[1:100,], "output/listings_info.csv")
