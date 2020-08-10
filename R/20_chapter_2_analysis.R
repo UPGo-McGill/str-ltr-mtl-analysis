@@ -631,7 +631,36 @@ revenue_2019 %>%
   filter(host_rev > 500000) %>% 
   nrow()
 
-### Multilistings ######################################################
+
+# Multilistings -----------------------------------------------------------
+
+#' In 2019, 50.6% [1] of active listings in Montreal were multilistings, earning 
+#' 64.0% [2] of total host revenue. Multilistings have been a steadily growing 
+#' share of both listings and revenue in Montreal since 2017 (Figure 2.7), and 
+#' amidst generally declining STR activity during the COVID-19 pandemic now earn 
+#' nearly 3 out of every 4 dollars [3] on STR platforms in Montreal.
+
+#' [1] 2019 ML listings
+daily %>% 
+  filter(housing, status != "B", date >= LTM_start_date, 
+         date <= LTM_end_date) %>% 
+  count(multi) %>% 
+  summarize(multi_listings = n[2] / sum(n))
+
+#' [2] 2019 ML revenue
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date, 
+       date <= LTM_end_date) %>% 
+  group_by(multi) %>% 
+  tally(price) %>% 
+  summarize(multi_rev = n[2] / sum(n))
+
+#' [3] June 2020 ML revenue
+daily %>% 
+  filter(housing, status == "R", date >= "2020-06-01") %>% 
+  group_by(multi) %>% 
+  tally(price) %>% 
+  summarize(multi_rev = n[2] / sum(n))
 
 ML_table <- 
   daily %>% 
@@ -655,5 +684,3 @@ daily %>%
   group_by(date) %>% 
   summarize(Listings = sum(multi)) %>% 
   filter(date == key_date)
-
-

@@ -364,31 +364,38 @@ extrafont::embed_fonts("output/figures/figure_2_6.pdf")
 
 # Figure 2.7 Multilistings ------------------------------------------------
 
-daily %>% 
+ML <- 
+  daily %>% 
   filter(status != "B") %>% 
   group_by(date) %>% 
   summarize(Listings = mean(multi),
-            Revenue = sum(price * (status == "R") * multi, na.rm = TRUE) / 
-              sum(price * (status == "R") , na.rm = TRUE)) %>% 
-  gather(Listings, Revenue, key = `Multilisting percentage`, value = Value) %>% 
+            Revenue = sum(price[status == "R" & multi], na.rm = TRUE) / 
+              sum(price[status == "R"], na.rm = TRUE)) %>% 
+  mutate(across(where(is.numeric), slide_dbl, mean, .before = 13)) %>% 
+  pivot_longer(c(Listings, Revenue), names_to = "Multilisting percentage",
+               values_to = "value")
+
+figure_2_7 <- 
+  ML %>% 
   ggplot() +
-  geom_line(aes(date, Value, colour = `Multilisting percentage`), alpha = 0.2) +
-  geom_smooth(aes(date, Value, colour = `Multilisting percentage`), se = FALSE,
-              method = "loess", span = 0.25) +
+  geom_line(aes(date, value, colour = `Multilisting percentage`), lwd = 1) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+           ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2017-06-01"), NA)) +
-  scale_y_continuous(name = NULL, label = scales::percent) +
-  scale_colour_manual(values = col_palette[c(1, 3)]) +
+  scale_y_continuous(name = NULL, 
+                     label = scales::percent_format(accuracy = 1)) +
+  scale_colour_manual(values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        #text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(#family = "Futura", face = "bold", 
-          size = 10),
-        legend.text = element_text(#family = "Futura", 
-          size = 10)
-  )+
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .2)
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold"),
+        legend.text = element_text(family = "Futura"))
+
+ggsave("output/figures/figure_2_7.pdf", plot = figure_2_7, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_7.pdf")
 
 
 
