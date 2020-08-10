@@ -127,7 +127,6 @@ import_web_table <- function(data, var_name, quality = TRUE) {
       mutate(temp = str_remove(temp, " - quality")) %>% 
       filter(bedroom == temp) %>% 
       select(-temp) %>% 
-      mutate(var = var / 100) %>% 
       rename({{var_name}} := var)
   }
 }
@@ -300,7 +299,8 @@ city_vacancy <- read_csv("data/cmhc/mtl_vacancy.csv", skip = 2, n_max = 18)
 
 city_avg_rent <- city_avg_rent %>% import_web_table(avg_rent)
 city_units <- city_units %>% import_web_table(units, quality = FALSE)
-city_vacancy <- city_vacancy %>% import_web_table(vacancy)
+city_vacancy <- city_vacancy %>% import_web_table(vacancy) %>% 
+  mutate(vacancy = vacancy / 100)
   
 
 # Process annual zone tables ----------------------------------------------
