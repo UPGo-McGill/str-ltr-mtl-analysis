@@ -42,7 +42,7 @@ active_listingsF <-
   count(date) %>% 
   mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE),
          listing_type = "All listings") %>% 
-  bind_rows(active_listings) %>% 
+  bind_rows(active_listingsF) %>% 
   arrange(date, listing_type)
 
 figure_2_1F <- 
@@ -50,11 +50,11 @@ figure_2_1F <-
   ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
-  annotate("curve", x = as.Date("2019-08-01"), xend = as.Date("2020-05-01"),
+  annotate("curve", x = as.Date("2019-11-01"), xend = as.Date("2020-05-01"),
            y = 12000, yend = 10500, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2019-05-01"), y = 11700,
-           label = "LCT interdits \npar la province", 
+           label = "Interdiction des LCT \npar la province", 
            #family = "Futura Condensed"
            ) +
   geom_line() +
@@ -330,7 +330,7 @@ host_decilesF <-
                                   .after = 9)) %>% 
   ungroup() %>% 
   mutate(
-    display_val = paste0("gagné", display_val, "\nde revenu"),
+    display_val = paste0("a gagné ", display_val, "\ndu revenu"),
     display_percentile = case_when(
       percentile == "top_10" ~ "Top 10% des hôtes...",
       percentile == "top_20" ~ "Prochain 10% des hôtes...",
@@ -340,14 +340,14 @@ figure_2_6F <-
   host_decilesF %>% 
   ggplot(aes(position, value, group = decile, fill = decile)) +
   geom_area(colour = "white", lwd = 1.2) +
-  #geom_text(aes(x = 0.02, y = absolute_val, label = display_percentile), 
-  #         data = filter(host_rev, position == 0, decile <= 2),
-  #family = "Futura", 
-  #        hjust = 0) +
-  #geom_text(aes(x = 0.98, y = absolute_val, label = display_val), 
-  #         data = filter(host_rev, position == 1, decile <= 2),
-  #family = "Futura", 
-  #        hjust = 1) +
+  geom_text(aes(x = 0.02, y = absolute_val, label = display_percentile),
+          data = filter(host_decilesF, position == 0, decile <= 2),
+  family = "Futura",
+         hjust = 0) +
+  geom_text(aes(x = 0.98, y = absolute_val, label = display_val),
+          data = filter(host_decilesF, position == 1, decile <= 2),
+  family = "Futura",
+         hjust = 1) +
   scale_y_continuous(name = "Décile d'hôtes", label = scales::label_percent(1),
                      breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
                      sec.axis = sec_axis(~., 
@@ -357,7 +357,7 @@ figure_2_6F <-
   scale_fill_gradientn(colours = revenue_colour) +
   theme_void() +
   theme(legend.position = "none",
-        #text = element_text(family = "Futura"),
+        text = element_text(family = "Futura"),
         axis.text.y = element_text(hjust = 1),
         axis.title.y.left = element_text(
           angle = 90, margin = margin(0, 10, 0, 0)),
