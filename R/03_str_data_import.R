@@ -11,6 +11,8 @@
 #' 
 #' External dependencies:
 #' - Access to the UPGo database
+#' - Old versions of the AirDNA property file to fix problems with last scraped
+#'   dates
 #' - `uniteevaluationfonciere.shp`: Municipal evaluation data shapefile
 
 source("R/01_startup.R")
@@ -42,6 +44,15 @@ upgo_disconnect()
 
 
 # Manually fix scraped date issue -----------------------------------------
+
+# Load old property files
+prop_04 <- 
+  read_csv(paste0("~/Documents/Academic/Code/global-file-import/", 
+                  "data/property_2020_04.gz"))
+
+prop_05 <- 
+  read_csv(paste0("~/Documents/Academic/Code/global-file-import/", 
+                  "data/property_2020_05.gz"))
 
 # Load file for fix
 load("data/scrape_fix/changes.Rdata")
