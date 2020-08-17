@@ -42,18 +42,18 @@ DA <-
 ltr_unique_ab_id <- 
   ltr %>% 
   st_drop_geometry() %>% 
-  filter(!is.na(ab_id)) %>% 
-  unnest(ab_id) %>% 
-  filter(ab_id %in% filter(property, scraped >= "2020-01-01")$property_ID) %>% 
+  filter(!is.na(property_ID)) %>% 
+  unnest(property_ID) %>% 
+  filter(property_ID %in% filter(property, scraped >= "2020-01-01")$property_ID) %>% 
   arrange(desc(scraped)) %>% 
-  distinct(ab_id) %>% 
-  inner_join(unnest(ltr, ab_id), by = "ab_id") %>% 
+  distinct(property_ID) %>% 
+  inner_join(unnest(ltr, property_ID), by = "property_ID") %>% 
   arrange(desc(scraped)) %>% 
-  distinct(ab_id, .keep_all = T)
+  distinct(property_ID, .keep_all = T)
 
 
 returning_STRs <- property %>% 
-  filter(property_ID %in% ltr_unique_ab_id$ab_id,
+  filter(property_ID %in% ltr_unique_ab_id$property_ID,
          scraped < "2020-06-01") %>% 
   select(property_ID, geometry)
 
@@ -112,13 +112,9 @@ vacancy_change <- str_vacancy_impact %>%
   mutate(new_vacancy = e_units/n_renter) %>% 
   mutate(percent_change = (as.numeric(new_vacancy) - as.numeric(vacancy))/as.numeric(vacancy),
          point_percent_diff = as.numeric(new_vacancy)-as.numeric(vacancy)
-  )
+  ) %>% 
+  select(zone, vacancy, new_vacancy, percent_change, percent_diff, geometry)
 
-
-## Export for computing it on a valid PROJ
-#
-#vacancy_change <- vacancy_change %>% 
-#  select(zone, vacancy, new_vacancy, percent_change, percent_diff, -geometry)
 
 # Figure 6.1. Impact of returning STRs on rental vacancy rate
 
