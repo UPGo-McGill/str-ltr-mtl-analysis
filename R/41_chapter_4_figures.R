@@ -37,7 +37,7 @@ daily %>%
   arrange(n)
 
 
-### Figure 4.1 - Active and reserved listings in 2020 ####################################################
+### Figure 4.1 - Active and reserved listings since 2018 ####################################################
 
 ggplot()+
   geom_line(data = daily %>% 
