@@ -203,11 +203,14 @@ ltr_unique_property_ID %>%
 
 
 daily %>% 
-  filter(date >= "2020-01-01", FREH_3 >= 0.5 | multi == T, property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+  filter(date >= "2020-01-01", 
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID, 
+         property_ID %in% ltr_unique_property_ID$property_ID) %>% 
   count(property_ID) %>% 
   nrow() / 
   daily %>% 
-  filter(date >= "2020-01-01", FREH_3 >= 0.5 | multi == T) %>% 
+  filter(date >= "2020-01-01",
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
 
@@ -471,3 +474,83 @@ property %>%
   count(host_ID) %>% 
   nrow()
 
+#### Synthesis ##################################
+daily %>% 
+  filter(date >= "2020-01-01", 
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% ltr_unique_property_ID$property_ID,
+         property_ID %in% filter(property, scraped <= max(scraped) - months(1))$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow() / 
+  daily %>% 
+  filter(date >= "2020-01-01", 
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow()
+
+
+daily %>% 
+  filter(date >= "2020-03-28", date <= "2020-06-25", 
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(st_drop_geometry(property), scraped <= "2020-06-25")$property_ID,
+         !property_ID %in% filter(property, scraped == "2020-05-21")$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow() / 
+  daily %>% 
+  filter(date >= "2020-03-28", date <= "2020-06-25",
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow()
+
+daily %>% 
+  filter(date >= "2019-03-28", date <= "2019-06-25",
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(st_drop_geometry(property), scraped <= "2019-06-25")$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow() / 
+  daily %>% 
+  filter(date >= "2019-03-28", date <= "2019-06-25", 
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow()
+
+daily %>% 
+  filter(date >= "2018-03-28", date <= "2018-06-25",
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(st_drop_geometry(property), scraped <= "2018-06-25")$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow() / 
+  daily %>% 
+  filter(date >= "2018-03-28", date <= "2018-06-25", 
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow()
+
+daily %>% 
+  filter(date >= "2017-03-28", date <= "2017-06-25", 
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(st_drop_geometry(property), scraped <= "2017-06-25")$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow() / 
+  daily %>% 
+  filter(date >= "2017-03-28", date <= "2017-06-25",
+         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow()
+
+
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         scraped <= max(scraped) - months(1)) %>% 
+  count(scraped) %>% 
+  mutate(n = frollmean(n,30)) %>% 
+  ggplot()+
+  geom_line(aes(scraped, n))+
+  geom_smooth(aes(scraped, n))+
+  ylim(c(0,500))
+
+
+property %>% 
+  count(scraped) %>% 
+  arrange(desc(n))
