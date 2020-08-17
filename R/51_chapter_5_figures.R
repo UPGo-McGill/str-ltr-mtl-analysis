@@ -2,9 +2,9 @@
 
 source("R/01_startup.R")
 
-load("output/str_montreal.Rdata")
-load("output/ltr_matches.Rdata")
+load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
+load("output/ltr_processed.Rdata")
 
 ### Unique matches #################################################################
 
