@@ -282,7 +282,7 @@ figure_2_5F <-
 ggsave("output/figures/figure_2_5F.pdf", plot = figure_2_5F, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_2_5.pdf")
+extrafont::embed_fonts("output/figures/figure_2_5F.pdf")
 
 
 # Figure 2.6 Host revenue distribution ------------------------------------
@@ -369,7 +369,7 @@ figure_2_6F <-
 ggsave("output/figures/figure_2_6F.pdf", plot = figure_2_6F, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_2_6.pdf")
+extrafont::embed_fonts("output/figures/figure_2_6F.pdf")
 
 
 # Figure 2.7 Multilistings ------------------------------------------------
@@ -408,7 +408,6 @@ figure_2_7F <-
 ggsave("output/figures/figure_2_7F.pdf", plot = figure_2_7F, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_2_7.pdf")
+extrafont::embed_fonts("output/figures/figure_2_7F.pdf")
 
 
-?scale_color_manual
