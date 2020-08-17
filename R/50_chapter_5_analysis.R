@@ -474,7 +474,8 @@ property %>%
   count(host_ID) %>% 
   nrow()
 
-#### Synthesis ##################################
+#### Conclusion ##################################
+# percentage of commercial listings matched which are gone from the STR out of all commercial listings
 daily %>% 
   filter(date >= "2020-01-01", 
          property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
@@ -488,12 +489,11 @@ daily %>%
   count(property_ID) %>% 
   nrow()
 
-
+# commercial listings turnover during ban and years before between same date
 daily %>% 
   filter(date >= "2020-03-28", date <= "2020-06-25", 
          property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
-         property_ID %in% filter(st_drop_geometry(property), scraped <= "2020-06-25")$property_ID,
-         !property_ID %in% filter(property, scraped == "2020-05-21")$property_ID) %>% 
+         property_ID %in% filter(st_drop_geometry(property), scraped <= "2020-06-25")$property_ID) %>% 
   count(property_ID) %>% 
   nrow() / 
   daily %>% 
@@ -537,20 +537,3 @@ daily %>%
          property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
-
-
-property %>% 
-  st_drop_geometry() %>% 
-  filter(property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
-         scraped <= max(scraped) - months(1)) %>% 
-  count(scraped) %>% 
-  mutate(n = frollmean(n,30)) %>% 
-  ggplot()+
-  geom_line(aes(scraped, n))+
-  geom_smooth(aes(scraped, n))+
-  ylim(c(0,500))
-
-
-property %>% 
-  count(scraped) %>% 
-  arrange(desc(n))
