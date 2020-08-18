@@ -1,11 +1,29 @@
-#### Chapter 3 ANALYSIS ####################################################
+#### 30 CHAPTER 3 ANALYSIS ####################################################
+
+#' This script produces the tables and facts for chapter 2. It runs quickly.
+#' 
+#' Output:
+#' - None
+#' 
+#' Script dependencies:
+#' - `02_geometry_import.R`
+#' - `09_str_processing.R`
+#' 
+#' External dependencies:
+#' - None
 
 source("R/01_startup.R")
+
+
+# Load previous data ------------------------------------------------------
+
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 
 
-### STR-induced housing loss - FREH LISTINGS  ######################################################
+# Prepare new objects -----------------------------------------------------
+
+# STR-induced housing loss - FREH LISTINGS
 FREH <- 
 daily %>% 
   filter(date >= "2016-01-01") %>% 
@@ -13,12 +31,13 @@ daily %>%
   summarize(across(c(FREH, FREH_3), sum)) %>%
   filter(substr(date, 9, 10) == "01")
 
+#' [1] FREH on the first of January
 FREH %>% 
   filter(date == "2020-01-01") %>% 
   pull(FREH_3) %>% 
   round(digit=-2)
 
-# increase between 2018 and 2019
+#' [2] FREH increase between 2018 and 2019
 (FREH %>% 
   filter(date == "2020-01-01") %>% 
   pull(FREH_3) -
@@ -31,7 +50,7 @@ FREH %>%
   pull(FREH_3)
 
 
-# variation of FREH number per borough
+# Variation of FREH by boroughs -----------------------------------------------------
 
 FREH_borough <- 
   daily %>% 
@@ -40,7 +59,7 @@ FREH_borough <-
   summarize(across(c(FREH, FREH_3), sum)) %>%
   filter(substr(date, 9, 10) == "01")
 
-
+#' Table 3.1
 FREH_borough %>% 
   filter(date == "2019-01-01") %>% 
   rename(`2018 FREH` = FREH_3) %>% 
@@ -77,9 +96,9 @@ FREH_borough %>%
              decimals = 0)
 
 
-### STR-induced housing loss - GH LISTINGS  ######################################################
+# STR-induced housing loss - GH LISTINGS ----------------------------------------------------- 
 
-# average of active GH_units daily
+#' [1] average of active GH_units daily
 GH %>% 
   st_drop_geometry() %>% 
   filter(date >= LTM_start_date, date <= LTM_end_date, status != "B") %>% 
@@ -87,6 +106,7 @@ GH %>%
   summarize(GH_units = sum(housing_units)) %>% 
   summarize(round(mean(GH_units), digit=-1))
 
+#' [2] total ghost hostel listings
 GH_total <-
   GH %>%
   st_drop_geometry() %>%
@@ -95,7 +115,8 @@ GH_total <-
   summarize(GH_units = sum(housing_units)) %>%
   mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
 
-### STR-induced housing loss - Combined housing loss ################################################
+
+# STR-induced housing loss - COMBINED HOUSING LOSS ----------------------------------------------------- 
 
 housing_loss <-
   FREH %>%
@@ -107,11 +128,11 @@ housing_loss <-
   gather(`Entire home/apt`, `Private room`, 
          key = `Listing type`, value = `Housing units`) 
 
-# housing loss in end 2019
+#' [1] housing loss in end 2019
 sum(filter(housing_loss, date == "2020-01-01")$`Housing units`) %>% 
   round()
 
-# housing loss variation
+#' [2] housing loss variation
 (housing_loss %>% 
     filter(date == "2020-01-01") %>% 
     summarize(sum(`Housing units`)) - 
@@ -123,13 +144,11 @@ sum(filter(housing_loss, date == "2020-01-01")$`Housing units`) %>%
   filter(date == "2019-01-01") %>% 
   summarize(sum(`Housing units`))
 
-
-# Housing loss figure for a given year (the next day of the end of the year will give information on the previous year)
+#' [3] Housing loss figure for a given year (the next day of the end of the year will give information on the previous year)
 sum(filter(housing_loss, date == "2019-01-01")$`Housing units`) %>% 
   round(digits = -2)
 
-
-# housing loss of family size units in 2019
+#' [4] housing loss of family size units in 2019
 (property %>% 
   st_drop_geometry() %>% 
   filter(bedrooms >= 2) %>% 
@@ -145,7 +164,7 @@ sum(filter(housing_loss, date == "2019-01-01")$`Housing units`) %>%
   summarize(round(mean(GH_units)))) %>% 
   round(digit =-2)
 
-#how many 2 bedrooms unit in housing loss
+#' [5] how many 2 bedrooms unit in housing loss
 property %>% 
   st_drop_geometry() %>% 
   filter(bedrooms == 2) %>% 
