@@ -1,41 +1,21 @@
-#### Chapter 4 FIGURES ####################################################
+#### 41 CHAPTER 4 FIGURES ######################################################
+
+#' This script produces the graphs and maps for chapter 4. It runs quickly.
+#' 
+#' Output:
+#' - `figure_4_1.pdf`
+#' - `figure_4_2.pdf`
+#' 
+#' Script dependencies:
+#' - `09_str_processing.R`
+#' 
+#' External dependencies:
+#' - The Futura and Futura Condensed fonts, which can be imported in 
+#'   `01_startup.R`
 
 source("R/01_startup.R")
 
 load("output/str_processed.Rdata")
-
-### Figure 9 - Active and reserved listings since 2018 ####################################################
-
-#YOY growth of R number
-(daily %>% 
-  filter(status == "R", date >= LTM_start_date, date <= LTM_end_date) %>% 
-  nrow() -
-  daily %>% 
-  filter(status == "R", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-  nrow()
- ) /
-  daily %>% 
-  filter(status == "R", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-  nrow()
-
-# growth of R for first half of 2020
-(daily %>% 
-    filter(status == "R", date >= "2020-01-01", date <= max(date)) %>% 
-    nrow() -
-    daily %>% 
-    filter(status == "R", date >= "2019-01-01", date <= max(date) - years(1)) %>% 
-    nrow()
-) /
-  daily %>% 
-  filter(status == "R", date >= "2019-01-01", date <= max(date) - years(1)) %>% 
-  nrow()
-
-# Lowest point of As
-daily %>% 
-  filter(status == "A", date >= "2018-01-01") %>% 
-  count(date) %>% 
-  arrange(n)
-
 
 ### Figure 4.1 - Active and reserved listings since 2018 ####################################################
 
@@ -78,7 +58,6 @@ ggsave("output/figures/figure_4_1.pdf", plot = figure_4_1, width = 8,
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_1.pdf")
-
 
 
 ### Figure 4.2 - Active and reserved listings in 2020 ####################################################
