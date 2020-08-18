@@ -39,7 +39,7 @@ daily %>%
 
 ### Figure 4.1 - Active and reserved listings since 2018 ####################################################
 
-ggplot()+
+figure_4_1 <- ggplot()+
   geom_line(data = daily %>% 
               filter(housing, date >= "2018-01-01", status == "R") %>% 
               count(date, status) %>% 
@@ -74,11 +74,16 @@ ggplot()+
         legend.text = element_text( size = 10) #family = "Futura",
   )
 
+ggsave("output/figures/figure_4_1.pdf", plot = figure_4_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_4_1.pdf")
+
 
 
 ### Figure 4.2 - Active and reserved listings in 2020 ####################################################
 
-ggplot()+
+figure_4_2 <- ggplot()+
   geom_line(data = daily %>% 
               filter(housing, date >= "2020-01-01", status == "R") %>% 
               count(date, status) %>% 
@@ -113,5 +118,9 @@ ggplot()+
         legend.text = element_text( size = 10) #family = "Futura",
   )
 
-?scale_color_manual
+
+ggsave("output/figures/figure_4_2.pdf", plot = figure_4_2, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_4_2.pdf")
 
