@@ -1,12 +1,31 @@
-#### Chapter 5 FIGURES ####################################################
+#### 51 CHAPTER 5 FIGURES ######################################################
+
+#' This script produces the graphs and maps for chapter 5. It runs quickly.
+#' 
+#' Output:
+#' - `figure_5_1.pdf`
+#' - `figure_5_2.pdf`
+#' - `figure_5_3.pdf`
+#' - `figure_5_4.pdf`
+#' - `figure_5_5.pdf`
+#' 
+#' Script dependencies:
+#' - `02_geometry_import.R`
+#' - `07_ltr_listing_match.R`
+#' - `09_str_processing.R`
+#' - `11_FREH_model.R`
+#' 
+#' External dependencies:
+#' - The Futura and Futura Condensed fonts, which can be imported in 
+#'   `01_startup.R`
 
 source("R/01_startup.R")
 
-load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
+load("output/str_processed.Rdata")
 load("output/ltr_processed.Rdata")
 
-### Unique matches #################################################################
+### Set the required df for the upcoming figures #################################################################
 
 # distinct LTR listings
 unique_ltr <- 
@@ -29,9 +48,9 @@ ltr_unique_property_ID <-
   distinct(property_ID, .keep_all = T)
 
 
-### FIGURE 11. Concentration of STR listings matched with LTR listings by borough ########################################
+### FIGURE 5.1. Concentration of STR listings matched with LTR listings by borough ########################################
 
-ltr_unique_property_ID %>% 
+figure_5_1 <- ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
   left_join(boroughs, .) %>% 
@@ -53,10 +72,15 @@ ltr_unique_property_ID %>%
         # legend.text = element_text(family = "Futura", size = 10)
   )
 
+ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
-### Figure 12. Median asking rents for matches and non-matches through time #############################################
+extrafont::embed_fonts("output/figures/figure_5_1.pdf")
 
-unique_ltr %>% 
+
+### Figure 5.2. Median asking rents for matches and non-matches through time #############################################
+
+figure_5_2 <- unique_ltr %>% 
   filter(price >425, price <8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
@@ -86,12 +110,14 @@ unique_ltr %>%
           size = 10)
   )
 
+ggsave("output/figures/figure_5_2.pdf", plot = figure_5_2, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
-#ggtitle("Daily price of new LTR listings")+
+extrafont::embed_fonts("output/figures/figure_5_2.pdf")
 
-### Figure 13. Distribution of matches and non-matches by date created on STR platforms #################################
+### Figure 5.3. Distribution of matches and non-matches by date created on STR platforms #################################
 
-property %>% 
+figure_5_3 <- property %>% 
   st_drop_geometry() %>% 
   filter(scraped >= "2020-01-01",
          property_ID %in% filter(daily, housing, status != "B", date >= "2020-01-01")$property_ID) %>% 
@@ -121,9 +147,14 @@ property %>%
           size = 10)
   )
 
-### Figure 14. Distribution of matches by revenue earned between 14 March 2019 to 14 March 2020 ##########################
+ggsave("output/figures/figure_5_3.pdf", plot = figure_5_3, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
-daily %>%
+extrafont::embed_fonts("output/figures/figure_5_3.pdf")
+
+### Figure 5.4. Distribution of matches by revenue earned in 2019 ##########################
+
+figure_5_4 <- daily %>%
   filter(housing,
          date <= LTM_end_date, date >= LTM_start_date,
          status == "R") %>%
@@ -159,10 +190,15 @@ daily %>%
           size = 10)
   )
 
+ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
-### Figure 15. Length of stay of matches and non-matches on LTR platforms ##########################
+extrafont::embed_fonts("output/figures/figure_5_4.pdf")
 
-unique_ltr %>% 
+
+### Figure 5.5. Length of stay of matches and non-matches on LTR platforms ##########################
+
+figure_5_5 <- unique_ltr %>% 
   mutate(how_long_they_stay = scraped-created) %>% 
   arrange(desc(how_long_they_stay)) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
@@ -189,4 +225,7 @@ unique_ltr %>%
           size = 10)
         )
 
+ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
+extrafont::embed_fonts("output/figures/figure_5_5.pdf")
