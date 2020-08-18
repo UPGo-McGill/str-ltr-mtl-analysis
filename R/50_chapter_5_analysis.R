@@ -1,12 +1,29 @@
-#### Chapter 5 ANALYSIS ####################################################
+#### 50 CHAPTER 5 ANALYSIS ####################################################0
+
+#' This script produces the tables and facts for chapter 5. It runs quickly.
+#' 
+#' Output:
+#' - None
+#' 
+#' Script dependencies:
+#' - `02_geometry_import.R`
+#' - `07_ltr_listing_match.R`
+#' - `09_str_processing.R`
+#' 
+#' External dependencies:
+#' - None
 
 source("R/01_startup.R")
+
+
+# Load previous data ------------------------------------------------------
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/ltr_processed.Rdata")
 
-### Overview of the number of matches #################################################################
+
+# Prepare new objects -----------------------------------------------------
 
 # distinct LTR listings
 unique_ltr <- 
@@ -18,17 +35,20 @@ unique_ltr <-
 unique_ltr %>% 
   nrow()
 
-# number of unique STR listings that matched
+
+# Analysis of the matches ---------------------------------------------------
+
+#' [1] number of unique STR listings that matched
 property %>% 
   filter(!is.na(ltr_ID)) %>% 
   nrow()
 
-# number of unique STR listings that matched in 2020
+#' [2] number of unique STR listings that matched and were active in 2020
 property %>% 
   filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
   nrow()
 
-# LTR listings which matched
+#' [3] Total number LTR listings which matched to a STR
 ltr %>% 
   st_drop_geometry() %>% 
   filter(!is.na(property_ID)) %>% 
@@ -36,7 +56,9 @@ ltr %>%
   filter(!is.na(property_ID)) %>% 
   count(id)
 
-#unique matching property_ID locations using street address
+
+# Get the unique number of STR-LTR matches based on location ---------------------------------------------------
+
 ltr_unique_property_ID <-
   ltr %>% 
   st_drop_geometry() %>% 
@@ -49,7 +71,9 @@ ltr_unique_property_ID <-
   arrange(desc(scraped)) %>% 
   distinct(property_ID, .keep_all = T)
 
-# rental agreement and agreement type
+
+# Look at the unique matches based on agreement type ---------------------------------------------------
+
 ltr_unique_property_ID %>% 
   count(short_long) %>% 
   mutate(perc = n/sum(n))
@@ -59,9 +83,9 @@ ltr_unique_property_ID %>%
   mutate(perc = n/sum(n))
 
 
-### Spatial distribution of the matches #################################################################
+# Spatial distribution of the matches ---------------------------------------------------
 
-#by boroughs
+#' [1] Total number of unique matches by borough
 ltr_unique_property_ID %>% 
   count(borough) %>% 
   mutate(perc = n/sum(n)) %>% 
@@ -71,8 +95,10 @@ ltr %>%
   filter(kj == F, !is.na(property_ID)) %>% 
   View()
 
-### Unit size of the matches #################################################################
 
+# Unit size of the matches ---------------------------------------------------
+
+#' Table 5.1 
 perc_size_units <- tibble(`Number of bedrooms` = numeric(length = 4), 
                           `Island of Montreal` = numeric(length = 4),
                           `STR market (2019)` = numeric(length = 4),
@@ -85,7 +111,6 @@ perc_size_units$`Number of bedrooms` <-
 
 perc_size_units$`Island of Montreal` <- 
   c(0.099, 0.272, 0.525, 0.103)
-
 
 
 for(i in 1:length(perc_size_units$`Number of bedrooms`)) {
@@ -129,30 +154,29 @@ perc_size_units %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(2:5), decimals = 1)
 
-### Amenities (furnished & unfurnished rentals) #################################################################
 
+# Amenities (furnished or unfurnished status) ---------------------------------------------------
 
-# LTR furnished & not furnished
+#' [1] Proportion of ALL furnished and unfurnished longer-term rentals
 unique_ltr %>% 
   count(furnished) %>% 
   mutate(perc = n/sum(n))
 
-
+#' [2] Proportion of MATCHES that are furnished and unfurnished
 ltr_unique_property_ID %>% 
   count(furnished) %>% 
   mutate(perc = n/sum(n))
 
 
+# Asking rents on the LTR platform ---------------------------------------------------
 
-### Asking rents #################################################################
-
-#representation of matched LTR listings
+#' [1] representation of matched LTR listings
 unique_ltr %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   count(matched) %>% 
   mutate(perc = n/sum(n))
 
-
+#' [2] Average asking rent of the matches
 unique_ltr %>% 
   filter(price >425, price <8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
@@ -160,19 +184,16 @@ unique_ltr %>%
   summarize(avg_price = mean(price))
 
 
-### Typical STR units going to LTR #####################################
+# Analysis of the STRs that turned to the LTR platforms during the pandemic ---------------------------------------------------
 
-### Type of STR: FREH #####################################
-
+#' [1] Type of STR - FREH 
 ltr_unique_property_ID %>% 
   filter(property_ID %in% filter(daily, FREH_3 >= 0.5)$property_ID) %>% 
   nrow() /
   ltr_unique_property_ID %>% 
   nrow()
 
-
-### Type of STR: GH #####################################
-
+#' [2] Type of STR - GH 
 # ltr_unique_property_ID %>% 
 #   filter(property_ID %in% (GH %>% 
 #                       st_drop_geometry() %>% 
@@ -181,16 +202,14 @@ ltr_unique_property_ID %>%
 #                       pull(property_IDs))) %>% 
 #   nrow()
 
-### Type of STR:  multilistings #####################################
-
+#' [3] Type of STR - Multilistings 
 ltr_unique_property_ID %>% 
   filter(property_ID %in% filter(daily, multi == T)$property_ID) %>% 
   nrow() /
   ltr_unique_property_ID %>% 
   nrow()
 
-
-### Combined 'commercial characteristics': commercial operations #####################################
+#' [4] Combination of FREH, GH and ML to get the listings with commercial characteristics
 (rbind(
   ltr_unique_property_ID %>% 
     filter(property_ID %in% filter(daily, multi == T)$property_ID),
@@ -200,7 +219,6 @@ ltr_unique_property_ID %>%
   nrow() /
   ltr_unique_property_ID %>% 
   nrow()
-
 
 daily %>% 
   filter(date >= "2020-01-01", 
@@ -214,15 +232,16 @@ daily %>%
   count(property_ID) %>% 
   nrow()
 
-### Type of host #####################################
 
-# number of hosts
+# Analysis of the type of host that turned to LTR platforms ---------------------------------------------------
+
+#' [1] number of hosts found on a LTR platform
 property %>%
   filter(!is.na(ltr_ID)) %>% 
   count(host_ID) %>% 
   nrow() 
 
-# number of hosts having more than one properties on LTR market
+#' [2] number of hosts having more than one properties on LTR market
 property %>%
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
@@ -241,7 +260,7 @@ property %>%
   nrow()
 
 
-# percentage of hosts properties which made the switch from STR to LTR
+#' [3] percentage of the hosts' properties which made the switch from STR to LTR
 property %>%
   filter(!is.na(ltr_ID)) %>% 
   nrow() /
@@ -254,9 +273,7 @@ property %>%
          scraped >= "2020-01-01") %>% 
   nrow()
 
-### Type of host: revenue #####################################
-
-#revenue distribution of hosts that matched on a LTR platform 
+#' [4] revenue distribution of hosts that matched on a LTR platform 
 revenue_2019 <- 
   daily %>%
   filter(housing,
@@ -265,7 +282,6 @@ revenue_2019 <-
   group_by(property_ID) %>%
   summarize(revenue_LTM = sum(price) ) %>% 
   inner_join(property, .)
-
 
 revenue_2019 %>% 
   st_drop_geometry() %>%
@@ -291,8 +307,8 @@ revenue_2019 %>%
   ) %>%
   opt_row_striping()
 
-
-half_mil_ltr <- revenue_2019 %>% # host that matched and made more than 500k
+#' [5] host that matched and made more than 500k
+half_mil_ltr <- revenue_2019 %>% 
   st_drop_geometry() %>%
   filter(revenue_LTM > 0) %>%
   filter(host_ID %in% (property %>%
@@ -304,8 +320,8 @@ half_mil_ltr <- revenue_2019 %>% # host that matched and made more than 500k
   filter(host_rev > 500000) %>% 
   pull(host_ID) 
 
-
-property %>% # how many listings matched for the top earning hosts that matched
+#' [6] how many listings matched for the top earning hosts that matched
+property %>% 
   st_drop_geometry() %>% 
   filter(host_ID %in% half_mil_ltr, 
          !is.na(ltr_ID), 
@@ -323,9 +339,7 @@ property %>%
   count(host_ID) %>% 
   summarize(mean(n))
 
-
-### Type of host: Superhost status #####################################
-
+#' [7] Superhost status for host that matched
 property %>% # listings from hosts that matched
   filter(host_ID %in% (property %>%
                          st_drop_geometry() %>% 
@@ -339,17 +353,18 @@ property %>% # listings from hosts that matched
                          pull(host_ID)), scraped > "2020-01-01") %>% 
   nrow()
 
-
-property %>% # listings from all hosts
+#' [8] Superhost status for ALL hosts 
+property %>% 
   filter(scraped > "2020-01-01", superhost == T) %>% 
   nrow() /
   property %>% 
   filter(scraped > "2020-01-01") %>% 
   nrow()
 
-### LTR listings exposure ######################################################
 
-# length of availability on LTR platforms
+# LTR listing exposure ---------------------------------------------------
+
+#' [1] length of availability on LTR platforms
 unique_ltr %>% 
   mutate(how_long_they_stay = scraped-created) %>% 
   arrange(desc(how_long_they_stay)) %>% 
@@ -357,13 +372,12 @@ unique_ltr %>%
   group_by(matched) %>% 
   summarize(mean(how_long_they_stay, na.rm = T))
 
-# number of matches that remained on STR platforms
+#' [2] number of matches that remained on STR platforms
 property %>%
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   filter(scraped >= "2020-07-01") %>% 
   nrow() 
-
 
 property %>% 
   st_drop_geometry() %>% 
@@ -376,7 +390,7 @@ property %>%
          scraped >= "2020-07-01") %>% 
   nrow() 
 
-# remaining presence on LTR platforms
+#' [3] remaining presence on LTR platforms
 unique_ltr %>%
   unnest(property_ID) %>%
   filter(property_ID %in% (property %>%
@@ -388,8 +402,9 @@ unique_ltr %>%
   distinct(property_ID) %>% 
   nrow()
 
+# Estimation of the number of matches that could potentially have returned to the LTR market ---------------------------------------------------
 
-### Matched that could potentially be looked as being rented on a LTR platform ######################################################
+#' [1] Matches that could potentially be looked as being rented on a LTR platform
 property_IDs_ltr_rented <- 
   property %>% 
   filter(!is.na(ltr_ID),
@@ -397,14 +412,14 @@ property_IDs_ltr_rented <-
          scraped >= "2020-01-01") %>% 
   pull(property_ID)
 
-# FREH? 
+#' [2] FREH? 
 daily %>% 
   filter(property_ID %in% property_IDs_ltr_rented,
          FREH_3 >= 0.5) %>% 
   distinct(property_ID) %>% 
   nrow()
 
-# how old were these listings compared to plateform
+#' [4]  how old were these listings compared all listings on the STR platforms
 property %>% 
   filter(property_ID %in% property_IDs_ltr_rented) %>%
   mutate(how_old = scraped-created) %>% 
@@ -415,7 +430,7 @@ property %>%
   mutate(how_old = scraped-created) %>% 
   summarize(mean(how_old, na.rm = T) /30)
 
-# breakdown by boroughs
+#' [5] breakdown by boroughs of the potential returning units
 property %>% 
   filter(property_ID %in% property_IDs_ltr_rented) %>% 
   count(borough) %>% 
@@ -432,7 +447,7 @@ property %>%
   filter(n < 25) %>% 
   summarize(sum(n))
 
-# median host revenue of these listings
+#' [5] median STR host revenue of the potential returning units
 revenue_2019 %>% 
   st_drop_geometry() %>% 
   filter(host_ID %in% (property %>%
@@ -456,7 +471,7 @@ revenue_2019 %>%
   ) %>%
   opt_row_striping() 
 
-# average host revenue of these listings
+#' [6] average host revenue of these listings
 revenue_2019 %>% 
   st_drop_geometry() %>% 
   filter(host_ID %in% (property %>%
@@ -468,14 +483,16 @@ revenue_2019 %>%
   summarize(mean(host_rev))
 
 
-# how many hosts?
+#' [7] how many hosts have returned part of their units to the longer-term rental market
 property %>% 
   filter(property_ID %in% property_IDs_ltr_rented) %>% 
   count(host_ID) %>% 
   nrow()
 
-#### Conclusion ##################################
-# percentage of commercial listings matched which are gone from the STR out of all commercial listings
+
+# Conclusion ---------------------------------------------------
+
+#' [1] percentage of commercial listings matched which are gone from the STR out of all commercial listings
 daily %>% 
   filter(date >= "2020-01-01", 
          property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
@@ -489,7 +506,7 @@ daily %>%
   count(property_ID) %>% 
   nrow()
 
-# commercial listings turnover during ban and years before between same date
+#' [2] commercial listings turnover during ban and years before between same date
 daily %>% 
   filter(date >= "2020-03-28", date <= "2020-06-25", 
          property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
