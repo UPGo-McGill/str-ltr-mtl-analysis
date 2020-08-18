@@ -175,7 +175,7 @@ property %>%
   round(digits = -2)
 
 
-### STRs and Montreal’s housing market indicators - Vacancy rates ######################################################
+# STRs and Montreal’s housing market indicators - Vacancy rates ----------------------------------------------------- 
 
 #
 
@@ -191,27 +191,25 @@ property %>%
 
 #
 
-### STRs and Montreal’s housing market indicators - Average rent ######################################################
-
-
-#
-
-
-
-
-
-
-
-
-
-
-
-
+# STRs and Montreal’s housing market indicators - Average rent -----------------------------------------------------
 
 #
 
 
-### STR-related increase in rent in Montreal, 2017-2019 ######################################################
+
+
+
+
+
+
+
+
+
+
+
+#
+
+# STR-related increase in rent in Montreal, 2017-2019 -----------------------------------------------------
 
 
 
