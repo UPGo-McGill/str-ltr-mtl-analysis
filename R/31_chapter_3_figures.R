@@ -34,7 +34,7 @@ GH_total <-
   mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
   
 # Housing loss graph
-FREH %>%
+figure_3_1 <- FREH %>%
   select(date, FREH_3) %>% 
   rename(`Entire home/apt` = FREH_3) %>%
   left_join(GH_total, by = "date") %>%
@@ -63,3 +63,8 @@ FREH %>%
                                     size = 10),
         legend.text = element_text( size = 10) #family = "Futura",
   )
+
+ggsave("output/figures/figure_3_1.pdf", plot = figure_3_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_1.pdf")
