@@ -25,7 +25,7 @@ load("output/geometry.Rdata")
 load("output/str_processed.Rdata")
 load("output/ltr_processed.Rdata")
 
-### Set the required df for the upcoming figures #################################################################
+# Prepare objects for upcoming figures -----------------------------------------------------
 
 # distinct LTR listings
 unique_ltr <- 
@@ -48,7 +48,7 @@ ltr_unique_property_ID <-
   distinct(property_ID, .keep_all = T)
 
 
-### FIGURE 5.1. Concentration of STR listings matched with LTR listings by borough ########################################
+# Figure 5.1. Concentration of STR listings matched with LTR listings by borough -----------------------------------------------------
 
 figure_5_1 <- ltr_unique_property_ID %>% 
   select(-geometry) %>% 
@@ -78,7 +78,7 @@ ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_1.pdf")
 
 
-### Figure 5.2. Median asking rents for matches and non-matches through time #############################################
+# Figure 5.2. Median asking rents for matches and non-matches through time -----------------------------------------------------
 
 figure_5_2 <- unique_ltr %>% 
   filter(price >425, price <8000) %>% 
@@ -115,7 +115,8 @@ ggsave("output/figures/figure_5_2.pdf", plot = figure_5_2, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_5_2.pdf")
 
-### Figure 5.3. Distribution of matches and non-matches by date created on STR platforms #################################
+
+# Figure 5.3. Distribution of matches and non-matches by date created on STR platforms -----------------------------------------------------
 
 figure_5_3 <- property %>% 
   st_drop_geometry() %>% 
@@ -152,7 +153,8 @@ ggsave("output/figures/figure_5_3.pdf", plot = figure_5_3, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_5_3.pdf")
 
-### Figure 5.4. Distribution of matches by revenue earned in 2019 ##########################
+
+# Figure 5.4. Distribution of matches by revenue earned in 2019 ---------------------------------------------------------------
 
 figure_5_4 <- daily %>%
   filter(housing,
@@ -196,7 +198,7 @@ ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_4.pdf")
 
 
-### Figure 5.5. Length of stay of matches and non-matches on LTR platforms ##########################
+# Figure 5.5. Length of stay of matches and non-matches on LTR platforms --------------------------------------------------
 
 figure_5_5 <- unique_ltr %>% 
   mutate(how_long_they_stay = scraped-created) %>% 
@@ -229,3 +231,4 @@ ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8,
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_5_5.pdf")
+
