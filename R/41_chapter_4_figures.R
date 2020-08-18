@@ -17,7 +17,8 @@ source("R/01_startup.R")
 
 load("output/str_processed.Rdata")
 
-### Figure 4.1 - Active and reserved listings since 2018 ####################################################
+
+# Figure 4.1 - Active and reserved listings since 2018 --------------------------------------
 
 figure_4_1 <- ggplot()+
   geom_line(data = daily %>% 
@@ -60,7 +61,7 @@ ggsave("output/figures/figure_4_1.pdf", plot = figure_4_1, width = 8,
 extrafont::embed_fonts("output/figures/figure_4_1.pdf")
 
 
-### Figure 4.2 - Active and reserved listings in 2020 ####################################################
+# Figure 4.2 - Active and reserved listings in 2020 --------------------------------------
 
 figure_4_2 <- ggplot()+
   geom_line(data = daily %>% 
@@ -96,7 +97,6 @@ figure_4_2 <- ggplot()+
                                     size = 10),
         legend.text = element_text( size = 10) #family = "Futura",
   )
-
 
 ggsave("output/figures/figure_4_2.pdf", plot = figure_4_2, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
