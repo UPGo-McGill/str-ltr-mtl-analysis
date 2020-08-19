@@ -396,4 +396,34 @@ ggsave("output/figures/figure_2_7.pdf", plot = figure_2_7, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_7.pdf")
 
 
+# Figure 2.8 Ongoing commercialization of STR listings ------------------------------------------------
+
+figure_2_8 <- 
+  daily %>% 
+  filter(status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = ifelse(FREH_3 < 0.5 & multi == F, "Non-commercial", "Commercial")) %>% 
+  count(date, commercial) %>% 
+  group_by(commercial) %>% 
+  mutate(n = slider::slide_dbl(n, mean, .before = 6)) %>% 
+  ggplot()+
+  geom_line(aes(date, n, color = commercial))+
+  scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
+  scale_y_continuous(name = NULL) +
+  scale_colour_manual(name="Type of listing",
+                      values = col_palette[c(5, 1)],
+                      labels = c("Commercial", "Non-commercial")) +
+  theme_minimal()+
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        text = element_text(#family = "Futura", 
+          face = "plain"),
+        legend.title = element_text(#family = "Futura", 
+          face = "bold"),
+        #legend.text = element_text(family = "Futura")
+        )
+
+ggsave("output/figures/figure_2_8.pdf", plot = figure_2_8, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_8.pdf")
 
