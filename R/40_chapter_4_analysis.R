@@ -87,3 +87,118 @@ daily_comp_ban %>%
   filter(duration >= 30)
 
 
+# Impact of COVID on FREH listings  ----------------------------------
+
+FREH <- 
+  daily %>% 
+  filter(date >= "2016-01-01") %>% 
+  group_by(date) %>% 
+  summarize(across(c(FREH_3), sum)) %>%
+  filter(substr(date, 9, 10) == "01")
+
+GH_total <-
+  GH %>%
+  st_drop_geometry() %>%
+  filter(status != "B") %>% 
+  group_by(date) %>%
+  summarize(GH_units = sum(housing_units)) %>%
+  mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
+
+housing_loss <-
+  FREH %>%
+  select(date, FREH_3) %>% 
+  rename(`Entire home/apt` = FREH_3) %>%
+  left_join(GH_total, by = "date") %>%
+  select(-GH_units) %>% 
+  rename(`Private room` = GH_average) %>%
+  gather(`Entire home/apt`, `Private room`, 
+         key = `Listing type`, value = `Housing units`) 
+
+# lowest point in housing loss 
+(housing_loss %>% 
+    group_by(date) %>% 
+    summarize(housing_loss = round(sum(`Housing units`), digit = -1)) %>% 
+    arrange(housing_loss))[1,]
+
+# units FREH on 2020-01-01 and deleted by end of june 2020. Same for 2019
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2020-01-01", FREH_3 >= 0.5)$property_ID,
+         scraped < max(scraped) - months(1),
+         scraped != "2020-05-21") %>% 
+  nrow() %>% round(digit = -1)
+
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2019-01-01", FREH_3 >= 0.5)$property_ID,
+         scraped < max(scraped) - months(1) - years(1)) %>% 
+  nrow() %>% round(digit = -1)
+
+
+
+# percentage of FREH listings which were deleted by end of june.
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2020-01-01", FREH_3 >= 0.5)$property_ID,
+         scraped < max(scraped) - months(1),
+         scraped != "2020-05-21") %>% 
+  nrow() /
+  filter(daily, date == "2020-01-01", FREH_3 >= 0.5) %>% 
+  nrow()
+
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2019-01-01", FREH_3 >= 0.5)$property_ID,
+         scraped < max(scraped) - months(1) - years(1)) %>% 
+  nrow()/
+  filter(daily, date == "2019-01-01", FREH_3 >= 0.5) %>% 
+  nrow()
+
+
+# FREH listings on january blocked all month of june, or a majority
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2020-01-01", FREH_3 >= 0.5)$property_ID,
+         property_ID %in% (daily %>% 
+                             filter(date >= "2020-06-01", status == "B") %>% 
+                             count(property_ID) %>% 
+                             filter(n == 30))$property_ID) %>% 
+  nrow() %>% round(digit=-1)
+
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2020-01-01", FREH_3 >= 0.5)$property_ID,
+         property_ID %in% (daily %>% 
+                             filter(date >= "2020-06-01", status == "B") %>% 
+                             count(property_ID) %>% 
+                             filter(n > 15))$property_ID) %>% 
+  nrow() %>% round(digit=-1)
+
+
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2019-01-01", FREH_3 >= 0.5)$property_ID,
+         property_ID %in% (daily %>% 
+                             filter(date >= "2019-06-01", date <= "2019-06-30",status == "B") %>% 
+                             count(property_ID) %>% 
+                             filter(n == 30))$property_ID) %>% 
+  nrow() %>% round(digit=-1)
+
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2019-01-01", FREH_3 >= 0.5)$property_ID,
+         property_ID %in% (daily %>% 
+                             filter(date >= "2019-06-01", date <= "2019-06-30", status == "B") %>% 
+                             count(property_ID) %>% 
+                             filter(n > 15))$property_ID) %>% 
+  nrow() %>% round(digit=-1)
+
+# blocked for the last days of June (after ban)
+property %>% 
+  st_drop_geometry %>% 
+  filter(property_ID %in% filter(daily, date == "2020-01-01", FREH_3 >= 0.5)$property_ID,
+         property_ID %in% (daily %>% 
+                             filter(date >= "2020-06-25", date <= "2020-06-30",status == "B") %>% 
+                             count(property_ID) %>% 
+                             filter(n == 6))$property_ID) %>% 
+  nrow() %>% round(digit=-1)
