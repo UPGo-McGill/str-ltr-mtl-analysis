@@ -113,7 +113,7 @@ GH_total <-
   filter(status != "B") %>% 
   group_by(date) %>%
   summarize(GH_units = sum(housing_units)) %>%
-  mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
+  mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 130))
 
 
 # STR-induced housing loss - COMBINED HOUSING LOSS ----------------------------------------------------- 
