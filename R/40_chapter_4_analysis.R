@@ -251,7 +251,7 @@ property %>%
   filter(daily, housing, date == "2019-01-01", FREH_3 < 0.5, multi == F) %>% 
   nrow()
 
-# number of non-commercial listings blocked in june
+# number of non-commercial listings blocked in June
 property %>% 
   st_drop_geometry %>% 
   filter(property_ID %in% filter(daily, 
@@ -264,7 +264,9 @@ property %>%
                                     status == "B") %>% 
                              count(property_ID) %>% 
                              filter(n == 30))$property_ID) %>% 
-  nrow() %>% round(digit=-1)
+  nrow() /
+  filter(daily, housing, date == "2020-01-01", FREH_3 < 0.5, multi == F) %>% 
+  nrow()
 
 property %>% 
   st_drop_geometry %>% 
@@ -278,12 +280,6 @@ property %>%
                                     status == "B") %>% 
                              count(property_ID) %>% 
                              filter(n == 30))$property_ID) %>% 
-  nrow() %>% round(digit=-1)
-
-
-
-daily %>% 
-  filter(date >= "2019-01-01", multi == F, FREH_3 < 0.5) %>% 
-  count(status, date) %>% 
-  ggplot()+
-  geom_line(aes(date, n, color = status))
+  nrow() /
+  filter(daily, housing, date == "2019-01-01", FREH_3 < 0.5, multi == F) %>% 
+  nrow()
