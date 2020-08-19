@@ -24,6 +24,14 @@ load("output/geometry.Rdata")
 
 # Figure 3.1 Housing loss -------------------------------------------------
 
+# FREH needed to run this script
+FREH <- 
+  daily %>% 
+  filter(date >= "2016-01-01") %>% 
+  group_by(date) %>% 
+  summarize(across(c(FREH, FREH_3), sum)) %>%
+  filter(substr(date, 9, 10) == "01")
+
 # Reuse GH_total from analysis to produce housing loss graph
 GH_total <-
   GH %>%
