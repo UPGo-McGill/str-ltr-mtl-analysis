@@ -28,7 +28,7 @@ load("output/geometry.Rdata")
 
 # Figure 2.1 - Active daily listings --------------------------------------
 
-active_listingsF <- 
+active_listings <- 
   daily %>% 
   filter(housing, status != "B") %>% 
   count(date, listing_type) %>% 
@@ -36,17 +36,17 @@ active_listingsF <-
   mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE)) %>% 
   ungroup()
 
-active_listingsF <- 
+active_listings <- 
   daily %>% 
   filter(housing, status != "B") %>% 
   count(date) %>% 
   mutate(n = slide_dbl(n, mean, .before = 6, .complete = TRUE),
          listing_type = "All listings") %>% 
-  bind_rows(active_listingsF) %>% 
+  bind_rows(active_listings) %>% 
   arrange(date, listing_type)
 
-figure_2_1F <- 
-  active_listingsF %>% 
+figure_2_1 <- 
+  active_listings %>% 
   ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
@@ -74,14 +74,14 @@ figure_2_1F <-
         #text = element_text(family = "Futura")
         )
 
-ggsave("output/figures/figure_2_1F.pdf", plot = figure_2_1F, width = 8, 
+ggsave("output/figures/figure_2_1F.pdf", plot = figure_2_1, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_1F.pdf")
 
 # Figure 2.2 YOY listing and revenue growth rates -------------------------
 
-daily_variationF <- 
+daily_variation <- 
   daily %>% 
   filter(housing, status != "B", date >= "2015-12-16", date != "2020-02-29") %>% 
   group_by(date) %>% 
@@ -95,8 +95,8 @@ daily_variationF <-
   ungroup() %>% 
   filter(date >= "2017-05-01")
 
-figure_2_2F <- 
-  daily_variationF %>% 
+figure_2_2 <- 
+  daily_variation %>% 
   ggplot(aes(date, value, colour = var)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
@@ -112,7 +112,7 @@ figure_2_2F <-
         #text = element_text(family = "Futura")
         )
 
-ggsave("output/figures/figure_2_2F.pdf", plot = figure_2_2F, width = 8, 
+ggsave("output/figures/figure_2_2F.pdf", plot = figure_2_2, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_2F.pdf")
@@ -121,7 +121,7 @@ extrafont::embed_fonts("output/figures/figure_2_2F.pdf")
 
 # Figure 2.3 Active listings as a share of dwellings ----------------------
 
-active_boroughF <-
+active_borough <-
   daily %>%
   filter(housing, status != "B", date >= LTM_start_date, 
          date <= LTM_end_date) %>%
@@ -132,7 +132,7 @@ active_boroughF <-
   mutate(percentage = n / dwellings, n = round(n, digit = -1)) %>% 
   select(borough, n, dwellings, percentage)
 
-active_DAF <-
+active_DA <-
   daily %>%
   filter(housing, status != "B", date >= LTM_start_date,
          date <= LTM_end_date) %>%
@@ -145,7 +145,7 @@ active_DAF <-
          percentage = if_else(dwellings <= 4, NA_real_, percentage)) %>% 
   relocate(geometry, .after = last_col())
 
-make_listing_mapF <- function(df) {
+make_listing_map <- function(df) {
   ggplot(df) +
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = percentage),
@@ -169,14 +169,14 @@ make_listing_mapF <- function(df) {
             size = 2))
 }
 
-figure_2_3F_left <- make_listing_map(active_boroughF)
-figure_2_3F_right <-  make_listing_map(active_DAF)
+figure_2_3_left <- make_listing_map(active_borough)
+figure_2_3_right <-  make_listing_map(active_DA)
 
-figure_2_3F <- 
-  figure_2_3F_left + figure_2_3F_right + plot_layout(ncol = 2) + 
+figure_2_3 <- 
+  figure_2_3_left + figure_2_3_right + plot_layout(ncol = 2) + 
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
 
-ggsave("output/figures/figure_2_3F.pdf", plot = figure_2_3F, width = 8, 
+ggsave("output/figures/figure_2_3F.pdf", plot = figure_2_3, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_3F.pdf")
@@ -186,7 +186,7 @@ extrafont::embed_fonts("output/figures/figure_2_3F.pdf")
 
 load("output/raffle_condo.Rdata")
 
-active_condos_boroughF <- 
+active_condos_borough <- 
   daily %>% 
   filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
@@ -199,7 +199,7 @@ active_condos_boroughF <-
   left_join(boroughs, .) %>% 
   mutate(p_condo = n_condo_listings_2019 / n_listings_2019)
 
-make_condo_mapF <- function(df) {
+make_condo_map <- function(df) {
   ggplot(df) +
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = p_condo), 
@@ -222,14 +222,14 @@ make_condo_mapF <- function(df) {
           panel.border = element_rect(colour = "white", size = 2))
 }
 
-figure_2_4F_left <- make_condo_map(active_condos_boroughF)
-figure_2_4F_right <- make_condo_map(DA_probabilities_2019)
+figure_2_4_left <- make_condo_map(active_condos_borough)
+figure_2_4_right <- make_condo_map(DA_probabilities_2019)
 
-figure_2_4F <- 
-  figure_2_4F_left + figure_2_4F_right + plot_layout(ncol = 2) + 
+figure_2_4 <- 
+  figure_2_4_left + figure_2_4_right + plot_layout(ncol = 2) + 
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
 
-ggsave("output/figures/figure_2_4F.pdf", plot = figure_2_4F, width = 8, 
+ggsave("output/figures/figure_2_4F.pdf", plot = figure_2_4, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_4F.pdf")
@@ -237,7 +237,7 @@ extrafont::embed_fonts("output/figures/figure_2_4F.pdf")
 
 # Figure 2.5 condo scatterplot --------------------------------------------
 
-condo_scatterF <-
+condo_scatter <-
   listing_probabilities_2019 %>%
   left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>%
   count(GeoUID) %>% 
@@ -254,15 +254,15 @@ condo_scatterF <-
   mutate(borough = factor(borough, levels = c("Autre", "Le Plateau-Mont-Royal",
                                               "Ville-Marie")))
 
-figure_2_5F <- 
-  condo_scatterF %>% 
+figure_2_5 <- 
+  condo_scatter %>% 
   ggplot(aes(p_condo, str_pct, colour = borough)) +
   geom_point() + 
-  geom_point(data = filter(condo_scatterF, borough == "Autre"),
+  geom_point(data = filter(condo_scatter, borough == "Autre"),
              colour = "grey") +
-  geom_point(data = filter(condo_scatterF, borough == "Le Plateau-Mont-Royal"),
+  geom_point(data = filter(condo_scatter, borough == "Le Plateau-Mont-Royal"),
              colour = col_palette[5]) +
-  geom_point(data = filter(condo_scatterF, borough == "Ville-Marie"),
+  geom_point(data = filter(condo_scatter, borough == "Ville-Marie"),
              colour = col_palette[1]) +
   geom_smooth(method = lm, se = FALSE) +
   scale_colour_manual(name = "Arrondissement", 
@@ -279,7 +279,7 @@ figure_2_5F <-
         legend.title = element_text(#family = "Futura", 
           face = "bold"))
 
-ggsave("output/figures/figure_2_5F.pdf", plot = figure_2_5F, width = 8, 
+ggsave("output/figures/figure_2_5F.pdf", plot = figure_2_5, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_5F.pdf")
@@ -287,7 +287,7 @@ extrafont::embed_fonts("output/figures/figure_2_5F.pdf")
 
 # Figure 2.6 Host revenue distribution ------------------------------------
 
-host_decilesF <-
+host_deciles <-
   daily %>%
   filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
          status == "R", !is.na(host_ID)) %>%
@@ -336,16 +336,16 @@ host_decilesF <-
       percentile == "top_20" ~ "Prochain 10% des hôtes...",
       TRUE ~ NA_character_))
 
-figure_2_6F <- 
-  host_decilesF %>% 
+figure_2_6 <- 
+  host_deciles %>% 
   ggplot(aes(position, value, group = decile, fill = decile)) +
   geom_area(colour = "white", lwd = 1.2) +
   geom_text(aes(x = 0.02, y = absolute_val, label = display_percentile),
-          data = filter(host_decilesF, position == 0, decile <= 2),
+          data = filter(host_deciles, position == 0, decile <= 2),
   family = "Futura",
          hjust = 0) +
   geom_text(aes(x = 0.98, y = absolute_val, label = display_val),
-          data = filter(host_decilesF, position == 1, decile <= 2),
+          data = filter(host_deciles, position == 1, decile <= 2),
   family = "Futura",
          hjust = 1) +
   scale_y_continuous(name = "Décile d'hôtes", label = scales::label_percent(1),
@@ -366,7 +366,7 @@ figure_2_6F <-
         axis.title.x = element_blank(), 
         axis.text.x = element_blank())
 
-ggsave("output/figures/figure_2_6F.pdf", plot = figure_2_6F, width = 8, 
+ggsave("output/figures/figure_2_6F.pdf", plot = figure_2_6, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_6F.pdf")
@@ -374,7 +374,7 @@ extrafont::embed_fonts("output/figures/figure_2_6F.pdf")
 
 # Figure 2.7 Multilistings ------------------------------------------------
 
-MLF <- 
+ML <- 
   daily %>% 
   filter(status != "B") %>% 
   group_by(date) %>% 
@@ -385,8 +385,8 @@ MLF <-
   pivot_longer(c(Annonces, Revenu), names_to = "Pourcentage de multi-annonces",
                values_to = "value")
 
-figure_2_7F <- 
-  MLF %>% 
+figure_2_7 <- 
+  ML %>% 
   ggplot() +
   geom_line(aes(date, value, colour = `Pourcentage de multi-annonces`), lwd = 1) +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
@@ -405,7 +405,7 @@ figure_2_7F <-
         #legend.text = element_text(family = "Futura")
         )
 
-ggsave("output/figures/figure_2_7F.pdf", plot = figure_2_7F, width = 8, 
+ggsave("output/figures/figure_2_7F.pdf", plot = figure_2_7, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_7F.pdf")
