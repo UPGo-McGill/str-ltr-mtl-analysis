@@ -188,7 +188,7 @@ unique_ltr %>%
 
 #' [1] Type of STR - FREH 
 ltr_unique_property_ID %>% 
-  filter(property_ID %in% filter(daily, FREH_3 >= 0.5)$property_ID) %>% 
+  filter(property_ID %in% filter(daily, FREH_3 > 0.5)$property_ID) %>% 
   nrow() /
   ltr_unique_property_ID %>% 
   nrow()
@@ -214,7 +214,7 @@ ltr_unique_property_ID %>%
   ltr_unique_property_ID %>% 
     filter(property_ID %in% filter(daily, multi == T)$property_ID),
   ltr_unique_property_ID %>% 
-    filter(property_ID %in% filter(daily, FREH_3 >= 0.5)$property_ID)) %>% 
+    filter(property_ID %in% filter(daily, FREH_3 > 0.5)$property_ID)) %>% 
     distinct(property_ID)) %>%
   nrow() /
   ltr_unique_property_ID %>% 
@@ -222,13 +222,13 @@ ltr_unique_property_ID %>%
 
 daily %>% 
   filter(date >= "2020-01-01", 
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID, 
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID, 
          property_ID %in% ltr_unique_property_ID$property_ID) %>% 
   count(property_ID) %>% 
   nrow() / 
   daily %>% 
   filter(date >= "2020-01-01",
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
 
@@ -407,15 +407,26 @@ unique_ltr %>%
 #' [1] Matches that could potentially be looked as being rented on a LTR platform
 property_IDs_ltr_rented <- 
   property %>% 
+  st_drop_geometry() %>% 
   filter(!is.na(ltr_ID),
-         scraped < "2020-07-01",
-         scraped >= "2020-01-01") %>% 
-  pull(property_ID)
+         scraped >= "2020-01-01",
+         scraped <= max(property$scraped) - months(1)) %>% 
+  rbind(property %>% 
+          st_drop_geometry() %>% 
+          filter(property_ID %in% (daily %>% 
+                                     filter(date >= "2020-06-01", date <= "2020-06-30",
+                                            status != "B",
+                                            property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+                                     count(property_ID) %>% 
+                                     filter(n == 30) %>%
+                                     pull(property_ID)))) %>% 
+  pull(property_ID) %>% 
+  unique()
 
 #' [2] FREH? 
 daily %>% 
   filter(property_ID %in% property_IDs_ltr_rented,
-         FREH_3 >= 0.5) %>% 
+         FREH_3 > 0.5) %>% 
   distinct(property_ID) %>% 
   nrow()
 
@@ -444,7 +455,7 @@ property %>%
   st_drop_geometry() %>% 
   mutate(perc = n/sum(n)) %>% 
   arrange(desc(perc)) %>% 
-  filter(n < 25) %>% 
+  filter(n < 60) %>% 
   summarize(sum(n))
 
 #' [5] median STR host revenue of the potential returning units
@@ -495,62 +506,62 @@ property %>%
 #' [1] percentage of commercial listings matched which are gone from the STR out of all commercial listings
 daily %>% 
   filter(date >= "2020-01-01", 
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID, # listings that were commercial once in lifetime
          property_ID %in% ltr_unique_property_ID$property_ID,
          property_ID %in% filter(property, scraped <= max(scraped) - months(1))$property_ID) %>% 
   count(property_ID) %>% 
   nrow() / 
   daily %>% 
   filter(date >= "2020-01-01", 
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
 
 #' [2] commercial listings turnover during ban and years before between same date
 daily %>% 
   filter(date >= "2020-03-28", date <= "2020-06-25", 
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID,
          property_ID %in% filter(st_drop_geometry(property), scraped <= "2020-06-25")$property_ID) %>% 
   count(property_ID) %>% 
   nrow() / 
   daily %>% 
   filter(date >= "2020-03-28", date <= "2020-06-25",
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
 
 daily %>% 
   filter(date >= "2019-03-28", date <= "2019-06-25",
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID,
          property_ID %in% filter(st_drop_geometry(property), scraped <= "2019-06-25")$property_ID) %>% 
   count(property_ID) %>% 
   nrow() / 
   daily %>% 
   filter(date >= "2019-03-28", date <= "2019-06-25", 
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
 
 daily %>% 
   filter(date >= "2018-03-28", date <= "2018-06-25",
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID,
          property_ID %in% filter(st_drop_geometry(property), scraped <= "2018-06-25")$property_ID) %>% 
   count(property_ID) %>% 
   nrow() / 
   daily %>% 
   filter(date >= "2018-03-28", date <= "2018-06-25", 
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
 
 daily %>% 
   filter(date >= "2017-03-28", date <= "2017-06-25", 
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID,
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID,
          property_ID %in% filter(st_drop_geometry(property), scraped <= "2017-06-25")$property_ID) %>% 
   count(property_ID) %>% 
   nrow() / 
   daily %>% 
   filter(date >= "2017-03-28", date <= "2017-06-25",
-         property_ID %in% filter(daily, FREH_3 >= 0.5 | multi == T)$property_ID) %>% 
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
