@@ -565,3 +565,56 @@ daily %>%
          property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
   count(property_ID) %>% 
   nrow()
+
+#' [3] commercial listings blocked during ban and years before between same date
+daily %>% 
+  filter(date >= "2020-06-01", date <= "2020-06-30",
+         status != "B",
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  filter(n == 30) %>% 
+  nrow() /
+  filter(daily, date >= "2020-06-01", date <= "2020-06-30",
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  nrow()
+
+
+daily %>% 
+  filter(date >= "2019-06-01", date <= "2019-06-30",
+         status != "B",
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  filter(n == 30) %>% 
+  nrow() /
+  filter(daily, date >= "2019-06-01", date <= "2019-06-30",
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
+  nrow()
+
+
+daily %>% 
+  filter(date >= "2018-06-01", date <= "2018-06-30",
+         status != "B",
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  filter(n == 30) %>% 
+  nrow() /
+  filter(daily, date >= "2018-06-01", date <= "2018-06-30",
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
+  nrow()
+
+
+daily %>% 
+  filter(date >= "2017-06-01", date <= "2017-06-30",
+         status != "B",
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
+  count(property_ID) %>% 
+  filter(n == 30) %>% 
+  nrow() /
+  filter(daily, date >= "2017-06-01", date <= "2017-06-30",
+         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
+  nrow()
+
+
+
+
