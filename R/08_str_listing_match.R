@@ -171,7 +171,8 @@ property <-
          scraped = if_else(!is.na(new_scraped), new_scraped, scraped),
          ltr_ID = map2(ltr_ID, new_ltr_ID, ~{if (is.null(.y)) .x else .y}),
          ltr_ID = map(ltr_ID, unique)) %>% 
-  select(-new_created, -new_scraped, -new_ltr_ID)
+  select(-new_created, -new_scraped, -new_ltr_ID) %>% 
+  select(-geometry, everything(), geometry)
 
 rm(group_matches, property_change_collapsed, property_change_table, 
    property_to_delete)

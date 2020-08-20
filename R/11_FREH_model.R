@@ -140,7 +140,7 @@ daily <-
 # probabilities_12 <- model_12_test %>% predict(test_data_12, type = "response")
 # predicted_classes_12 <- ifelse(probabilities_12 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_12 == test_data_12$FREH)
-# # Outcome: 0.863, or .864 with only to June
+# # Outcome: 0.862
 
 
 # Model based on last n months --------------------------------------------
@@ -214,12 +214,12 @@ daily <- daily %>% select(-year, -month)
 # probabilities_1 <- model_1_test %>% predict(test_data_1_3, type = "response")
 # predicted_classes_1 <- ifelse(probabilities_1 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_1 == test_data_1_3$FREH)
-# # Outcome: 0.803, or .796 with only to June
+# # Outcome: 0.799
 # 
 # probabilities_3 <- model_3_test %>% predict(test_data_1_3, type = "response")
 # predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_3 == test_data_1_3$FREH)
-# # Outcome: 0.846, or .839 with only to June
+# # Outcome: 0.839
 
 
 # Save output -------------------------------------------------------------
