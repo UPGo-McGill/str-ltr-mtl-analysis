@@ -16,12 +16,17 @@
 source("R/01_startup.R")
 library(patchwork)
 
+
+# Load previous data ------------------------------------------------------
+
 load("output/cmhc.Rdata")
 load("output/ltr_processed.Rdata")
 load("output/str_processed.Rdata")
 
-## Get DA information
 
+# Prepare objects for figure 6.1 ------------------------------------------------------
+
+#' [1] DA information with fields for tenure
 DA <-
   cancensus::get_census(
     dataset = "CA16", regions = list(CSD = "2466023"), level = "DA",
@@ -37,8 +42,7 @@ DA <-
   st_as_sf()
 
 
-## Get returning strs info
-
+#' [2] Get returning STRs info
 ltr_unique_ab_id <- 
   ltr %>% 
   st_drop_geometry() %>% 
@@ -51,15 +55,14 @@ ltr_unique_ab_id <-
   arrange(desc(scraped)) %>% 
   distinct(property_ID, .keep_all = T)
 
-
+#' [3] Prepare returning STRs dataframe to work with
 returning_STRs <- property %>% 
   filter(property_ID %in% ltr_unique_ab_id$property_ID,
          scraped < "2020-06-01") %>% 
   select(property_ID, geometry)
 
 
-## Get total vacancy rate for zones
-
+#' [4] Get total vacancy rate for zones
 cmhc_vacancy <- annual_vacancy %>% 
   filter(date == "2019", 
          dwelling_type == "Total",
@@ -75,7 +78,7 @@ cmhc_vacancy[17, 6] = as.numeric(0.009) ##Mercier 2018
 cmhc_vacancy[11, 6] = as.numeric(0.040) ##Mercier 2018
 
 
-## Intersect Zones geometry to DA geometry to get census info on CMHC geometry
+# Intersect Zones geometry to DA geometry to get census info on CMHC geometry ------------------------------------------------------
 
 cmhc_vacancy_summarized <- 
   st_intersect_summarize(
@@ -88,7 +91,8 @@ cmhc_vacancy_summarized <-
   ) %>% 
   select(-population, -dwellings, -p_renter)
 
-## Get each returning STRs in their respective zones
+
+# Get each returning STRs in their respective zones ------------------------------------------------------
 
 str_vacancy_impact <- cmhc_vacancy_summarized %>% 
   left_join(., cmhc_vacancy, by="zone") %>% 
@@ -96,7 +100,8 @@ str_vacancy_impact <- cmhc_vacancy_summarized %>%
   select(-dwelling_type, -bedroom, -quality) %>% 
   st_intersection(., returning_STRs)
 
-## Estimate the change in vacancy rates
+
+# Estimate the change in vacancy rates ------------------------------------------------------
 
 vacancy_change <- str_vacancy_impact %>% 
   st_drop_geometry() %>% 
