@@ -167,7 +167,6 @@ property <-
   property %>% 
   left_join(property_change_collapsed, by = c("property_ID" = "new_PID")) %>% 
   filter(!property_ID %in% property_to_delete$property_ID) %>% 
-  # select(property_ID, ltr_ID, new_ltr_ID)
   mutate(created = if_else(!is.na(new_created), new_created, created),
          scraped = if_else(!is.na(new_scraped), new_scraped, scraped),
          ltr_ID = map2(ltr_ID, new_ltr_ID, ~{if (is.null(.y)) .x else .y}),

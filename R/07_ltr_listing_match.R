@@ -67,7 +67,9 @@ property <-
   group_by(property_ID) %>% 
   summarize(ltr_ID = list(ltr_ID)) %>% 
   left_join(property, .) %>% 
-  select(-geometry, everything(), geometry)
+  select(-geometry, everything(), geometry) %>% 
+  as_tibble() %>% 
+  st_as_sf()
   
 ltr_nest <- 
   ltr %>% 
