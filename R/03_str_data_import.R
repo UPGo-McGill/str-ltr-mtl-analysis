@@ -31,50 +31,69 @@ property <-
 daily <- 
   daily_all %>% 
   filter(country == "Canada", city == "Montreal") %>% 
-  collect() %>% 
-  strr_expand()
+  collect()
+  
+daily <- daily %>% strr_expand()
 
 host <-
   host_all %>% 
   filter(host_ID %in% !!property$host_ID) %>% 
-  collect() %>% 
-  strr_expand()
+  collect()
+  
+host <- host %>% strr_expand()
 
 upgo_disconnect()
 
 
-# Manually fix scraped date issue -----------------------------------------
+
+# Manually fix January scraped date issue ---------------------------------
 
 # Load old property files
 prop_04 <- 
   read_csv(paste0("~/Documents/Academic/Code/global-file-import/", 
-                  "data/property_2020_04.gz"))
+                  "data/property_2020_04.gz")) %>% 
+  select(property_ID = `Property ID`,
+         old_scraped = `Last Scraped Date`)
 
-prop_05 <- 
-  read_csv(paste0("~/Documents/Academic/Code/global-file-import/", 
-                  "data/property_2020_05.gz"))
+# Get fixes
+jan_fix <- 
+  property %>% 
+  filter(scraped >= "2020-01-29", scraped <= "2020-01-31") %>% 
+  left_join(prop_04) %>% 
+  filter(scraped < old_scraped) %>% 
+  select(property_ID, old_scraped)
 
-# Load file for fix
-load("data/scrape_fix/changes.Rdata")
+# Change scraped date in property file
+property <- 
+  property %>% 
+  left_join(jan_fix) %>% 
+  mutate(scraped = if_else(is.na(old_scraped), scraped, old_scraped)) %>% 
+  select(-old_scraped)
+
+# Scrape fixed listings with May scraped date to see which are still active
+to_scrape <- jan_fix %>% filter(old_scraped >= "2020-05-01")
+upgo_scrape_connect()
+new_scrape <- to_scrape %>% upgo_scrape_ab(proxies = .proxy_list, cores = 10)
+upgo_scrape_disconnect()
+still_active <- new_scrape %>% filter(!is.na(city))
+
+# Update scraped dates for active listings
+property <- 
+  property %>% 
+  mutate(scraped = if_else(property_ID %in% still_active$property_ID,
+                           as.Date("2020-08-01"), scraped))
 
 # Get inactives
 upgo_connect(daily_inactive = TRUE)
 
 inactives <-
   daily_inactive_all %>% 
-  filter(property_ID %in% !!changes$property_ID) %>% 
+  filter(property_ID %in% !!jan_fix$property_ID) %>% 
   collect() %>% 
   strr_expand()
 
 upgo_disconnect()
 
-# Change scraped date in property file
-property <- 
-  property %>% 
-  left_join(rename(changes, new_scraped = scraped)) %>% 
-  mutate(scraped = if_else(new_scraped > scraped, new_scraped, scraped, 
-                           scraped)) %>% 
-  select(-new_scraped)
 
 # Add inactive rows to daily file then re-trim
 daily <- 
@@ -84,7 +103,7 @@ daily <-
   filter(date >= created, date <= scraped) %>%
   select(-created, -scraped)
 
-rm(changes, inactive)
+rm(prop_04, jan_fix, to_scrape, new_scrape, still_active, inactives)
 
 
 # Convert currency --------------------------------------------------------
@@ -115,17 +134,21 @@ property <-
   strr_raffle(DA, GeoUID, dwellings, seed = 1)
 
 # Run raffle to assign a parcel to each listing
-# uef <-
-#   read_sf("data/shapefiles/uniteevaluationfonciere.shp") %>%
-#   st_transform(32618) %>%
-#   filter(!is.na(NOMBRE_LOG)) %>%
-#   as_tibble() %>%
-#   distinct(ID_UEV, .keep_all = TRUE) %>%
-#   st_as_sf()
-# 
-# property <-
-#   property %>% 
-#   strr_raffle(uef, ID_UEV, NOMBRE_LOG, seed = 1)
+uef <-
+  read_sf("data/shapefiles/uniteevaluationfonciere.shp") %>%
+  st_transform(32618) %>%
+  filter(!is.na(NOMBRE_LOG)) %>%
+  as_tibble() %>%
+  distinct(ID_UEV, .keep_all = TRUE) %>%
+  st_as_sf()
+
+property <-
+  property %>%
+  strr_raffle(uef, ID_UEV, NOMBRE_LOG, seed = 1)
+
+property <- 
+  property %>%
+  rename(uef = ID_UEV)
 
 # Trim daily file
 daily <- 
@@ -140,8 +163,7 @@ host <-
 # Add borough to property file
 property <- 
   property %>% 
-  st_join(boroughs_raw) %>% 
-  select(-dwellings)
+  st_join(boroughs_raw)
 
 # Add borough to daily file
 daily <- 
@@ -150,7 +172,7 @@ daily <-
   select(property_ID, borough) %>% 
   left_join(daily, ., by = "property_ID")
 
-rm(boroughs, boroughs_raw, city, DA, province)
+rm(boroughs, boroughs_raw, city, DA, province, uef)
 
 
 # Fix April and June plateaus ---------------------------------------------
