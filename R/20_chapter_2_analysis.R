@@ -149,11 +149,11 @@ daily %>%
 #' In the first half of 2020, active listings fell much faster thanks to the 
 #' COVID-19 pandemic. The year-over-year change in active daily listings for the 
 #' first half of 2020 (January to June) compared to the first half of 2019 is 
-#' -20.7% [4].
+#' -20.8% [4].
 #' 
 #' Despite there being fewer active listings in 2019 than in 2018, the number of 
-#' reserved nights increased by 13.4% [5], from 1.72 million [6] reserved nights 
-#' to 1.95 million [6] reserved nights, while revenue increased 14.9% [7]. In 
+#' reserved nights increased by 12.1% [5], from 1.70 million [6] reserved nights 
+#' to 1.91 million [6] reserved nights, while revenue increased 14.9% [7]. In 
 #' fact, with a few brief exceptions, revenue maintained a positive 
 #' year-over-year growth rate consistently until the COVID-19 pandemic began. 
 #' (Revenue from January to June 2020 is down 47.4% [8] compared to the same 
@@ -216,7 +216,7 @@ daily %>%
   summarize(revenue = sum(price)) %>% 
   summarize(change = (revenue[2] - revenue[1]) / revenue[1])
 
-#' [7] YOY revenue change, 2018-2019
+#' [8] YOY revenue change, 2019-2020
 daily %>% 
   filter(housing, status == "R", date >= LTM_start_date,
          date <= LTM_end_date + years(1),
@@ -286,9 +286,11 @@ boroughs_breakdown <-
             rev_2018 = sum(revenue[date < LTM_start_date]),
             rev_growth = (annual_rev - rev_2018) / rev_2018,
             .groups = "drop") %>% 
-  mutate(listings_pct_dwellings = active_listings / dwellings) %>% 
-  select(borough, active_listings, active_growth, listings_pct_dwellings,
-         annual_rev, rev_growth)
+  mutate(listings_pct = active_listings / sum(active_listings),
+         listings_pct_dwellings = active_listings / dwellings,
+         rev_pct = annual_rev / sum(annual_rev)) %>% 
+  select(borough, active_listings, active_growth, listings_pct,
+         listings_pct_dwellings, annual_rev, rev_pct, rev_growth)
 
 #' STR activity in Montreal is highly concentrated in the central-city boroughs 
 #' of Ville-Marie and Le Plateau-Mont-Royal (Table 2.2). These two boroughs 
@@ -305,16 +307,16 @@ boroughs_breakdown <-
 
 #' [1] Figures for VM and LPMR
 boroughs_breakdown %>% 
-  slice(c(7, 18)) %>% 
-  select(borough, listings_pct:listings_pct_dwellings)
+  slice(c(7, 18))
 
 #' [2] Figures for RLPP and LSO
 boroughs_breakdown %>% 
-  slice(c(8, 14)) %>% 
-  select(borough, listings_pct:rev_pct)
+  slice(c(8, 14))
 
 #' Table 2.2
 boroughs_breakdown %>% 
+  select(borough, active_listings, active_growth, listings_pct_dwellings,
+         annual_rev, rev_growth) %>% 
   set_names(c("Borough",
               "Daily active listings (average)",
               "Active listing year-over-year growth rate",
@@ -378,7 +380,7 @@ listing_type_breakdown <-
 #' remainder relatively evenly split between studio apartments (12.6% [1]), 
 #' two-bedroom units (27.6% [1]), and three-or-more-bedroom units (16.1% [1]). 
 #' In 2019 entire-home listings accounted for 75.6% [2] of all daily active 
-#' listings, and 91.0% [3] of total host revenue. Private rooms accounted for 
+#' listings, and 91.0% [2] of total host revenue. Private rooms accounted for 
 #' nearly all of the remainder.
 
 #' [1] Bedroom counts
@@ -421,7 +423,7 @@ listing_type_breakdown %>%
 
 # STRs and housing tenure -------------------------------------------------
 
-load("output/raffle_condo.Rdata")
+load("output/condo_analysis.Rdata")
 
 active_tenure_2017 <- 
   daily %>% 
@@ -429,7 +431,7 @@ active_tenure_2017 <-
   left_join(listing_probabilities_2017) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings_2017 = n(),
-            n_condo_2017 = sum(p_condo, na.rm = TRUE),
+            n_condo_2017 = as.numeric(sum(condo, na.rm = TRUE)),
             n_renter_2017 = sum(p_renter, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
   summarize(across(where(is.numeric), mean))
@@ -440,7 +442,7 @@ active_tenure_2019 <-
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings_2019 = n(),
-            n_condo_2019 = sum(p_condo, na.rm = TRUE),
+            n_condo_2019 = as.numeric(sum(condo, na.rm = TRUE)),
             n_renter_2019 = sum(p_renter, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
   summarize(across(where(is.numeric), mean))
@@ -449,19 +451,14 @@ borough_tenure <-
   DA_probabilities_2019 %>% 
   mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
   mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
-  select(dwellings:p_renter, geometry) %>% 
+  select(p_condo, p_renter, geometry) %>% 
   st_interpolate_aw(boroughs, extensive = TRUE) %>% 
   st_drop_geometry() %>% 
   select(-Group.1) %>% 
-  rename(dwellings_agg = dwellings,
-         n_condo = p_condo,
-         n_renter = p_renter) %>% 
+  rename(n_condo = p_condo, n_renter = p_renter) %>% 
   cbind(boroughs, .) %>% 
   as_tibble() %>% 
-  st_as_sf() %>% 
-  mutate(across(c(n_condo, n_renter), 
-                ~{.x * dwellings / dwellings_agg})) %>% 
-  select(-dwellings_agg)
+  st_as_sf()
 
 tenure_breakdown <-
   borough_tenure %>% 
@@ -480,10 +477,10 @@ tenure_breakdown <-
 #' identified as “Apartment”, and most of the rest were either “House” 
 #' (5.5% [1]) or “Loft” (4.7% [1]).... There are 12 dissemination areas in 
 #' Montreal in which condominiums are more than 95% of the housing stock [2]. 
-#' These 12 areas contain 104 [3] active STR listings, which by definition must 
-#' be nearly entirely condominiums. And yet only 41.3% [4] of these listings are 
-#' described as condominiums by their hosts; 42.3% [4] are described as 
-#' apartments and 8.7% [4] are described as lofts. In fact, the correlation 
+#' These 12 areas contain 113 [3] active STR listings, which by definition must 
+#' be nearly entirely condominiums. And yet only 44.2% [4] of these listings are 
+#' described as condominiums by their hosts; 39.8% [4] are described as 
+#' apartments and 6.2% [4] are described as lofts. In fact, the correlation 
 #' between the proportion of condominiums in a dissemination area and the 
 #' proportion of listings in the area which self-describe as condominiums is 
 #' only 0.07 [5]—barely different from random.
@@ -578,7 +575,7 @@ host_rev <-
 #' the median revenue was $4,200 [1], while the top host (in this case a network 
 #' of numerous host accounts which we discuss below) earned $12.8 million [2] 
 #' (Table 2.5). Throughout the City of Montreal, there were 37 hosts [3] that 
-#' earned more than $500,000 in 2019. Figure 2.6 #' shows the percentage of the 
+#' earned more than $500,000 in 2019. Figure 2.6 shows the percentage of the 
 #' total $222.7 million in STR revenue which accrued to each decile of hosts. 
 #' The most successful 10% of hosts earned more than two-thirds (68.8% [4]) of 
 #' all STR revenue. The revenue concentration is even steeper among the top 10%: 
@@ -622,17 +619,27 @@ host_rev %>%
   ) %>%
   opt_row_striping() 
 
-# More than 500k
-revenue_2019 %>% 
-  st_drop_geometry() %>% 
-  filter(revenue_LTM > 0) %>% 
-  group_by(host_ID) %>% 
-  summarize("host_rev" = sum(revenue_LTM)) %>% 
-  filter(host_rev > 500000) %>% 
-  nrow()
-
 
 # Multilistings -----------------------------------------------------------
+
+commercial_listings <- 
+  daily %>% 
+  filter(status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  count(date, commercial) %>% 
+  group_by(commercial) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  ungroup()
+
+
+#' Since 94.6% [1] of entire-home listings have three or fewer bedrooms...
+
+#' [1] Bedrooms
+property %>% 
+  filter(housing, created <= "2019-12-31", scraped >= "2019-01-01", 
+         listing_type == "Entire home/apt", !is.na(bedrooms)) %>% 
+  st_drop_geometry() %>% 
+  summarize(bedrooms_3_or_fewer = mean(bedrooms <= 3))
 
 #' In 2019, 50.6% [1] of active listings in Montreal were multilistings, earning 
 #' 64.0% [2] of total host revenue. Multilistings have been a steadily growing 
@@ -662,25 +669,19 @@ daily %>%
   tally(price) %>% 
   summarize(multi_rev = n[2] / sum(n))
 
-ML_table <- 
-  daily %>% 
-  filter(status != "B") %>% 
+#' On January 1, 2017, there were 5,460 [1] non-commercial listings and 
+#' 4,040 [1] commercial listings active in Montreal. By January 1, 2020, three 
+#' years later, these numbers had flipped; while the total number of active 
+#' listings was roughly the same (9,660 in 2020 and 9,500 in 2017 [2]) the 
+#' number of commercial listings had increased by more than 50% to 6,600 [1], 
+#' while the number of non-commercial listings had nearly halved to 3,050 [1].
+
+#' [1] Commercial and non-commercial listings
+commercial_listings %>% 
+  filter(date == "2017-01-01" | date == "2020-01-01")
+
+#' [2] Total listings
+commercial_listings %>% 
+  filter(date == "2017-01-01" | date == "2020-01-01") %>% 
   group_by(date) %>% 
-  summarize(Listings = mean(multi),
-            Revenue = sum(price * (status == "R") * multi, na.rm = TRUE) / 
-              sum(price * (status == "R") , na.rm = TRUE))
-
-ML_table %>% 
-  filter(date >= LTM_start_date, date <= LTM_end_date) %>% 
-  summarize(mean(Listings), mean(Revenue))
-
-ML_table %>% # look at % of commercial operations revenue in the last month of the analysis
-  filter(date >= max(date) - months(1)) %>% 
-  arrange(desc(Revenue))
-
-# Entire home multilistings
-daily %>% 
-  filter(listing_type == "Entire home/apt") %>% 
-  group_by(date) %>% 
-  summarize(Listings = sum(multi)) %>% 
-  filter(date == key_date)
+  summarize(n = sum(n))

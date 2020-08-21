@@ -184,7 +184,7 @@ active_condos_borough <-
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings = n(),
-            n_condo = sum(p_condo, na.rm = TRUE)) %>% 
+            n_condo = sum(condo, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
   summarize(n_listings_2019 = mean(n_listings),
             n_condo_listings_2019 = mean(n_condo)) %>% 
@@ -227,12 +227,8 @@ extrafont::embed_fonts("output/figures/figure_2_4.pdf")
 # Figure 2.5 condo scatterplot --------------------------------------------
 
 condo_scatter <-
-  listing_probabilities_2019 %>%
-  left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>%
-  count(GeoUID) %>% 
-  left_join(select(DA_probabilities_2019, GeoUID, dwellings, p_condo, geometry), 
-            .) %>% 
-  mutate(str_pct = n / dwellings) %>% 
+  DA_probabilities_2019 %>% 
+  mutate(str_pct = n_listings / dwellings) %>% 
   select(GeoUID, dwellings, p_condo, str_pct, geometry) %>% 
   left_join(select(st_drop_geometry(st_join(st_centroid(DA), boroughs)), 
                    -dwellings.x, -dwellings.y)) %>% 
@@ -259,8 +255,8 @@ figure_2_5 <-
   scale_x_continuous(name = "% condominiums",
                      labels = scales::percent) +
   scale_y_continuous(name = "% STRs", 
-                     labels = scales::percent_format(accuracy = 1), 
-                     limits = c(NA, 0.5)) +
+                     labels = scales::percent_format(accuracy = 1)) +
+  coord_cartesian(ylim = c(0, 0.5)) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
@@ -396,34 +392,36 @@ ggsave("output/figures/figure_2_7.pdf", plot = figure_2_7, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_7.pdf")
 
 
-# Figure 2.8 Ongoing commercialization of STR listings ------------------------------------------------
+# Figure 2.8 Commercialization of STR listings ----------------------------
 
-figure_2_8 <- 
+commercial_listings <- 
   daily %>% 
   filter(status != "B", date >= "2016-01-01") %>% 
-  mutate(commercial = ifelse(FREH_3 < 0.5 & multi == F, "Non-commercial", "Commercial")) %>% 
+  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
   count(date, commercial) %>% 
   group_by(commercial) %>% 
-  mutate(n = slider::slide_dbl(n, mean, .before = 6)) %>% 
-  ggplot()+
-  geom_line(aes(date, n, color = commercial))+
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  ungroup()
+
+figure_2_8 <- 
+  commercial_listings %>% 
+  ggplot() +
+  geom_line(aes(date, n, color = commercial), lwd = 1) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+           ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_y_continuous(name = NULL) +
-  scale_colour_manual(name="Type of listing",
+  scale_colour_manual(name = "Type of listing",
                       values = col_palette[c(5, 1)],
-                      labels = c("Commercial", "Non-commercial")) +
-  theme_minimal()+
+                      labels = c("Non-commercial", "Commercial")) +
+  theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        text = element_text(#family = "Futura", 
-          face = "plain"),
-        legend.title = element_text(#family = "Futura", 
-          face = "bold"),
-        #legend.text = element_text(family = "Futura")
-        )
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold"),
+        legend.text = element_text(family = "Futura"))
 
 ggsave("output/figures/figure_2_8.pdf", plot = figure_2_8, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_8.pdf")
-
