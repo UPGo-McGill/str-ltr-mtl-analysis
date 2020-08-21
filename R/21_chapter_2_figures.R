@@ -411,7 +411,7 @@ figure_2_8 <-
            ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_y_continuous(name = NULL) +
-  scale_colour_manual(name = "Type of listing",
+  scale_colour_manual(name = "Listing type",
                       values = col_palette[c(5, 1)],
                       labels = c("Non-commercial", "Commercial")) +
   theme_minimal() +

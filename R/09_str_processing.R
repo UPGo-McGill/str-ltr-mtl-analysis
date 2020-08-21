@@ -71,6 +71,22 @@ GH <- GH %>% select(ghost_ID, date, status, host_ID:data, geometry)
 rm(daily_GH, pb, status_fun, status)
 
 
+# Add GH status to daily --------------------------------------------------
+
+GH_daily <- 
+  GH %>% 
+  st_drop_geometry() %>% 
+  select(date, property_IDs) %>% 
+  unnest(property_IDs) %>% 
+  mutate(GH = TRUE) %>% 
+  select(property_ID = property_IDs, date, GH)
+
+daily <- 
+  daily %>% 
+  left_join(GH_daily, by = c("property_ID", "date")) %>% 
+  mutate(GH = if_else(is.na(GH), FALSE, GH))
+
+
 # Save output -------------------------------------------------------------
 
 save(property, daily, GH, file = "output/str_processed.Rdata")

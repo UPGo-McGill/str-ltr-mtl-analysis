@@ -53,12 +53,10 @@ housing_loss <-
 # Housing loss graph
 figure_3_1 <- 
   housing_loss %>% 
-  ggplot(aes(`Listing type`)) +
-  geom_col(aes(date, `Housing units`, 
-               fill = `Listing type`), 
-           lwd = 0) +
+  ggplot(aes(date, `Housing units`, fill = `Listing type`)) +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
+  geom_col(lwd = 0) +
   annotate("curve", x = as.Date("2019-03-20"), xend = as.Date("2020-05-01"),
            y = 5500, yend = 5800, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
@@ -83,4 +81,36 @@ extrafont::embed_fonts("output/figures/figure_3_1.pdf")
 
 # Figure 3.2 Housing loss share of listings -------------------------------
 
+housing_loss_share <- 
+  daily %>% 
+  filter(housing, status != "B", listing_type %in% c("Entire home/apt",
+                                                     "Private room")) %>% 
+  group_by(date) %>% 
+  summarize(
+    `Entire home/apt` = mean(FREH_3[listing_type == "Entire home/apt"] > 0.5),
+    `Private room` = mean(GH[listing_type == "Private room"])) %>% 
+  filter(date >= "2016-10-01") %>% 
+  pivot_longer(-date, names_to = "Listing type", 
+               values_to = "housing_loss_pct") %>% 
+  group_by(`Listing type`) %>% 
+  mutate(housing_loss_pct = slide_dbl(housing_loss_pct, mean, .before = 13))
 
+figure_3_2 <- 
+  housing_loss_share %>% 
+  ggplot(aes(date, housing_loss_pct, colour = `Listing type`)) +
+  geom_line(lwd = 1) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+           ymin = 0, ymax = Inf, alpha = .2) +
+  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_colour_manual(values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold"),
+        legend.text = element_text(family = "Futura"))
+
+ggsave("output/figures/figure_3_2.pdf", plot = figure_3_2, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_2.pdf")
