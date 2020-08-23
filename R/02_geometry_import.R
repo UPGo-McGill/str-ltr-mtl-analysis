@@ -14,6 +14,7 @@
 
 source("R/01_startup.R")
 library(cancensus)
+library(osmdata)
 
 
 # Quebec province ---------------------------------------------------------
@@ -68,10 +69,48 @@ city <-
   st_combine() %>% 
   st_union() %>% 
   st_cast("POLYGON") %>% 
-  st_union() %>% plot()
+  st_union() %>%
   smoothr::fill_holes(400)
+  
+
+# Downtown streets --------------------------------------------------------
+
+streets <- 
+  (getbb("Montreal") * c(1.01, 0.99, 0.99, 1.01)) %>% 
+  opq(timeout = 200) %>% 
+  add_osm_feature(key = "highway") %>% 
+  osmdata_sf()
+
+streets <-
+  rbind(
+    streets$osm_polygons %>% st_set_agr("constant") %>% st_cast("LINESTRING"), 
+    streets$osm_lines) %>% 
+  as_tibble() %>% 
+  st_as_sf() %>% 
+  st_transform(32618) %>%
+  st_set_agr("constant") %>%
+  st_intersection(city)
+
+streets <- 
+  streets %>% 
+  filter(highway %in% c("primary", "secondary")) %>% 
+  select(osm_id, name, highway, geometry)
+
+downtown_poly <- 
+  st_polygon(list(matrix(c(607000, 5038000,
+                           614000, 5038000,
+                           614000, 5045000,
+                           607000, 5045000,
+                           607000, 5038000), 
+                         ncol = 2, byrow = TRUE))) %>% 
+  st_sfc(crs = 32618)
+
+streets <- 
+  streets %>% 
+  st_intersection(downtown_poly)
 
 
 # Save output -------------------------------------------------------------
 
-save(province, DA, boroughs, boroughs_raw, city, file = "output/geometry.Rdata")
+save(province, DA, boroughs, boroughs_raw, city, streets, 
+     file = "output/geometry.Rdata")

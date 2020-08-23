@@ -46,4 +46,3 @@ col_palette <-
 #   write_csv(system.file("fontmap", "fonttable.csv", package = "extrafontdb"))
 # 
 # extrafont::loadfonts()
-

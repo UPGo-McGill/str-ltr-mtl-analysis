@@ -162,21 +162,40 @@ make_listing_map <- function(df) {
 }
 
 figure_2_3_left <- make_listing_map(active_borough)
-figure_2_3_right <-  make_listing_map(active_DA)
+
+figure_2_3_right <- 
+  make_listing_map(active_DA) +
+  geom_rect(xmin = 607000, ymin = 5038000, xmax = 614000, ymax = 5045000,
+            fill = NA, colour = "black", size = 0.3)
+
+fig_2_3_zoom <- 
+  figure_2_3_right +
+  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
+  coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
+           expand = FALSE) +
+  theme(legend.position = "none",
+        panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
+
+layout <- c(
+  area(1, 1, 42, 40),
+  area(1, 41, 42, 80),
+  area(3, 41, 22, 60)
+)
 
 figure_2_3 <- 
-  figure_2_3_left + figure_2_3_right + plot_layout(ncol = 2) + 
-  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+  figure_2_3_left + figure_2_3_right + fig_2_3_zoom + 
+  plot_layout(design = layout) + plot_layout(guides = 'collect') & 
+  theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_2_3.pdf", plot = figure_2_3, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_3.pdf")
 
 
 # Figure 2.4 Percentage of listings in condos -----------------------------
 
-load("output/raffle_condo.Rdata")
+load("output/condo_analysis.Rdata")
 
 active_condos_borough <- 
   daily %>% 
@@ -212,14 +231,33 @@ make_condo_map <- function(df) {
 }
 
 figure_2_4_left <- make_condo_map(active_condos_borough)
-figure_2_4_right <- make_condo_map(DA_probabilities_2019)
+
+figure_2_4_right <- 
+  make_condo_map(DA_probabilities_2019) +
+  geom_rect(xmin = 607000, ymin = 5038000, xmax = 614000, ymax = 5045000,
+            fill = NA, colour = "black", size = 0.3)
+
+fig_2_4_zoom <- 
+  figure_2_4_right +
+  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
+  coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
+           expand = FALSE) +
+  theme(legend.position = "none",
+        panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
+
+layout <- c(
+  area(1, 1, 42, 40),
+  area(1, 41, 42, 80),
+  area(3, 41, 22, 60)
+)
 
 figure_2_4 <- 
-  figure_2_4_left + figure_2_4_right + plot_layout(ncol = 2) + 
-  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+  figure_2_4_left + figure_2_4_right + fig_2_4_zoom + 
+  plot_layout(design = layout) + plot_layout(guides = 'collect') & 
+  theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_2_4.pdf", plot = figure_2_4, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_4.pdf")
 

@@ -114,3 +114,106 @@ ggsave("output/figures/figure_3_2.pdf", plot = figure_3_2, width = 8,
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_2.pdf")
+
+
+# Figure 3.3 Housing loss by borough --------------------------------------
+
+FREH_borough <- 
+  daily %>% 
+  filter(date == "2020-01-01") %>% 
+  group_by(borough) %>% 
+  summarize(FREH = sum(FREH_3))
+
+FREH_DA <- 
+  daily %>% 
+  filter(date == "2020-01-01") %>% 
+  left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>% 
+  group_by(GeoUID) %>% 
+  summarize(FREH = sum(FREH_3))
+
+GH_borough <- 
+  GH %>% 
+  filter(date == "2020-01-01") %>% 
+  mutate(geometry = st_centroid(geometry)) %>% 
+  st_join(boroughs) %>% 
+  st_drop_geometry() %>% 
+  group_by(borough) %>% 
+  summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
+  as_tibble()
+
+GH_DA <- 
+  GH %>% 
+  filter(date == "2020-01-01") %>% 
+  mutate(geometry = st_centroid(geometry)) %>% 
+  st_join(DA) %>% 
+  st_drop_geometry() %>% 
+  group_by(GeoUID) %>% 
+  summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
+  as_tibble()
+
+housing_loss_borough <- 
+  boroughs %>% 
+  left_join(FREH_borough) %>% 
+  left_join(GH_borough) %>% 
+  mutate(GH = if_else(is.na(GH), 0L, GH),
+         housing_loss_pct = (FREH + GH) / dwellings)
+
+housing_loss_DA <- 
+  DA %>% 
+  left_join(FREH_DA) %>% 
+  left_join(GH_DA) %>% 
+  mutate(GH = if_else(is.na(GH), 0L, GH),
+         housing_loss_pct = (FREH + GH) / dwellings)
+
+make_housing_map <- function(df) {
+  ggplot(df) +
+    geom_sf(data = province, colour = "transparent", fill = "grey93") +
+    geom_sf(aes(fill = housing_loss_pct),
+            colour = if (nrow(df) == 19) "white" else "transparent") +
+    scale_fill_gradientn(colors = col_palette[c(3, 4, 1, 2)], 
+                         na.value = "grey80",
+                         limits = c(0, 0.10), oob = scales::squish, 
+                         labels = scales::percent)  +
+    guides(fill = guide_colourbar(title = "% housing\nlost to STR",
+                                  title.vjust = 1)) + 
+    gg_bbox(df) +
+    theme_void() +
+    theme(text = element_text(family = "Futura", face = "plain"),
+          legend.title = element_text(family = "Futura", face = "bold",
+                                      size = 7),
+          legend.title.align = 0.9,
+          legend.text = element_text(family = "Futura", size = 5),
+          panel.border = element_rect(colour = "white", size = 2))
+}
+
+figure_3_3_left <- make_housing_map(housing_loss_borough)
+
+figure_3_3_right <- 
+  make_housing_map(housing_loss_DA) +
+  geom_rect(xmin = 607000, ymin = 5038000, xmax = 614000, ymax = 5045000,
+            fill = NA, colour = "black", size = 0.3)
+
+fig_zoom <- 
+  figure_3_3_right +
+  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
+  coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
+           expand = FALSE) +
+  theme(legend.position = "none",
+        panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
+
+layout <- c(
+  area(1, 1, 42, 40),
+  area(1, 41, 42, 80),
+  area(3, 41, 22, 60)
+)
+
+figure_3_3 <- 
+  figure_3_3_left + figure_3_3_right + fig_zoom + plot_layout(design = layout) + 
+  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+
+ggsave("output/figures/figure_3_3.pdf", plot = figure_3_3, width = 8, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_3.pdf")
+
+
