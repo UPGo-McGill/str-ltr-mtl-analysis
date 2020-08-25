@@ -74,4 +74,4 @@ rent_increase_zone <-
 
 # Save output -------------------------------------------------------------
 
-save(rent_increase, rent_increase_zone, file = "rent_increases.Rdata")
+save(rent_increase, rent_increase_zone, file = "output/rent_increases.Rdata")
