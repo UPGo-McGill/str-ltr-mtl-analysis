@@ -312,7 +312,7 @@ figure_3_5 <-
   geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = vacancy), colour = "white", alpha = 0.7) +
   geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
-  scale_fill_gradientn(colors = c(col_palette[c(1, 4)], "#6EEB83"), 
+  scale_fill_gradientn(colors = c(col_palette[c(2, 4)], "#6EEB83"), 
                        na.value = "grey80",
                        limits = c(0, 0.05), oob = scales::squish,
                        labels = scales::percent)  +
