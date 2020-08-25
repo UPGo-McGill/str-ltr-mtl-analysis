@@ -182,15 +182,119 @@ borough_housing_table %>%
 
 # The impact of STRs on residential rents ---------------------------------
 
+#' Between 2015 and 2019, we estimate that STRs have been responsible for a 
+#' 2.4% [1] increase in the average monthly rent. As average rents have risen 
+#' 16.9% [2] in this time period, this implies that one seventh of all rent 
+#' increases over the last five years have been caused by the growth of STRs. 
+#' Put differently, from 2015 to 2019, the average renter household in Montreal 
+#' has paid an additional $870 [3] in rent because of the impact of STRs on the 
+#' housing market.
 
+#' [1] Total rent increase
+rent_increase %>% 
+  slice(-1) %>% 
+  mutate(rent_increase = rent_increase + 1) %>% 
+  pull(rent_increase) %>% 
+  prod()
 
+#' [2] Average rent increase
+city_avg_rent %>% 
+  filter(bedroom == "Total") %>% 
+  filter(date >= 2014) %>% 
+  mutate(increase = slide_dbl(avg_rent, ~{.x[2] / .x[1]}, .before = 1)) %>% 
+  slice(-1) %>% 
+  pull(increase) %>% 
+  prod()
 
+#' [3] Extra rent payment
+city_avg_rent %>% 
+  filter(bedroom == "Total") %>% 
+  mutate(date = as.character(date)) %>% 
+  left_join(rent_increase, by = c("date" = "year_created")) %>% 
+  filter(date >= "2015") %>% 
+  select(date, avg_rent, rent_increase) %>% 
+  mutate(rent_plus_1 = 1 + rent_increase,
+         cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
+         extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
+  pull(extra_rent) %>% 
+  sum()
 
+#' Table 3.2
+strs_by_zone <- 
+  property %>% 
+  st_intersection(cmhc) %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, zone) %>% 
+  left_join(daily, .) %>% 
+  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  count(zone) %>% 
+  mutate(active_strs = n / 365)
 
+annual_avg_rent %>% 
+  filter(bedroom == "Total", occupied_status == "Occupied Units") %>% 
+  select(-bedroom, -occupied_status, -quality, -occ_rent_higher) %>% 
+  mutate(date = as.character(date)) %>% 
+  left_join(rent_increase_zone, by = c("zone", "date" = "year_created")) %>% 
+  group_by(zone, zone_name) %>%
+  mutate(rent_plus_1 = 1 + rent_increase,
+         cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
+         extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
+  summarize(avg_rent_2015 = avg_rent[date == 2015],
+            avg_rent_2019 = avg_rent[date == 2019],
+            rent_change = (avg_rent_2019 - avg_rent_2015) / avg_rent_2015,
+            str_rent_increase = prod(rent_plus_1) - 1,
+            str_share = str_rent_increase / rent_change,
+            extra_rent = sum(extra_rent)) %>% 
+  ungroup() %>% 
+  left_join(strs_by_zone) %>% 
+  relocate(active_strs, .after = zone_name) %>% 
+  select(-zone, -n) %>% 
+  add_row(
+    tibble_row(
+      zone_name = "City of Montreal",
+      active_strs = nrow(
+        filter(daily, housing, status != "B", date >= LTM_start_date, 
+               date <= LTM_end_date)) / 365,
+      avg_rent_2015 = (filter(city_avg_rent, date == 2015, 
+                              bedroom == "Total"))$avg_rent,
+      avg_rent_2019 = (filter(city_avg_rent, date == 2019, 
+                              bedroom == "Total"))$avg_rent,
+      rent_change = (avg_rent_2019 - avg_rent_2015) / avg_rent_2015,
+      str_rent_increase = (rent_increase %>% 
+                             slice(-1) %>% 
+                             mutate(rent_increase = rent_increase + 1) %>% 
+                             pull(rent_increase) %>% 
+                             prod()) - 1,
+      str_share = str_rent_increase / rent_change,
+      extra_rent = city_avg_rent %>% 
+        filter(bedroom == "Total") %>% 
+        mutate(date = as.character(date)) %>% 
+        left_join(rent_increase, by = c("date" = "year_created")) %>% 
+        filter(date >= "2015") %>% 
+        select(date, avg_rent, rent_increase) %>% 
+        mutate(rent_plus_1 = 1 + rent_increase,
+               cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
+               extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
+        pull(extra_rent) %>% 
+        sum())) %>% 
+  arrange(-active_strs) %>% 
+  slice(1:9) %>% 
+  mutate(across(c(active_strs, avg_rent_2015, avg_rent_2019, extra_rent), round, 
+                -1)) %>% 
+  set_names(c("CMHC Zone", "Active daily STR listings (2019)", 
+              "Average rent (2015)", "Average rent (2019)",
+              "Total rent increase (2015-2019)", 
+              "STR-induced rent increase (2015-2019)",
+              "STR share of total rent increase",
+              "Average extra rent paid due to STRs (2015-2019")) %>% 
+  gt() %>%
+  tab_header(title = "STR impacts on rents") %>%
+  opt_row_striping() %>% 
+  fmt_percent(columns = c(5:7), decimals = 1) %>% 
+  fmt_number(columns = 2:4, decimals = 0) %>% 
+  fmt_currency(8, decimals = 0)
 
-
-
-
+  
 
 
 # STR-induced housing loss - GH LISTINGS ----------------------------------------------------- 

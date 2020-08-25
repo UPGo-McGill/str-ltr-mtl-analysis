@@ -227,7 +227,7 @@ rent_increase_for_map <-
   summarize(total_rent_increase = prod(rent_increase)) %>% 
   mutate(total_rent_increase = total_rent_increase - 1) %>% 
   left_join(cmhc, .) %>% 
-  slice(c(1, 6, 9, 2, 5, 8, 17, 7, 4))
+  filter(zone %in% c(1, 6, 9, 2, 5, 8, 17, 7, 4))
 
 figure_3_4 <- 
   rent_increase_for_map %>% 
