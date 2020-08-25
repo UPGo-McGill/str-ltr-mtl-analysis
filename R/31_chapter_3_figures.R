@@ -231,10 +231,12 @@ rent_increase_for_map <-
 
 figure_3_4 <- 
   rent_increase_for_map %>% 
+  mutate(label = scales::percent(total_rent_increase, accuracy = 0.1)) %>% 
   ggplot() +
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
+  geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
   scale_fill_gradientn(name = "2015-2019 rent increase",
                        colors = col_palette[c(3, 2)], 
                        na.value = "grey80",
@@ -242,7 +244,7 @@ figure_3_4 <-
                        labels = scales::label_percent(accuracy = 0.1)) +
   gg_bbox(rent_increase_for_map) +
   theme_void() +
-  theme(legend.position = "bottom",
+  theme(legend.position = "none",
         text = element_text(family = "Futura", face = "plain"),
         legend.title = element_text(family = "Futura", face = "bold",
                                     size = 7),
@@ -312,7 +314,7 @@ figure_3_5 <-
   geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = vacancy), colour = "white", alpha = 0.7) +
   geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
-  scale_fill_gradientn(colors = c(col_palette[c(2, 4)], "#6EEB83"), 
+  scale_fill_gradientn(colors = col_palette[c(2, 4, 6)], 
                        na.value = "grey80",
                        limits = c(0, 0.05), oob = scales::squish,
                        labels = scales::percent)  +
