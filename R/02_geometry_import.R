@@ -73,10 +73,10 @@ city <-
   smoothr::fill_holes(400)
   
 
-# Downtown streets --------------------------------------------------------
+# Streets -----------------------------------------------------------------
 
 streets <- 
-  (getbb("Montreal") * c(1.01, 0.99, 0.99, 1.01)) %>% 
+  (getbb("Région administrative de Montréal") * c(1.01, 0.99, 0.99, 1.01)) %>% 
   opq(timeout = 200) %>% 
   add_osm_feature(key = "highway") %>% 
   osmdata_sf()
@@ -105,12 +105,12 @@ downtown_poly <-
                          ncol = 2, byrow = TRUE))) %>% 
   st_sfc(crs = 32618)
 
-streets <- 
+streets_downtown <- 
   streets %>% 
   st_intersection(downtown_poly)
 
 
 # Save output -------------------------------------------------------------
 
-save(province, DA, boroughs, boroughs_raw, city, streets, 
+save(province, DA, boroughs, boroughs_raw, city, streets, streets_downtown, 
      file = "output/geometry.Rdata")

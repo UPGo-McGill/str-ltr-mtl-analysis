@@ -9,6 +9,7 @@
 #' - `02_geometry_import.R`
 #' - `05_cmhc_data_import.R`
 #' - `09_str_processing.R`
+#' - `12_rent_increases.R`
 #' 
 #' External dependencies:
 #' - None
@@ -21,6 +22,7 @@ source("R/01_startup.R")
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/cmhc.Rdata")
+load("output/rent_increases.Rdata")
 
 
 # Prepare new objects -----------------------------------------------------
@@ -179,6 +181,10 @@ borough_housing_table %>%
 
 
 # The impact of STRs on residential rents ---------------------------------
+
+
+
+
 
 
 

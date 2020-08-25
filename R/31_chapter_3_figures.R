@@ -195,7 +195,7 @@ figure_3_3_right <-
 
 fig_zoom <- 
   figure_3_3_right +
-  geom_sf(data = streets, size = 0.3, colour = "white") +
+  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
   coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
            expand = FALSE) +
   theme(legend.position = "none",
@@ -215,3 +215,122 @@ ggsave("output/figures/figure_3_3.pdf", plot = figure_3_3, width = 8,
        height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_3.pdf")
+
+
+# Figure 3.4 STR-induced rent increases -----------------------------------
+
+rent_increase_for_map <- 
+  rent_increase_zone %>% 
+  group_by(zone) %>% 
+  slice(-1) %>% 
+  mutate(rent_increase = 1 + rent_increase) %>% 
+  summarize(total_rent_increase = prod(rent_increase)) %>% 
+  mutate(total_rent_increase = total_rent_increase - 1) %>% 
+  left_join(cmhc, .) %>% 
+  slice(c(1, 6, 9, 2, 5, 8, 17, 7, 4))
+
+figure_3_4 <- 
+  rent_increase_for_map %>% 
+  ggplot() +
+  geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  geom_sf(data = streets, size = 0.2, colour = "white") +
+  geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
+  scale_fill_gradientn(name = "2015-2019 rent increase",
+                       colors = col_palette[c(3, 2)], 
+                       na.value = "grey80",
+                       limits = c(0.02, 0.04),
+                       labels = scales::label_percent(accuracy = 0.1)) +
+  gg_bbox(rent_increase_for_map) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold",
+                                    size = 7),
+        legend.title.align = 0.9,
+        legend.text = element_text(family = "Futura", size = 5),
+        panel.border = element_rect(colour = "white", size = 2))
+  
+ggsave("output/figures/figure_3_4.pdf", plot = figure_3_4, width = 3.0, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_4.pdf")
+
+
+# Figure 3.5 Vacancy rates ------------------------------------------------
+
+FREH_zone <- 
+  daily %>% 
+  filter(date == "2019-12-01") %>% 
+  left_join(select(property, property_ID, geometry)) %>% 
+  st_as_sf() %>% 
+  st_intersection(cmhc) %>% 
+  st_drop_geometry() %>% 
+  group_by(zone) %>% 
+  summarize(FREH = sum(FREH_3))
+
+GH_zone <- 
+  GH %>% 
+  filter(date == "2019-12-31") %>% 
+  mutate(geometry = st_centroid(geometry)) %>% 
+  st_intersection(cmhc) %>% 
+  st_drop_geometry() %>% 
+  group_by(zone) %>% 
+  summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
+  as_tibble()
+
+vacancy_for_map <- 
+  annual_vacancy %>% 
+  filter(dwelling_type == "Total", bedroom == "Total", !is.na(vacancy)) %>% 
+  group_by(zone) %>% 
+  filter(date == max(date)) %>% 
+  ungroup() %>% 
+  left_join(annual_units) %>% 
+  select(-dwelling_type, -bedroom, -quality) %>% 
+  mutate(vacant_units = vacancy * units) %>% 
+  left_join(FREH_zone) %>% 
+  left_join(GH_zone) %>% 
+  mutate(housing_loss = FREH + if_else(is.na(GH), 0L, GH)) %>% 
+  select(-FREH, -GH) %>% 
+  filter(housing_loss >= 50) %>% 
+  arrange(zone) %>% 
+  mutate(units_returning = housing_loss * .675,
+         new_vacant = vacant_units + units_returning,
+         new_vacancy = new_vacant / units) %>% 
+  select(zone:vacancy, new_vacancy) %>% 
+  rename(`Current vacancy rate` = vacancy, 
+         `Dedicated STRs back to market` = new_vacancy) %>% 
+  pivot_longer(-c(zone, zone_name), names_to = "status",
+               values_to = "vacancy") %>% 
+  left_join(cmhc) %>% 
+  st_as_sf()
+
+figure_3_5 <- 
+  vacancy_for_map %>% 
+  mutate(label = scales::percent(vacancy, accuracy = 0.1)) %>% 
+  ggplot() +
+  geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  geom_sf(data = streets, size = 0.2, colour = "white") +
+  geom_sf(aes(fill = vacancy), colour = "white", alpha = 0.7) +
+  geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
+  scale_fill_gradientn(colors = c(col_palette[c(1, 4)], "#6EEB83"), 
+                       na.value = "grey80",
+                       limits = c(0, 0.05), oob = scales::squish,
+                       labels = scales::percent)  +
+  guides(fill = guide_colourbar(title = "% housing\nlost to STR",
+                                title.vjust = 1)) + 
+  facet_wrap(vars(status), nrow = 1) +
+  gg_bbox(vacancy_for_map) +
+  theme_void() +
+  theme(legend.position = "none",
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold",
+                                      size = 7),
+        legend.title.align = 0.9,
+        legend.text = element_text(family = "Futura", size = 5),
+        strip.text = element_text(family = "Futura", face = "bold", size = 12),
+        panel.border = element_rect(colour = "white", size = 2))
+
+ggsave("output/figures/figure_3_5.pdf", plot = figure_3_5, width = 8, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_5.pdf")
