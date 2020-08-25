@@ -53,28 +53,25 @@ rent_increase %>%
 
 # Table for CMHC zones ----------------------------------------------------
 
-rent_increase_zone <- 
+rent_increase_zone <-
   property %>% 
+  st_intersection(cmhc) %>% 
   st_drop_geometry() %>% 
   group_by(zone) %>% 
   count(year_created = substr(created, 1, 4)) %>% 
   filter(!is.na(year_created)) %>% 
-  mutate(year_created = if_else(year_created <= "2015", "old", year_created)) %>%
+  mutate(year_created = if_else(year_created <= "2014", "old", 
+                                year_created)) %>% 
   group_by(zone, year_created) %>% 
   summarize(n = sum(n)) %>% 
   slice(n(), 1:(n() - 1)) %>% 
-  mutate(rent_increase = NA_real_)
-
-rent_increase_zone <- 
-  rent_increase_zone %>% 
-  group_split() %>% 
-  map_dfr(~{
-    for (i in 2:6) .x[i,]$rent_increase <- 
-        magic_value * .x[i,]$n / sum(.x[seq_len(i - 1),]$n)
-    .x
-  })
+  mutate(
+    rent_increase = slide_dbl(n, ~{
+      magic_value * .x[length(.x)] / sum(.x[-length(.x)])}, .before = n() - 1),
+    rent_increase = if_else(is.infinite(rent_increase), NA_real_, rent_increase)
+  )
 
 
+# Save output -------------------------------------------------------------
 
-
-
+save(rent_increase, rent_increase_zone, file = "rent_increases.Rdata")

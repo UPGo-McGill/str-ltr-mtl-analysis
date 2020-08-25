@@ -120,20 +120,20 @@ extrafont::embed_fonts("output/figures/figure_3_2.pdf")
 
 FREH_borough <- 
   daily %>% 
-  filter(date == "2020-01-01") %>% 
+  filter(date == "2019-12-01") %>% 
   group_by(borough) %>% 
   summarize(FREH = sum(FREH_3))
 
 FREH_DA <- 
   daily %>% 
-  filter(date == "2020-01-01") %>% 
+  filter(date == "2019-12-01") %>% 
   left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>% 
   group_by(GeoUID) %>% 
   summarize(FREH = sum(FREH_3))
 
 GH_borough <- 
   GH %>% 
-  filter(date == "2020-01-01") %>% 
+  filter(date == "2019-12-31") %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(boroughs) %>% 
   st_drop_geometry() %>% 
@@ -143,7 +143,7 @@ GH_borough <-
 
 GH_DA <- 
   GH %>% 
-  filter(date == "2020-01-01") %>% 
+  filter(date == "2019-12-31") %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(DA) %>% 
   st_drop_geometry() %>% 
@@ -195,7 +195,7 @@ figure_3_3_right <-
 
 fig_zoom <- 
   figure_3_3_right +
-  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
+  geom_sf(data = streets, size = 0.3, colour = "white") +
   coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
            expand = FALSE) +
   theme(legend.position = "none",
@@ -215,5 +215,3 @@ ggsave("output/figures/figure_3_3.pdf", plot = figure_3_3, width = 8,
        height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_3.pdf")
-
-
