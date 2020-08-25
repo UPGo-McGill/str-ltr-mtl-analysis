@@ -196,7 +196,9 @@ import_annual_units <- function(data, year) {
     behead("left", zone) %>% 
     behead("left", neighbourhood) %>% 
     behead("left", dwelling_type) %>% 
-    mutate(date = year) %>% 
+    mutate(date = year, 
+           character = parse_number(character),
+           numeric = if_else(is.na(numeric), character, numeric)) %>% 
     select(date, province, centre, zone, neighbourhood, dwelling_type, bedroom, 
            units = numeric) %>% 
     mutate(province = 
