@@ -68,8 +68,9 @@ rent_increase_zone <-
   mutate(
     rent_increase = slide_dbl(n, ~{
       magic_value * .x[length(.x)] / sum(.x[-length(.x)])}, .before = n() - 1),
-    rent_increase = if_else(is.infinite(rent_increase), NA_real_, rent_increase)
-  )
+    rent_increase = if_else(is.infinite(rent_increase), NA_real_, 
+                            rent_increase)) %>% 
+  ungroup()
 
 
 # Save output -------------------------------------------------------------
