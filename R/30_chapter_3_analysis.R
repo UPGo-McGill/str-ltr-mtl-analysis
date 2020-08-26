@@ -10,6 +10,7 @@
 #' - `05_cmhc_data_import.R`
 #' - `09_str_processing.R`
 #' - `12_rent_increases.R`
+#' - `13_condo_analysis.R`
 #' 
 #' External dependencies:
 #' - None
@@ -23,6 +24,7 @@ load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/cmhc.Rdata")
 load("output/rent_increases.Rdata")
+load("output/condo_analysis.Rdata")
 
 
 # Prepare new objects -----------------------------------------------------
@@ -294,7 +296,33 @@ annual_avg_rent %>%
   fmt_number(columns = 2:4, decimals = 0) %>% 
   fmt_currency(8, decimals = 0)
 
-  
+
+
+
+
+
+DA_probabilities_2019 %>% 
+  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
+  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
+  select(dwellings, p_condo, p_renter, geometry) %>% 
+  st_interpolate_aw(cmhc, extensive = TRUE) %>% 
+  st_drop_geometry() %>% 
+  select(-Group.1) %>% 
+  rename(n_condo = p_condo, n_renter = p_renter) %>% 
+  cbind(cmhc, .) %>% 
+  as_tibble() %>% 
+  select(-geometry) %>% 
+  mutate(p_renter = n_renter / dwellings) %>% 
+  select(zone, p_renter)
+
+annual_units %>% 
+  filter(zone == 1, dwelling_type == "Total", bedroom == "Total")
+
+
+
+
+
+
 
 
 # STR-induced housing loss - GH LISTINGS ----------------------------------------------------- 
