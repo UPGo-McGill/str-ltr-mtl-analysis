@@ -260,12 +260,51 @@ unit_change <-
   group_by(zone) %>% 
   summarize(unit_change = units[date == 2019] - units[date == 2018],
             housing_loss_change = housing_loss[date == 2019] - 
-              housing_loss[date == 2018])
+              housing_loss[date == 2018]) %>% 
+  mutate(net_unit_change = unit_change - housing_loss_change) %>% 
+  left_join(strs_by_zone) %>% 
+  arrange(-active_strs) %>% 
+  slice(1:10) %>% 
+  left_join(st_drop_geometry(cmhc)) %>% 
+  select(zone, zone_name, unit_change:net_unit_change)
+  
+figure_3_4 <- 
+  unit_change %>%
+  mutate(zone_name = factor(zone_name, levels = zone_name)) %>% 
+  select(-zone) %>% 
+  pivot_longer(-zone_name) %>% 
+  filter(name != "housing_loss_change") %>%
+  mutate(name = factor(name, levels = c("unit_change", "net_unit_change"))) %>% 
+  ggplot() +
+  geom_col(aes(zone_name, value, fill = name),
+           position = position_dodge(width = 0.5)) +
+  geom_segment(data = unit_change, 
+               mapping = aes(x = zone_name, xend = zone_name, y = unit_change, 
+                             yend = net_unit_change),
+               size = 1.2,
+               arrow = arrow(length = unit(0.3, "cm")),
+               position = position_nudge(x = -0.125)) +
+  scale_fill_manual(name = NULL, values = col_palette[c(3, 1)],
+                    labels = c("Rental unit change", 
+                               "Rental unit change with STRs")) +
+  scale_y_continuous(name = NULL, breaks = c(-200, 0, 200, 400, 600)) +
+  scale_x_discrete(name = NULL,
+                   labels = 
+                     unit_change$zone_name %>% 
+                     str_replace_all("/", "/\n") %>% 
+                     str_replace_all("Plateau-", "Plateau-\n") %>% 
+                     str_replace_all("laga-", "laga-\n")) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        text = element_text(family = "Futura"),
+        axis.text.x = element_text(family = "Futura", size = 6),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank())
 
-unit_change %>% 
-  filter(unit_change - housing_loss_change > 0)
+ggsave("output/figures/figure_3_4.pdf", plot = figure_3_4,  width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
-
+extrafont::embed_fonts("output/figures/figure_3_4.pdf")
 
 
 # Figure 3.5 Vacancy rates ------------------------------------------------
@@ -365,4 +404,3 @@ ggsave("output/figures/figure_3_6.pdf", plot = figure_3_6, width = 3.0,
        height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_6.pdf")
-
