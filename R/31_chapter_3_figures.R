@@ -221,32 +221,6 @@ extrafont::embed_fonts("output/figures/figure_3_3.pdf")
 
 # Figure 3.4 Changes in housing supply ------------------------------------
 
-
-
-
-
-# Figure 3.5 Vacancy rates ------------------------------------------------
-
-FREH_zone <- 
-  daily %>% 
-  filter(date == "2019-12-01") %>% 
-  left_join(select(property, property_ID, geometry)) %>% 
-  st_as_sf() %>% 
-  st_intersection(cmhc) %>% 
-  st_drop_geometry() %>% 
-  group_by(zone) %>% 
-  summarize(FREH = sum(FREH_3))
-
-GH_zone <- 
-  GH %>% 
-  filter(date == "2019-12-31") %>% 
-  mutate(geometry = st_centroid(geometry)) %>% 
-  st_intersection(cmhc) %>% 
-  st_drop_geometry() %>% 
-  group_by(zone) %>% 
-  summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
-  as_tibble()
-
 renter_zone <- 
   DA_probabilities_2019 %>% 
   mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
@@ -262,6 +236,40 @@ renter_zone <-
   mutate(p_renter = n_renter / dwellings) %>% 
   select(zone, p_renter)
 
+daily_cmhc <- 
+  property %>% 
+  st_intersection(cmhc) %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, zone) %>% 
+  left_join(daily, .) %>% 
+  filter(housing, date %in% as.Date(c("2019-12-01", "2019-12-31", "2018-12-01",
+                                      "2018-12-31"))) %>% 
+  mutate(FREH_3 = if_else(substr(date, 9, 9) == 0, FREH_3, 0),
+         GH     = if_else(substr(date, 9, 9) == 3, GH, FALSE)) %>% 
+  mutate(date = as.integer(substr(date, 1, 4))) %>% 
+  group_by(zone, date) %>% 
+  summarize(housing_loss = sum(FREH_3) + sum(GH)) %>% 
+  ungroup()
+
+unit_change <- 
+  annual_units %>% 
+  filter(dwelling_type == "Total", bedroom == "Total") %>% 
+  inner_join(daily_cmhc) %>% 
+  left_join(renter_zone) %>% 
+  mutate(housing_loss = housing_loss * p_renter) %>% 
+  group_by(zone) %>% 
+  summarize(unit_change = units[date == 2019] - units[date == 2018],
+            housing_loss_change = housing_loss[date == 2019] - 
+              housing_loss[date == 2018])
+
+unit_change %>% 
+  filter(unit_change - housing_loss_change > 0)
+
+
+
+
+# Figure 3.5 Vacancy rates ------------------------------------------------
+
 vacancy_for_map <- 
   annual_vacancy %>% 
   filter(dwelling_type == "Total", bedroom == "Total", !is.na(vacancy)) %>% 
@@ -271,11 +279,8 @@ vacancy_for_map <-
   left_join(annual_units) %>% 
   select(-dwelling_type, -bedroom, -quality) %>% 
   mutate(vacant_units = vacancy * units) %>% 
-  left_join(FREH_zone) %>% 
-  left_join(GH_zone) %>% 
+  left_join(select(filter(daily_cmhc, date == 2019), zone, housing_loss)) %>% 
   left_join(renter_zone) %>% 
-  mutate(housing_loss = FREH + if_else(is.na(GH), 0L, GH)) %>% 
-  select(-FREH, -GH) %>% 
   filter(housing_loss >= 50) %>% 
   arrange(zone) %>% 
   mutate(units_returning = housing_loss * p_renter,
