@@ -20,6 +20,8 @@ library(patchwork)
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
+load("output/cmhc.Rdata")
+load("output/rent_increases.Rdata")
 
 
 # Figure 3.1 Housing loss -------------------------------------------------
