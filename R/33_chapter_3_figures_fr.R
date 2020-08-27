@@ -6,8 +6,6 @@
 #' - `figure_3_1.pdf`
 #' - `figure_3_2.pdf`
 #' - `figure_3_3.pdf`
-#' - `figure_3_4.pdf`
-#' - `figure_3_5.pdf`
 #' 
 #' Script dependencies:
 #' - `09_str_processing.R`
@@ -22,6 +20,8 @@ library(patchwork)
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
+load("output/cmhc.Rdata")
+load("output/rent_increases.Rdata")
 
 
 # Prepare objects for graphs -------------------------------------------------------------
@@ -222,43 +222,90 @@ ggsave("output/figures/figure_3_3F.pdf", plot = figure_3_3, width = 8,
 extrafont::embed_fonts("output/figures/figure_3_3F.pdf")
 
 
-# Figure 3.4 Augmentation du prix des loyers induits par les LCT -----------------------------------
+# Figure 3.4 Changement dans le parc d'habitation ------------------------------------
 
-rent_increase_for_map <- 
-  rent_increase_zone %>% 
+renter_zone <- 
+  DA_probabilities_2019 %>% 
+  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
+  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
+  select(dwellings, p_condo, p_renter, geometry) %>% 
+  st_interpolate_aw(cmhc, extensive = TRUE) %>% 
+  st_drop_geometry() %>% 
+  select(-Group.1) %>% 
+  rename(n_condo = p_condo, n_renter = p_renter) %>% 
+  cbind(cmhc, .) %>% 
+  as_tibble() %>% 
+  select(-geometry) %>% 
+  mutate(p_renter = n_renter / dwellings) %>% 
+  select(zone, p_renter)
+
+daily_cmhc <- 
+  property %>% 
+  st_intersection(cmhc) %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, zone) %>% 
+  left_join(daily, .) %>% 
+  filter(housing, date %in% as.Date(c("2019-12-01", "2019-12-31", "2018-12-01",
+                                      "2018-12-31"))) %>% 
+  mutate(FREH_3 = if_else(substr(date, 9, 9) == 0, FREH_3, 0),
+         GH     = if_else(substr(date, 9, 9) == 3, GH, FALSE)) %>% 
+  mutate(date = as.integer(substr(date, 1, 4))) %>% 
+  group_by(zone, date) %>% 
+  summarize(housing_loss = sum(FREH_3) + sum(GH)) %>% 
+  ungroup()
+
+unit_change <- 
+  annual_units %>% 
+  filter(dwelling_type == "Total", bedroom == "Total") %>% 
+  inner_join(daily_cmhc) %>% 
+  left_join(renter_zone) %>% 
+  mutate(housing_loss = housing_loss * p_renter) %>% 
   group_by(zone) %>% 
-  slice(-1) %>% 
-  mutate(rent_increase = 1 + rent_increase) %>% 
-  summarize(total_rent_increase = prod(rent_increase)) %>% 
-  mutate(total_rent_increase = total_rent_increase - 1) %>% 
-  left_join(cmhc, .) %>% 
-  slice(c(1, 6, 9, 2, 5, 8, 17, 7, 4))
+  summarize(unit_change = units[date == 2019] - units[date == 2018],
+            housing_loss_change = housing_loss[date == 2019] - 
+              housing_loss[date == 2018]) %>% 
+  mutate(net_unit_change = unit_change - housing_loss_change) %>% 
+  left_join(strs_by_zone) %>% 
+  arrange(-active_strs) %>% 
+  slice(1:10) %>% 
+  left_join(st_drop_geometry(cmhc)) %>% 
+  select(zone, zone_name, unit_change:net_unit_change)
 
 figure_3_4 <- 
-  rent_increase_for_map %>% 
-  mutate(label = scales::percent(total_rent_increase, accuracy = 0.1)) %>% 
+  unit_change %>%
+  mutate(zone_name = factor(zone_name, levels = zone_name)) %>% 
+  select(-zone) %>% 
+  pivot_longer(-zone_name) %>% 
+  filter(name != "housing_loss_change") %>%
+  mutate(name = factor(name, levels = c("unit_change", "net_unit_change"))) %>% 
   ggplot() +
-  geom_sf(data = province, colour = "transparent", fill = "grey93") +
-  geom_sf(data = streets, size = 0.2, colour = "white") +
-  geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
-  geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
-  scale_fill_gradientn(name = "Augmentation du prix des loyers 2015-2019",
-                       colors = col_palette[c(3, 2)], 
-                       na.value = "grey80",
-                       limits = c(0.02, 0.04),
-                       labels = scales::label_percent(accuracy = 0.1)) +
-  gg_bbox(rent_increase_for_map) +
-  theme_void() +
-  theme(legend.position = "none",
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold",
-                                    size = 7),
-        legend.title.align = 0.9,
-        legend.text = element_text(family = "Futura", size = 5),
-        panel.border = element_rect(colour = "white", size = 2))
+  geom_col(aes(zone_name, value, fill = name),
+           position = position_dodge(width = 0.5)) +
+  geom_segment(data = unit_change, 
+               mapping = aes(x = zone_name, xend = zone_name, y = unit_change, 
+                             yend = net_unit_change),
+               size = 1.2,
+               arrow = arrow(length = unit(0.3, "cm")),
+               position = position_nudge(x = -0.125)) +
+  scale_fill_manual(name = NULL, values = col_palette[c(3, 1)],
+                    labels = c("Changement du nombre\nd'unités locatives", 
+                               "Changement du nombre\nd'unités locatives incluant les LCT")) +
+  scale_y_continuous(name = NULL, breaks = c(-200, 0, 200, 400, 600)) +
+  scale_x_discrete(name = NULL,
+                   labels = 
+                     unit_change$zone_name %>% 
+                     str_replace_all("/", "/\n") %>% 
+                     str_replace_all("Plateau-", "Plateau-\n") %>% 
+                     str_replace_all("laga-", "laga-\n")) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        text = element_text(family = "Futura"),
+        axis.text.x = element_text(family = "Futura", size = 6),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank())
 
-ggsave("output/figures/figure_3_4F.pdf", plot = figure_3_4, width = 3.0, 
-       height = 4.2, units = "in", useDingbats = FALSE)
+ggsave("output/figures/figure_3_4F.pdf", plot = figure_3_4,  width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_4F.pdf")
 
@@ -341,5 +388,45 @@ ggsave("output/figures/figure_3_5F.pdf", plot = figure_3_5, width = 8,
        height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_5F.pdf")
+
+# Figure 3.6 Augmentation du prix des loyers induits par les LCT -----------------------------------
+
+rent_increase_for_map <- 
+  rent_increase_zone %>% 
+  group_by(zone) %>% 
+  slice(-1) %>% 
+  mutate(rent_increase = 1 + rent_increase) %>% 
+  summarize(total_rent_increase = prod(rent_increase)) %>% 
+  mutate(total_rent_increase = total_rent_increase - 1) %>% 
+  left_join(cmhc, .) %>% 
+  slice(c(1, 6, 9, 2, 5, 8, 17, 7, 4))
+
+figure_3_6 <- 
+  rent_increase_for_map %>% 
+  mutate(label = scales::percent(total_rent_increase, accuracy = 0.1)) %>% 
+  ggplot() +
+  geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  geom_sf(data = streets, size = 0.2, colour = "white") +
+  geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
+  geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
+  scale_fill_gradientn(name = "Augmentation du prix des loyers 2015-2019",
+                       colors = col_palette[c(3, 2)], 
+                       na.value = "grey80",
+                       limits = c(0.02, 0.04),
+                       labels = scales::label_percent(accuracy = 0.1)) +
+  gg_bbox(rent_increase_for_map) +
+  theme_void() +
+  theme(legend.position = "none",
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold",
+                                    size = 7),
+        legend.title.align = 0.9,
+        legend.text = element_text(family = "Futura", size = 5),
+        panel.border = element_rect(colour = "white", size = 2))
+
+ggsave("output/figures/figure_3_6F.pdf", plot = figure_3_6, width = 3.0, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_3_6F.pdf")
 
 
