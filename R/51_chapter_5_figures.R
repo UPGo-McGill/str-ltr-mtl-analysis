@@ -20,10 +20,13 @@
 #'   `01_startup.R`
 
 source("R/01_startup.R")
+library(imager)
+library(patchwork)
 
 load("output/geometry.Rdata")
 load("output/str_processed.Rdata")
 load("output/ltr_processed.Rdata")
+load("output/matches_raw.Rdata")
 
 # Prepare objects for upcoming figures -----------------------------------------------------
 
@@ -48,9 +51,85 @@ ltr_unique_property_ID <-
   distinct(property_ID, .keep_all = T)
 
 
-# Figure 5.1. Concentration of STR listings matched with LTR listings by borough -----------------------------------------------------
 
-figure_5_1 <- ltr_unique_property_ID %>% 
+# Figure 5.1 Airbnb/Kijiji image comparison -------------------------------
+
+first_photo_pair <- 
+  kj_matches %>% 
+  mutate(across(c(x_name, y_name), str_replace, "mtl", "montreal")) %>% 
+  slice(1:100) %>% 
+  filter(confirmation == "match") %>% 
+  slice(4)
+
+second_photo_pair <- 
+  cl_matches %>% 
+  mutate(across(c(x_name, y_name), str_replace, "mtl", "montreal")) %>% 
+  filter(confirmation == "match") %>% 
+  slice(2633)
+
+titles <- list(
+  
+  first_photo_pair$x_name %>% 
+    str_extract('ab-.*(?=\\.jpg)') %>% 
+    {filter(property, property_ID == .)} %>% 
+    pull(listing_title),
+  
+  first_photo_pair$y_name %>% 
+    str_extract('kj-.*(?=-[:digit:]\\.jpg)') %>% 
+    {filter(ltr, id == .)} %>% 
+    slice(1) %>% 
+    pull(title) %>% 
+    str_remove(' \\|.*'),
+  
+  property %>% 
+    filter(map_lgl(all_PIDs, ~{
+      str_extract(second_photo_pair$x_name, 'ab-.*(?=\\.jpg)') %in% .x})) %>% 
+    pull(listing_title),
+  
+  second_photo_pair$y_name %>% 
+    str_extract('cl-.*(?=-[:digit:]\\.jpg)') %>% 
+    {filter(ltr, id == .)} %>% 
+    slice(1) %>% 
+    pull(title) %>% 
+    str_remove(' - apts.*')
+)
+
+photos <- 
+  map2(list(first_photo_pair$x_name, first_photo_pair$y_name, 
+            second_photo_pair$x_name, second_photo_pair$y_name), 
+       titles, ~{
+         .x %>% 
+           load.image() %>% 
+           as.data.frame(wide = "c") %>% 
+           mutate(rgb = rgb(c.1, c.2, c.3)) %>% 
+           ggplot(aes(x, y)) +
+           geom_raster(aes(fill = rgb)) + 
+           scale_fill_identity() +
+           scale_y_continuous(trans = scales::reverse_trans()) +
+           ggtitle(
+             case_when(str_detect(.x, "ab-") ~ "Airbnb",
+                       str_detect(.x, "cl-") ~ "Craigslist",
+                       str_detect(.x, "kj-") ~ "Kijiji"), 
+             subtitle = paste0('"', .y, '"')) +
+           theme_void() +
+           theme(plot.title = element_text(family = "Futura Condensed",
+                                           face = "bold", size = 9),
+                 plot.subtitle = element_text(family = "Futura Condensed",
+                                              face = "plain", size = 9))})
+
+figure_5_1 <- wrap_plots(photos)
+
+ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_1.pdf")
+
+
+
+# Figure 5.1. Concentration of STR listings matched with LTR listings by borough ------------------
+
+figure_5_1 <-
+  ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
   left_join(boroughs, .) %>% 
