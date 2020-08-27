@@ -39,7 +39,9 @@ unique_ltr <-
 
 #' Our image matching algorithm recognized 2,583 [1] unique Airbnb listings 
 #' which matched with 4,871 [2] different LTR listings (as some units are posted 
-#' multiple times) in the City of Montreal. Out of these 2,583 listings, 
+#' multiple times) in the City of Montreal. The matching LTR listings were 
+#' evenly split between Kijiji (2,616 [2] listings, or 53.7%) and Craigslist 
+#' (2,255 [2] listings, or 46.3%). Out of the 2,583 matching Airbnb listings,
 #' 57.1% (1,474 [3] listings) were active STRs in 2020, which establishes a 
 #' lower bound for the number of unique housing units that went from the STR 
 #' market to the LTR market due to the COVID-19 pandemic.
@@ -52,24 +54,44 @@ ltr %>%
   st_drop_geometry() %>% 
   filter(!is.na(property_ID)) %>% 
   unnest(property_ID) %>% 
-  filter(!is.na(property_ID)) %>% 
-  count(id) %>% 
-  nrow()
+  filter(!is.na(property_ID)) %>%
+  group_by(id) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  count(kj)
 
 #' [3] Unique STR matches active in 2020
 property %>% 
   filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
   nrow()
 
-#' Out of the 4,871 LTR listings which matched a STR listing, 46.7% [1] were 
-#' identified by their hosts as “long-term rentals” on Kijiji or Craigslist, 
-#' 20.8% [1] were identified as “short-term rentals”, and 32.5% [1] did not 
-#' specify. Among these listings, 29.0% [2] specified lease lengths of 1 year, 
-#' 17.2% [2] specified month-to-month, and 53.7% [2] did not specify.
+#' Out of the 2,616 Kijiji listings which matched a STR listing, 73.7% [1] were 
+#' identified by their hosts as “long-term rentals” and 26.3% [1] were 
+#' identified as “short-term rentals”. Among these listings, 50.2% [2] specified 
+#' lease lengths of 1 year, 19.3% [2] specified month-to-month, and 30.5% [2] 
+#' did not specify.
 
+#' [1] Long-term or short-term
+ltr %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(property_ID), kj) %>% 
+  group_by(id) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  count(short_long) %>% 
+  mutate(pct = n / sum(n))
 
+#' [2] Agreement length
+ltr %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(property_ID), kj) %>% 
+  group_by(id) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  count(type) %>% 
+  mutate(pct = n / sum(n))
+  
 
-# Analysis of the matches ---------------------------------------------------
 
 
 

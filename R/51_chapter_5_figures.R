@@ -95,10 +95,11 @@ titles <- list(
 )
 
 photos <- 
-  map2(list(first_photo_pair$x_name, first_photo_pair$y_name, 
-            second_photo_pair$x_name, second_photo_pair$y_name), 
-       titles, ~{
-         .x %>% 
+  pmap(list(list(first_photo_pair$x_name, first_photo_pair$y_name, 
+                 second_photo_pair$x_name, second_photo_pair$y_name), 
+            titles,
+            c("A", "B", "C", "D")),
+       ~{.x %>% 
            load.image() %>% 
            as.data.frame(wide = "c") %>% 
            mutate(rgb = rgb(c.1, c.2, c.3)) %>% 
@@ -106,13 +107,13 @@ photos <-
            geom_raster(aes(fill = rgb)) + 
            scale_fill_identity() +
            scale_y_continuous(trans = scales::reverse_trans()) +
-           ggtitle(
-             case_when(str_detect(.x, "ab-") ~ "Airbnb",
-                       str_detect(.x, "cl-") ~ "Craigslist",
-                       str_detect(.x, "kj-") ~ "Kijiji"), 
-             subtitle = paste0('"', .y, '"')) +
+           ggtitle(paste0(..3, ". ", case_when(
+             str_detect(..1, "ab-") ~ "Airbnb",
+             str_detect(..1, "cl-") ~ "Craigslist",
+             str_detect(..1, "kj-") ~ "Kijiji")),
+             subtitle = paste0('"', ..2, '"')) +
            theme_void() +
-           theme(plot.title = element_text(family = "Futura Condensed",
+           theme(plot.title = element_text(family = "Futura",
                                            face = "bold", size = 9),
                  plot.subtitle = element_text(family = "Futura Condensed",
                                               face = "plain", size = 9))})
@@ -125,36 +126,33 @@ ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_1.pdf")
 
 
+# Figure 5.2 Spatial distribution of listing matches ----------------------
 
-# Figure 5.1. Concentration of STR listings matched with LTR listings by borough ------------------
-
-figure_5_1 <-
+figure_5_2 <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
   left_join(boroughs, .) %>% 
-  ggplot()+
+  ggplot() +
   geom_sf(aes(fill = n),
           lwd = NA, 
-          colour = "white")+
+          colour = "white") +
   guides(fill = guide_colorbar(title = "STR to LTR Matches")) +
   scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
                        na.value = "grey80",
                        limits = c(0, 400),
-                       oob = scales::squish
-  ) +
+                       oob = scales::squish) +
   theme_void() +
   theme(legend.position = "right",
-        # text = element_text(family = "Futura", face = "plain"),
-        # legend.title = element_text(family = "Futura", face = "bold", 
-        #                             size = 10),
-        # legend.text = element_text(family = "Futura", size = 10)
-  )
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold",
+                                    size = 10),
+        legend.text = element_text(family = "Futura", size = 10))
 
-ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8, 
+ggsave("output/figures/figure_5_2.pdf", plot = figure_5_2, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_1.pdf")
+extrafont::embed_fonts("output/figures/figure_5_2.pdf")
 
 
 # Figure 5.2. Median asking rents for matches and non-matches through time -----------------------------------------------------
