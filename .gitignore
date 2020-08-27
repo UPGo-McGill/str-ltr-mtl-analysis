@@ -8,11 +8,12 @@ data/
 .DS_Store
 layout/
 output/cmhc*
+output/condo*
 output/FREH*
 output/geom*
 output/img*
 output/ltr*
 output/match*
 output/national*
-output/raff*
+output/rent*
 output/str*

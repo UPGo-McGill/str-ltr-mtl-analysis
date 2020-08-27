@@ -30,31 +30,47 @@ unique_ltr <-
   ltr %>% 
   st_drop_geometry() %>% 
   arrange(desc(scraped)) %>% 
-  distinct(id, .keep_all = T)
-
-unique_ltr %>% 
-  nrow()
+  distinct(id, .keep_all = TRUE)
 
 
-# Analysis of the matches ---------------------------------------------------
 
-#' [1] number of unique STR listings that matched
-property %>% 
-  filter(!is.na(ltr_ID)) %>% 
-  nrow()
 
-#' [2] number of unique STR listings that matched and were active in 2020
-property %>% 
-  filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
-  nrow()
+# How many STR listings have returned to the long-term market? ------------
 
-#' [3] Total number LTR listings which matched to a STR
+#' Our image matching algorithm recognized 2,583 [1] unique Airbnb listings 
+#' which matched with 4,871 [2] different LTR listings (as some units are posted 
+#' multiple times) in the City of Montreal. Out of these 2,583 listings, 
+#' 57.1% (1,474 [3] listings) were active STRs in 2020, which establishes a 
+#' lower bound for the number of unique housing units that went from the STR 
+#' market to the LTR market due to the COVID-19 pandemic.
+
+#' [1] Unique STR matches
+property %>% filter(!is.na(ltr_ID)) %>% nrow()
+
+#' [2] Unique LTR matches
 ltr %>% 
   st_drop_geometry() %>% 
   filter(!is.na(property_ID)) %>% 
   unnest(property_ID) %>% 
   filter(!is.na(property_ID)) %>% 
-  count(id)
+  count(id) %>% 
+  nrow()
+
+#' [3] Unique STR matches active in 2020
+property %>% 
+  filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
+  nrow()
+
+#' Out of the 4,871 LTR listings which matched a STR listing, 46.7% [1] were 
+#' identified by their hosts as “long-term rentals” on Kijiji or Craigslist, 
+#' 20.8% [1] were identified as “short-term rentals”, and 32.5% [1] did not 
+#' specify. Among these listings, 29.0% [2] specified lease lengths of 1 year, 
+#' 17.2% [2] specified month-to-month, and 53.7% [2] did not specify.
+
+
+
+# Analysis of the matches ---------------------------------------------------
+
 
 
 # Get the unique number of STR-LTR matches based on location ---------------------------------------------------
@@ -402,7 +418,7 @@ unique_ltr %>%
   distinct(property_ID) %>% 
   nrow()
 
-# Estimation of the number of matches that could potentially have returned to the LTR market ---------------------------------------------------
+# Estimation of the number of matches that could potentially have returned to the LTR market ------------------------------
 
 #' [1] Matches that could potentially be looked as being rented on a LTR platform
 property_IDs_ltr_rented <- 

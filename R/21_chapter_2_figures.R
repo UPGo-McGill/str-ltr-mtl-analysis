@@ -26,7 +26,7 @@ load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 
 
-# Figure 2.1 - Active daily listings --------------------------------------
+# Figure 2.1 Active daily listings ----------------------------------------
 
 active_listings <- 
   daily %>% 
