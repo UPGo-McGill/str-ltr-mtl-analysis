@@ -28,28 +28,29 @@ load("output/str_processed.Rdata")
 load("output/ltr_processed.Rdata")
 load("output/matches_raw.Rdata")
 
-# Prepare objects for upcoming figures -----------------------------------------------------
 
-# distinct LTR listings
-unique_ltr <- 
+# Prepare new objects -----------------------------------------------------
+
+# Distinct LTR listings
+ltr_unique <- 
   ltr %>% 
   st_drop_geometry() %>% 
   arrange(desc(scraped)) %>% 
-  distinct(id, .keep_all = T)
+  distinct(id, .keep_all = TRUE)
 
-#unique matching property_ID locations using street address
+# Unique matching property_ID locations
 ltr_unique_property_ID <- 
   ltr %>% 
   st_drop_geometry() %>% 
   filter(!is.na(property_ID)) %>% 
   unnest(property_ID) %>% 
-  filter(property_ID %in% filter(property, scraped >= "2020-01-01")$property_ID) %>% 
+  filter(property_ID %in% filter(property, 
+                                 scraped >= "2020-01-01")$property_ID) %>% 
   arrange(desc(scraped)) %>% 
   distinct(property_ID) %>% 
   inner_join(unnest(ltr, property_ID), by = "property_ID") %>% 
   arrange(desc(scraped)) %>% 
-  distinct(property_ID, .keep_all = T)
-
+  distinct(property_ID, .keep_all = TRUE)
 
 
 # Figure 5.1 Airbnb/Kijiji image comparison -------------------------------
@@ -128,37 +129,69 @@ extrafont::embed_fonts("output/figures/figure_5_1.pdf")
 
 # Figure 5.2 Spatial distribution of listing matches ----------------------
 
-figure_5_2 <-
+figure_5_2_left <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
   left_join(boroughs, .) %>% 
   ggplot() +
-  geom_sf(aes(fill = n),
-          lwd = NA, 
-          colour = "white") +
-  guides(fill = guide_colorbar(title = "STR to LTR Matches")) +
-  scale_fill_gradientn(colors = col_palette[c(3, 4, 1)],
-                       na.value = "grey80",
-                       limits = c(0, 400),
-                       oob = scales::squish) +
+  geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  geom_sf(aes(fill = n), colour = "white") +
+  scale_fill_gradientn(colors = col_palette[c(3, 4)],
+                       breaks = c(0, 200, 400, 600),
+                       na.value = "grey80")  +
+  guides(fill = guide_colourbar(title = "Total STR to\nLTR matches",
+                                title.vjust = 1)) + 
+  gg_bbox(boroughs) +
   theme_void() +
-  theme(legend.position = "right",
+  theme(legend.position = "bottom",
         text = element_text(family = "Futura", face = "plain"),
         legend.title = element_text(family = "Futura", face = "bold",
-                                    size = 10),
-        legend.text = element_text(family = "Futura", size = 10))
+                                    size = 7),
+        legend.title.align = 0.9,
+        legend.text = element_text(family = "Futura", size = 5),
+        panel.border = element_rect(colour = "white", size = 2))
+
+figure_5_2_right <-
+  ltr_unique_property_ID %>% 
+  select(-geometry) %>% 
+  count(borough) %>% 
+  left_join(count(filter(daily, status != "B", date == "2020-03-01"), borough),
+            by = "borough") %>% 
+  mutate(pct = n.x / n.y) %>% 
+  left_join(boroughs, .) %>% 
+  ggplot() +
+  geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  geom_sf(aes(fill = pct), colour = "white") +
+  scale_fill_gradientn(colors = col_palette[c(5, 2)], 
+                       na.value = "grey80",
+                       breaks = c(0, 0.05, .1, .15, .2, .25),
+                       label = scales::label_percent(accuracy = 1))  +
+  guides(fill = guide_colourbar(title = "Matches as %\nof active STRs",
+                                title.vjust = 1)) + 
+  gg_bbox(boroughs) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold",
+                                    size = 7),
+        legend.title.align = 0.9,
+        legend.text = element_text(family = "Futura", size = 5),
+        panel.border = element_rect(colour = "white", size = 2))
+
+figure_5_2 <- figure_5_2_left + figure_5_2_right
 
 ggsave("output/figures/figure_5_2.pdf", plot = figure_5_2, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_5_2.pdf")
 
 
-# Figure 5.2. Median asking rents for matches and non-matches through time -----------------------------------------------------
 
-figure_5_2 <- unique_ltr %>% 
-  filter(price >425, price <8000) %>% 
+# Figure 5.3. Median asking rents for matches and non-matches through time -----------------------------------------------------
+
+figure_5_3 <- unique_ltr %>% 
+  filter(price > 425, price < 8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
   summarize(avg_price = mean(price)) %>% 

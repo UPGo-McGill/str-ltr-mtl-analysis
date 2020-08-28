@@ -26,13 +26,11 @@ load("output/ltr_processed.Rdata")
 # Prepare new objects -----------------------------------------------------
 
 # distinct LTR listings
-unique_ltr <- 
+ltr_unique <- 
   ltr %>% 
   st_drop_geometry() %>% 
   arrange(desc(scraped)) %>% 
   distinct(id, .keep_all = TRUE)
-
-
 
 
 # How many STR listings have returned to the long-term market? ------------
@@ -196,7 +194,7 @@ perc_size_units %>%
 # Amenities (furnished or unfurnished status) ---------------------------------------------------
 
 #' [1] Proportion of ALL furnished and unfurnished longer-term rentals
-unique_ltr %>% 
+ltr_unique %>% 
   count(furnished) %>% 
   mutate(perc = n/sum(n))
 
@@ -209,13 +207,13 @@ ltr_unique_property_ID %>%
 # Asking rents on the LTR platform ---------------------------------------------------
 
 #' [1] representation of matched LTR listings
-unique_ltr %>% 
+ltr_unique %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   count(matched) %>% 
   mutate(perc = n/sum(n))
 
 #' [2] Average asking rent of the matches
-unique_ltr %>% 
+ltr_unique %>% 
   filter(price >425, price <8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched) %>%
@@ -403,7 +401,7 @@ property %>%
 # LTR listing exposure ---------------------------------------------------
 
 #' [1] length of availability on LTR platforms
-unique_ltr %>% 
+ltr_unique %>% 
   mutate(how_long_they_stay = scraped-created) %>% 
   arrange(desc(how_long_they_stay)) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
@@ -429,7 +427,7 @@ property %>%
   nrow() 
 
 #' [3] remaining presence on LTR platforms
-unique_ltr %>%
+ltr_unique %>%
   unnest(property_ID) %>%
   filter(property_ID %in% (property %>%
                        st_drop_geometry() %>% 
