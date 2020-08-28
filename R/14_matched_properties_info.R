@@ -18,7 +18,6 @@ kj_landlord <- readRDS("output/kj_with_landlord.Rds") %>%
 street_no_pat <- START %R% one_or_more(DGT)
 postal_code_pat <- WRD %R% DGT %R% WRD %R% optional(SPC) %R% DGT %R% WRD %R% DGT
 street_pat <- START %R% one_or_more(WRD) %R% optional(SPC) %R% one_or_more(optional(WRD))
-borough <- boroughs$borough
 
 ltr <- 
 ltr %>% 
@@ -28,7 +27,7 @@ ltr %>%
          postal_code = str_extract(location, pattern = postal_code_pat),
          location = str_remove(location, pattern = postal_code_pat),
          
-         borough = str_extract(location, pattern = boroughs$borough),
+         borough_loc = str_extract(location, pattern = boroughs$borough),
          location = str_remove(location, pattern = boroughs$borough),
          
          location = str_remove_all(location, pattern = "Canada"),
