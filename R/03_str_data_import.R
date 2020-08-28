@@ -75,7 +75,7 @@ to_scrape <- jan_fix %>% filter(old_scraped >= "2020-05-01")
 upgo_scrape_connect()
 new_scrape <- to_scrape %>% upgo_scrape_ab(proxies = .proxy_list, cores = 10)
 upgo_scrape_disconnect()
-still_active <- new_scrape %>% filter(!is.na(city))
+still_active <- new_scrape %>% filter(!is.na(country))
 
 # Update scraped dates for active listings
 property <- 

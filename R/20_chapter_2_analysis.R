@@ -20,6 +20,7 @@ source("R/01_startup.R")
 # Load previous data ------------------------------------------------------
 
 load("output/str_processed.Rdata")
+load("output/national_comparison.Rdata")
 load("output/geometry.Rdata")
 
 
@@ -45,22 +46,22 @@ revenue_2019 <-
 
 # Active daily listings ---------------------------------------------------
 
-#'  In 2019 there was an average of 9,010 [1] active daily listings (Figure 1) 
+#'  In 2019 there was an average of 9,040 [1] active daily listings (Figure 2.1) 
 #'  operated by an average of 5,330 [2] hosts. These hosts collectively earned 
-#'  $222.7 million [3] in 2019—an average of $24,700 [4] per daily active 
-#'  listing or $41,800 [5] per active host. There was also a daily average of 
-#'  12,460 [1] listings which were visible on the Airbnb and VRBO websites but 
+#'  $224.6 million [3] in 2019—an average of $24,800 [4] per daily active 
+#'  listing or $42,100 [5] per active host. There was also a daily average of 
+#'  12,480 [1] listings which were visible on the Airbnb and VRBO websites but 
 #'  were blocked by the host from receiving reservations. The presence of these 
 #'  listings can erroneously suggest that a city’s STR market is larger than it 
 #'  is; in the case of Montreal, blocked listings outnumber listings which are 
 #'  actually active. When these blocked but inactive listings are included, the 
-#'  average listing earned [6] $9,400 last year, and the average host earned 
-#'  $16,800 [7]. Finally, there was a daily average of 240 [8] listings that 
-#'  were not located in private housing units #'  (B&Bs, hotels, etc.), which 
+#'  average listing earned [6] $9,500 last year, and the average host earned 
+#'  $16,900 [7]. Finally, there was a daily average of 240 [8] listings that 
+#'  were not located in private housing units (B&Bs, hotels, etc.), which 
 #'  have been excluded from the analysis in this report. 
 #'  
-#'  Active daily listings peaked in August 2018 [9] at 11,8100 [9], and have 
-#'  since declined. There were 5.6% [10] fewer listings active on average in 
+#'  Active daily listings peaked in August 2018 [9] at 11,840 [9], and have 
+#'  since declined. There were 5.5% [10] fewer listings active on average in 
 #'  2019 than in 2018. However, host revenue followed the opposite pattern, 
 #'  increasing by 14.9% [10] between 2018 and 2019. These facts point to an 
 #'  increasingly commercializing STR market, where the number of listings is 
@@ -144,19 +145,18 @@ daily %>%
 # STR growth rates --------------------------------------------------------
 
 #' Overall, the year-over-year change in average active listings from 2016 to 
-#' 2017 (12 months) was 18.5% [1], the year-over-year change from 2017 to 2018 
-#' was 0.8% [2], and the year-over-year change from 2018 to 2019 was -5.6% [3]. 
+#' 2017 (12 months) was 18.6% [1], the year-over-year change from 2017 to 2018 
+#' was 0.9% [2], and the year-over-year change from 2018 to 2019 was -5.5% [3]. 
 #' In the first half of 2020, active listings fell much faster thanks to the 
-#' COVID-19 pandemic. The year-over-year change in active daily listings for the 
-#' first half of 2020 (January to June) compared to the first half of 2019 is 
-#' -20.8% [4].
+#' COVID-19 pandemic. The year-over-year change in active daily listings for 
+#' 2020 so far (January to July) is -24.8% [4].
 #' 
 #' Despite there being fewer active listings in 2019 than in 2018, the number of 
-#' reserved nights increased by 12.1% [5], from 1.70 million [6] reserved nights 
+#' reserved nights increased by 12.3% [5], from 1.70 million [6] reserved nights 
 #' to 1.91 million [6] reserved nights, while revenue increased 14.9% [7]. In 
 #' fact, with a few brief exceptions, revenue maintained a positive 
 #' year-over-year growth rate consistently until the COVID-19 pandemic began. 
-#' (Revenue from January to June 2020 is down 47.4% [8] compared to the same 
+#' (Revenue from January to July 2020 is down 55.3% [8] compared to the same 
 #' time last year).
 
 #' [1] YOY listing growth, 2016-2017
@@ -187,7 +187,7 @@ daily %>%
 daily %>% 
   filter(housing, status != "B", date >= LTM_start_date,
          date <= LTM_end_date + years(1),
-         (date <= "2019-06-30" | date >= LTM_start_date + years(1)),
+         (date <= "2019-07-31" | date >= LTM_start_date + years(1)),
          date != "2020-02-29") %>%
   group_by(year_2020 = date >= LTM_start_date + years(1)) %>% 
   summarize(n = n() / 181) %>% 
@@ -220,7 +220,7 @@ daily %>%
 daily %>% 
   filter(housing, status == "R", date >= LTM_start_date,
          date <= LTM_end_date + years(1),
-         (date <= "2019-06-30" | date >= LTM_start_date + years(1)),
+         (date <= "2019-07-31" | date >= LTM_start_date + years(1)),
          date != "2020-02-29") %>%
   group_by(year_2020 = date >= LTM_start_date + years(1)) %>% 
   summarize(revenue = sum(price)) %>% 
@@ -229,10 +229,8 @@ daily %>%
 
 # Montreal in comparison with other major Canadian cities -----------------
 
-load("output/national_comparison.Rdata")
-
 #' In 2019, Montreal had the second largest STR market in the country by both 
-#' active listing numbers (9,100 [1]) and host revenue ($222.7 million [2]), 
+#' active listing numbers (9,040 [1]) and host revenue ($224.6 million [2]), 
 #' falling in both cases behind Toronto (Table 2.2). However, in relative terms 
 #' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
 #' had the most active listings per 1000 households (13.4 [3] compared to 
@@ -297,7 +295,7 @@ boroughs_breakdown <-
 #' accounted for 32.6% [1] and 25.9% [1] of all listings in 2019 respectively, 
 #' and even higher shares of host revenue (41.2% [1] and 29.6% [1]). The borough 
 #' with the next highest percentage of average number of daily active listings 
-#' is Rosemont-La-Petite-Patrie (8.1% [2]), followed by Le Sud-Ouest (6.9% [2]). 
+#' is Rosemont-La-Petite-Patrie (8.0% [2]), followed by Le Sud-Ouest (7.0% [2]). 
 #' Each accounts for around 6% [2] of annual STR revenue in the city.
 #' 
 #' Ville-Marie and Le Plateau-Mont-Royal have by far the most STR activity when 
@@ -376,9 +374,9 @@ listing_type_breakdown <-
 
 #' The vast majority of STRs in Montreal are entire homes, a category which 
 #' includes single-family homes, townhouses, apartments and condominiums. 
-#' Nearly half of these (43.6% [1]) were one-bedroom housing units, with the 
+#' Nearly half of these (43.7% [1]) were one-bedroom housing units, with the 
 #' remainder relatively evenly split between studio apartments (12.6% [1]), 
-#' two-bedroom units (27.6% [1]), and three-or-more-bedroom units (16.1% [1]). 
+#' two-bedroom units (27.6% [1]), and three-or-more-bedroom units (16.2% [1]). 
 #' In 2019 entire-home listings accounted for 75.6% [2] of all daily active 
 #' listings, and 91.0% [2] of total host revenue. Private rooms accounted for 
 #' nearly all of the remainder.
@@ -417,8 +415,8 @@ listing_type_breakdown %>%
   ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = 4:6, decimals = 1) %>% 
-  fmt_number(columns = 2,
-             decimals = 0)
+  fmt_number(columns = 2, decimals = 0) %>% 
+  fmt_currency(columns = 3, decimals = 0)
 
 
 # STRs and housing tenure -------------------------------------------------
@@ -475,7 +473,7 @@ tenure_breakdown <-
 #' condominiums in this way, making condominiums the second most common 
 #' property type in Montreal. The overwhelming majority (73.5% [1]) were 
 #' identified as “Apartment”, and most of the rest were either “House” 
-#' (5.5% [1]) or “Loft” (4.7% [1]).... There are 12 dissemination areas in 
+#' (5.5% [1]) or “Loft” (4.6% [1]).... There are 12 dissemination areas in 
 #' Montreal in which condominiums are more than 95% of the housing stock [2]. 
 #' These 12 areas contain 113 [3] active STR listings, which by definition must 
 #' be nearly entirely condominiums. And yet only 44.2% [4] of these listings are 
@@ -483,7 +481,7 @@ tenure_breakdown <-
 #' apartments and 6.2% [4] are described as lofts. In fact, the correlation 
 #' between the proportion of condominiums in a dissemination area and the 
 #' proportion of listings in the area which self-describe as condominiums is 
-#' only 0.07 [5]—barely different from random.
+#' -0.01 [5]—completely random.
 
 #' [1] Active listing property types
 property %>% 
@@ -572,15 +570,15 @@ host_rev <-
   summarize(rev = sum(price))
   
 #' Among all the STR hosts who earned revenue in the City of Montreal last year, 
-#' the median revenue was $4,200 [1], while the top host (in this case a network 
+#' the median revenue was $4,300 [1], while the top host (in this case a network 
 #' of numerous host accounts which we discuss below) earned $12.8 million [2] 
-#' (Table 2.5). Throughout the City of Montreal, there were 37 hosts [3] that 
+#' (Table 2.5). Throughout the City of Montreal, there were 38 hosts [3] that 
 #' earned more than $500,000 in 2019. Figure 2.6 shows the percentage of the 
 #' total $222.7 million in STR revenue which accrued to each decile of hosts. 
 #' The most successful 10% of hosts earned more than two-thirds (68.8% [4]) of 
 #' all STR revenue. The revenue concentration is even steeper among the top 10%: 
 #' the top 5% earned 58.9% [5] of revenue, while the top 1% of hosts earned 
-#' 40.8% [6] of all revenue. 
+#' 40.7% [6] of all revenue. 
 
 #' [1] Median host revenue
 median(host_rev$rev)
@@ -641,11 +639,12 @@ property %>%
   st_drop_geometry() %>% 
   summarize(bedrooms_3_or_fewer = mean(bedrooms <= 3))
 
-#' In 2019, 50.6% [1] of active listings in Montreal were multilistings, earning 
-#' 64.0% [2] of total host revenue. Multilistings have been a steadily growing 
+#' In 2019, 50.8% [1] of active listings in Montreal were multilistings, earning 
+#' 64.1% [2] of total host revenue. Multilistings have been a steadily growing 
 #' share of both listings and revenue in Montreal since 2017 (Figure 2.7), and 
-#' amidst generally declining STR activity during the COVID-19 pandemic now earn 
-#' nearly 3 out of every 4 dollars [3] on STR platforms in Montreal.
+#' amidst generally declining STR activity during the COVID-19 pandemic,
+#' multilistings briefly earned nearly 3 out of every 4 dollars [3] on STR 
+#' platforms in Montreal.
 
 #' [1] 2019 ML listings
 daily %>% 
@@ -664,16 +663,16 @@ daily %>%
 
 #' [3] June 2020 ML revenue
 daily %>% 
-  filter(housing, status == "R", date >= "2020-06-01") %>% 
+  filter(housing, status == "R", date >= "2020-06-01", date <= "2020-06-30") %>% 
   group_by(multi) %>% 
   tally(price) %>% 
   summarize(multi_rev = n[2] / sum(n))
 
 #' On January 1, 2017, there were 5,460 [1] non-commercial listings and 
-#' 4,040 [1] commercial listings active in Montreal. By January 1, 2020, three 
+#' 4,050 [1] commercial listings active in Montreal. By January 1, 2020, three 
 #' years later, these numbers had flipped; while the total number of active 
-#' listings was roughly the same (9,660 in 2020 and 9,500 in 2017 [2]) the 
-#' number of commercial listings had increased by more than 50% to 6,600 [1], 
+#' listings was roughly the same (9,680 in 2020 and 9,510 in 2017 [2]) the 
+#' number of commercial listings had increased by more than 50% to 6,640 [1], 
 #' while the number of non-commercial listings had nearly halved to 3,050 [1].
 
 #' [1] Commercial and non-commercial listings

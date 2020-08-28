@@ -21,7 +21,6 @@ source("R/01_startup.R")
 # Load and filter data ----------------------------------------------------
 
 kj <- readRDS("data/ltr/kj.rds") %>% filter(city == "Montreal")
-
 cl <- readRDS("data/ltr/cl.rds") %>% filter(city == "montreal")
 
 rclalq <- 

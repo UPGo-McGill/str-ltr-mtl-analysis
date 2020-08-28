@@ -27,15 +27,13 @@ library(furrr)
 # Load previous data ------------------------------------------------------
 
 load("output/str_raw.Rdata")
-
 load("output/ltr_raw.Rdata")
-
 rm(daily, host)
 
 
 # Specify location on drive to download photos ----------------------------
 
-dl_location <- "/Volumes/Data/Scrape photos/mtl"
+dl_location <- "/Volumes/Data/Scrape photos/montreal"
 
 
 # Get image URLs ----------------------------------------------------------
@@ -46,8 +44,7 @@ ab_urls <-
   str_replace('(?<=jpg).*', '')
 
 # Get AB IDs
-ab_ids <- 
-  property$property_ID
+ab_ids <- property$property_ID
 
 # Get KJ urls
 kj_urls <-
