@@ -684,3 +684,13 @@ commercial_listings %>%
   filter(date == "2017-01-01" | date == "2020-01-01") %>% 
   group_by(date) %>% 
   summarize(n = sum(n))
+
+
+# Clean up ----------------------------------------------------------------
+
+rm(active_tenure_2017, active_tenure_2019, borough_tenure, boroughs,
+   boroughs_breakdown, boroughs_raw, city, commercial_listings, DA,
+   DA_probabilities_2017, DA_probabilities_2019, host_rev, 
+   listing_probabilities_2017, listing_probabilities_2019, 
+   listing_type_breakdown, national_comparison, province, revenue_2019,
+   streets, streets_downtown, tenure_breakdown, active_2019, high_condos)

@@ -6,10 +6,15 @@
 #' - `figure_3_1.pdf`
 #' - `figure_3_2.pdf`
 #' - `figure_3_3.pdf`
+#' - `figure_3_4.pdf`
+#' - `figure_3_5.pdf`
+#' - `figure_3_6.pdf`
 #' 
 #' Script dependencies:
+#' - `05_cmhc_data_import.R`
 #' - `09_str_processing.R`
 #' - `11_FREH_model.R`
+#' - `12_rent_increases.R`
 #' 
 #' External dependencies:
 #' - The Futura and Futura Condensed fonts, which can be imported in 
@@ -22,6 +27,7 @@ load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/cmhc.Rdata")
 load("output/rent_increases.Rdata")
+load("output/condo_analysis.Rdata")
 
 
 # Figure 3.1 Housing loss -------------------------------------------------
@@ -251,7 +257,17 @@ daily_cmhc <-
   summarize(housing_loss = sum(FREH_3) + sum(GH)) %>% 
   ungroup()
 
-unit_change <- 
+strs_by_zone <- 
+  property %>% 
+  st_intersection(cmhc) %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, zone) %>% 
+  left_join(daily, .) %>% 
+  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  count(zone) %>% 
+  mutate(active_strs = n / 365)
+
+unit_change <-
   annual_units %>% 
   filter(dwelling_type == "Total", bedroom == "Total") %>% 
   inner_join(daily_cmhc) %>% 
@@ -404,3 +420,17 @@ ggsave("output/figures/figure_3_6.pdf", plot = figure_3_6, width = 3.0,
        height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_6.pdf")
+
+
+# Clean up ----------------------------------------------------------------
+
+rm(annual_avg_rent, annual_units, annual_vacancy, boroughs, boroughs_raw,
+   city, city_avg_rent, city_units, city_vacancy, cmhc, DA,
+   DA_probabilities_2017, DA_probabilities_2019, daily_cmhc, fig_zoom,
+   figure_3_1, figure_3_2, figure_3_3, figure_3_3_left, figure_3_3_right,
+   figure_3_4, figure_3_5, figure_3_6, FREH_borough, FREH_DA, FREH_total,
+   GH_borough, GH_DA, GH_total, housing_loss, housing_loss_borough,
+   housing_loss_DA, housing_loss_share, layout, listing_probabilities_2017,
+   listing_probabilities_2019, province, rent_increase, rent_increase_for_map,
+   rent_increase_zone, renter_zone, streets, streets_downtown, strs_by_zone,
+   unit_change, vacancy_for_map, make_housing_map)

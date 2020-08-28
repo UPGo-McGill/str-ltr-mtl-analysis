@@ -61,9 +61,9 @@ GH_borough <-
 #' Montreal, and 370 [2] more housing units which were operating as ghost 
 #' hostels. In total, therefore, short-term rentals removed 5,520 [3] housing 
 #' units from Montreal’s long-term market last year (Figure 3.1). Notably, while 
-#' the number of active daily listings declined by 5.6% over 2019, the number of 
+#' the number of active daily listings declined by 5.5% over 2019, the number of 
 #' housing units which STRs took off of Montreal’s housing market increased by 
-#' 16.6% [4] in that same time period, from 4,740 [5] to 5,520.
+#' 16.5% [4] in that same time period, from 4,740 [5] to 5,520.
 
 #' [1] FREH in 2019-1
 FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3) %>% round(digit = -1)
@@ -89,7 +89,7 @@ GH %>% filter(date == "2019-12-31") %>% pull(housing_units) %>% sum() %>%
   round(digit = -1)
 
 #' At the end of 2019 more than six in ten (62.0% [1]) entire-home listings 
-#' and one in four (26.1% [1]) private-room listings were taking housing off 
+#' and one in four (26.0% [1]) private-room listings were taking housing off 
 #' the market in Montreal (Figure 3.2). Three years earlier, the proportions 
 #' were only 34.2% [1] and 12.7% [1] respectively.
 
@@ -106,10 +106,10 @@ daily %>%
 #' The 5,520 housing units taken off of Montreal’s housing market in 2019 is 
 #' only 0.7% [1] of the total amount of housing in the city, but this housing 
 #' loss has been concentrated in a small part of the city.... In the borough 
-#' of Ville-Marie, 3.2% [2] of all housing units have been converted to 
+#' of Ville-Marie, 3.1% [2] of all housing units have been converted to 
 #' dedicated STRs, while the figure is 2.2% [2] for Le Plateau-Mont-Royal. In 
 #' Ville-Marie the rental vacancy rate was 2.5% [3] in 2019, while it was 
-#' 1.5% [4] in Le Plateau-Mont-Royal in 2018 (CMHC did not release a number for 
+#' 1.5% [3] in Le Plateau-Mont-Royal in 2018 (CMHC did not release a number for 
 #' 2019). This means that there are more dedicated STRs in these neighbourhoods 
 #' than there are vacant apartments for rent.
 
@@ -348,3 +348,12 @@ annual_avg_rent %>%
   fmt_percent(columns = c(5:7), decimals = 1) %>% 
   fmt_number(columns = 2:4, decimals = 0) %>% 
   fmt_currency(8, decimals = 0)
+
+
+# Clean up ----------------------------------------------------------------
+
+rm(annual_avg_rent, annual_units, annual_vacancy, borough_housing_table,
+   boroughs, boroughs_raw, city, city_avg_rent, city_units, city_vacancy,
+   cmhc, DA, DA_probabilities_2017, DA_probabilities_2019, FREH, FREH_borough,
+   GH_borough, listing_probabilities_2017, listing_probabilities_2019, province,
+   rent_increase, rent_increase_zone, streets, streets_downtown, strs_by_zone)

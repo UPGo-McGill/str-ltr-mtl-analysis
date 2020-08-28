@@ -24,6 +24,7 @@ library(patchwork)
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
+load("output/condo_analysis.Rdata")
 
 
 # Figure 2.1 Active daily listings ----------------------------------------
@@ -194,8 +195,6 @@ extrafont::embed_fonts("output/figures/figure_2_3.pdf")
 
 
 # Figure 2.4 Percentage of listings in condos -----------------------------
-
-load("output/condo_analysis.Rdata")
 
 active_condos_borough <- 
   daily %>% 
@@ -463,3 +462,15 @@ ggsave("output/figures/figure_2_8.pdf", plot = figure_2_8, width = 8,
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_8.pdf")
+
+
+# Clean up ----------------------------------------------------------------
+
+rm(active_borough, active_condos_borough, active_DA, active_listings,
+   boroughs, boroughs_raw, city, commercial_listings, condo_scatter, DA,
+   DA_probabilities_2017, DA_probabilities_2019, daily_variation, fig_2_3_zoom,
+   fig_2_4_zoom, figure_2_1, figure_2_2, figure_2_3, figure_2_3_left,
+   figure_2_3_right, figure_2_4, figure_2_4_left, figure_2_4_right,
+   figure_2_5, figure_2_6, figure_2_7, figure_2_8, host_deciles, layout,
+   listing_probabilities_2017, listing_probabilities_2019, ML, province,
+   streets, streets_downtown, revenue_colour, make_condo_map, make_listing_map)
