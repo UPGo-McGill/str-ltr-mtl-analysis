@@ -1,15 +1,51 @@
 #### Information about matched properties #################################################
 
 source("R/01_startup.R")
+library(rebus)
 
 # load data ------------------------------------------------------------------------------
 load("output/str_processed.Rdata")
 load("output/ltr_processed.Rdata")
+load("output/geometry.Rdata")
 
 kj_landlord <- readRDS("output/kj_with_landlord.Rds") %>% 
   select(kj_id, Numero_de_matricule) %>%
   rename(id = kj_id,
          roll_number = Numero_de_matricule)
+
+# Clean ltr locations ---------------------------------------------------------------------
+
+street_no_pat <- START %R% one_or_more(DGT)
+postal_code_pat <- WRD %R% DGT %R% WRD %R% optional(SPC) %R% DGT %R% WRD %R% DGT
+street_pat <- START %R% one_or_more(WRD) %R% optional(SPC) %R% one_or_more(optional(WRD))
+borough <- boroughs$borough
+
+ltr <- 
+ltr %>% 
+  mutate(street_no = str_extract(location, pattern = street_no_pat),
+         location = str_remove(location, pattern = street_no_pat %R% optional(" ")),
+         
+         postal_code = str_extract(location, pattern = postal_code_pat),
+         location = str_remove(location, pattern = postal_code_pat),
+         
+         borough = str_extract(location, pattern = boroughs$borough),
+         location = str_remove(location, pattern = boroughs$borough),
+         
+         location = str_remove_all(location, pattern = "Canada"),
+         location = str_remove_all(location, pattern = "Montréal"),
+         location = str_remove_all(location, pattern = "Montreal"),
+         location = str_remove_all(location, pattern = "montreal"),
+         location = str_remove_all(location, pattern = "QC"),
+         location = str_remove_all(location, pattern = "Qc"),
+         
+         street = str_extract(location, pattern = "[^,]+"),
+         street = str_trim(street),
+         location = str_remove(location, pattern = "[^,]+" %R% optional(", ") %R% optional(", ") %R% optional(", ")),
+         
+         location = str_remove_all(location, pattern = ",")
+  ) %>% 
+  rename(location_related = location) %>% 
+  mutate(location = str_c(street_no, ", ", street, ", ", postal_code))
 
 # Prepare the basic of the table ----------------------------------------------------------
 listings_info <- 
@@ -158,3 +194,6 @@ listings_info %>%
   View()
 
 write.csv(listings_info[1:100,], "output/listings_info.csv")
+
+
+
