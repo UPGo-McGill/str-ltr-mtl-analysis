@@ -199,7 +199,8 @@ extrafont::embed_fonts("output/figures/figure_2_3.pdf")
 
 active_condos_borough <- 
   daily %>% 
-  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  filter(housing, date >= LTM_start_date, 
+         date <= LTM_end_date, status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings = n(),

@@ -16,6 +16,50 @@ source("R/01_startup.R")
 load("output/str_processed.Rdata")
 
 
+# Active listings and reservations during COVID-19 ------------------------
+
+#' There were 12.3% [1] more nights reserved in Montreal STRs in 2019 than 
+#' there were in 2018—peaking at nearly 9,500 [2] nightly STR reservations in 
+#' the summer of 2019. In March 2020, however, when reserved nights should have 
+#' been steadily increasing en route to the summer peak, they instead collapsed 
+#' in the face of COVID-19. While total reserved nights from January to February 
+#' 2020 increased at a rapid 45.6% [3] compared to 2019, reserved nights from 
+#' March to August 2020 decreased 70.5% [4] compared to the previous year.
+
+#' [1] YOY growth in reservations, 2018-2019
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1), 
+         date <= LTM_end_date) %>% 
+  count(date_2019 = date >= LTM_start_date) %>% 
+  summarize((n[2] - n[1]) / n[1])
+  
+#' [2] Peak 2019 nightly reservations
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date) %>% 
+  count(date, sort = TRUE)
+
+#' [3] YOY reservation growth, Jan-Feb 2019-2020
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date, 
+         substr(date, 6, 7) %in% c("01", "02")) %>% 
+  count(date_2020 = date >= LTM_start_date + years(1)) %>% 
+  summarize((n[2] - n[1]) / n[1])
+
+#' [4] YOY reservation growth, Mar-Aug 2019-2020
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date, 
+         substr(date, 6, 7) %in% c("03", "04", "05", "06", "07", "08")) %>% 
+  count(date_2020 = date >= LTM_start_date + years(1)) %>% 
+  summarize((n[2] - n[1]) / n[1])
+
+
+# COVID’s impact on frequently rented entire-home listings ----------------
+
+
+
+
+
+
 # Prepare new objects -----------------------------------------------------
 
 FREH <- 
@@ -110,7 +154,7 @@ daily_comp_2019 %>%
 #' [4] Reservations of more than 30 days during the ban
 daily_comp_ban %>%
   filter(booked_date >= "2020-03-28", booked_date <= "2020-06-25") %>% 
-  mutate(duration=end_date-start_date+1) %>% 
+  mutate(duration = end_date-start_date+1) %>% 
   filter(duration >= 30)
 
 
@@ -167,7 +211,7 @@ property %>%
                                  date == "2019-01-01", 
                                  FREH_3 > 0.5)$property_ID,
          scraped < max(scraped) - months(1) - years(1)) %>% 
-  nrow()/
+  nrow() /
   filter(daily, 
          housing, 
          date == "2019-01-01", 
@@ -184,7 +228,7 @@ property %>%
                                     status == "B") %>% 
                              count(property_ID) %>% 
                              filter(n == 30))$property_ID) %>% 
-  nrow() %>% round(digit=-1)
+  nrow() %>% round(digit = -1)
 
 #' [7] FREH listings on January blocked A MAJORITY of June
 property %>% 
@@ -196,7 +240,7 @@ property %>%
                                     status == "B") %>% 
                              count(property_ID) %>% 
                              filter(n > 15))$property_ID) %>% 
-  nrow() %>% round(digit=-1)
+  nrow() %>% round(digit = -1)
 
 #' [8] FREH listings on January blocked ALL MONTH of June in 2019
 property %>% 
@@ -208,7 +252,7 @@ property %>%
                                     status == "B") %>% 
                              count(property_ID) %>% 
                              filter(n == 30))$property_ID) %>% 
-  nrow() %>% round(digit=-1)
+  nrow() %>% round(digit = -1)
 
 #' [9] FREH listings on January blocked A MAJORITY of June in 2019
 property %>% 
@@ -220,7 +264,7 @@ property %>%
                                     status == "B") %>% 
                              count(property_ID) %>% 
                              filter(n > 15))$property_ID) %>% 
-  nrow() %>% round(digit=-1)
+  nrow() %>% round(digit = -1)
 
 #' [10] Get the FREH listings blocked for the last days of June (after ban)
 property %>% 
@@ -232,7 +276,7 @@ property %>%
                                     status == "B") %>% 
                              count(property_ID) %>% 
                              filter(n == 6))$property_ID) %>% 
-  nrow() %>% round(digit=-1)
+  nrow() %>% round(digit = -1)
 
 # behavior of non-commercial listings during ban ------------------------------------------------------
 # numbers not in the text, but talked about at the end of chap.4 ------------------------------------------------------

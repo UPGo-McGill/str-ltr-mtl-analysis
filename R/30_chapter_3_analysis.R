@@ -38,18 +38,18 @@ FREH_borough <-
   filter(date %in% as.Date(c("2018-12-01", "2019-12-01"))) %>% 
   group_by(borough, date) %>% 
   summarize(FREH = sum(FREH_3)) %>% 
-  mutate(date = if_else(date >= "2019-01-01", 2019, 2018))
+  mutate(date = if_else(date >= LTM_start_date, 2019, 2018))
 
 GH_borough <- 
   GH %>% 
-  filter(date %in% as.Date(c("2018-12-31", "2019-12-31"))) %>% 
+  filter(date %in% as.Date(c(LTM_end_date - years(1), LTM_end_date))) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(boroughs) %>% 
   st_drop_geometry() %>% 
   group_by(borough, date) %>% 
   summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
   as_tibble() %>% 
-  mutate(date = if_else(date >= "2019-01-01", 2019, 2018))
+  mutate(date = if_else(date >= LTM_start_date, 2019, 2018))
 
 
 # STR-induced housing loss ------------------------------------------------
@@ -66,23 +66,25 @@ GH_borough <-
 FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3) %>% round(digit = -1)
 
 #' [2] GH in 2019-12
-GH %>% filter(date == "2019-12-31") %>% pull(housing_units) %>% sum() %>% 
+GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>% 
   round(digit = -1)
 
 #' [3] Total housing loss for 2019
 {{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
-    {GH %>% filter(date == "2019-12-31") %>% pull(housing_units) %>% sum()}} %>% 
+    {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} %>% 
   round(digit = -1)
 
 #' [4] YOY increase in housing loss
 {{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
-    {GH %>% filter(date == "2019-12-31") %>% pull(housing_units) %>% sum()}} /
+    {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} /
   {{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
-      {GH %>% filter(date == "2018-12-31") %>% pull(housing_units) %>% sum()}}
+      {GH %>% filter(date == LTM_end_date - years(1)) %>% 
+          pull(housing_units) %>% sum()}}
 
 #' [5] Total housing loss for 2018
 {{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
-  {GH %>% filter(date == "2018-12-31") %>% pull(housing_units) %>% sum()}} %>% 
+  {GH %>% filter(date == LTM_end_date - years(1)) %>% pull(housing_units) %>% 
+      sum()}} %>% 
   round(digit = -1)
 
 #' At the end of 2019 more than six in ten (62.0% [1]) entire-home listings 
@@ -98,7 +100,7 @@ daily %>%
   summarize(eh = mean(FREH_3[listing_type == "Entire home/apt"] > 0.5),
             pr = mean(GH[listing_type == "Private room"])) %>% 
   mutate(across(c(eh, pr), slide_dbl, mean, .before = 30)) %>% 
-  filter(date %in% as.Date(c("2016-12-31", "2019-12-31")))
+  filter(date %in% as.Date(c("2016-12-31", LTM_end_date)))
 
 #' The 5,520 housing units taken off of Montreal’s housing market in 2019 is 
 #' only 0.7% [1] of the total amount of housing in the city, but this housing 
@@ -112,7 +114,7 @@ daily %>%
 
 #' [1] Total housing loss as % of dwellings
 {{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
-    {GH %>% filter(date == "2019-12-31") %>% pull(housing_units) %>% sum()}} /
+    {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} /
   sum(boroughs$dwellings)} %>% 
   round(3)
 
@@ -278,7 +280,8 @@ strs_by_zone <-
   st_drop_geometry() %>% 
   select(property_ID, zone) %>% 
   left_join(daily, .) %>% 
-  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+         status != "B") %>% 
   count(zone) %>% 
   mutate(active_strs = n / 365)
 

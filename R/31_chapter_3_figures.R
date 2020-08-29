@@ -69,7 +69,7 @@ figure_3_1 <-
   annotate("curve", x = as.Date("2019-03-20"), xend = as.Date("2020-05-01"),
            y = 5500, yend = 5800, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2019-01-01"), y = 5500,
+  annotate("text", x = as.Date(LTM_start_date), y = 5500,
            label = "STRs banned \nby Province", family = "Futura Condensed") +
   scale_fill_manual(values = col_palette[c(1, 3, 2)]) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-10-01"), NA)) +
@@ -142,7 +142,7 @@ FREH_DA <-
 
 GH_borough <- 
   GH %>% 
-  filter(date == "2019-12-31") %>% 
+  filter(date == LTM_end_date) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(boroughs) %>% 
   st_drop_geometry() %>% 
@@ -152,7 +152,7 @@ GH_borough <-
 
 GH_DA <- 
   GH %>% 
-  filter(date == "2019-12-31") %>% 
+  filter(date == LTM_end_date) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(DA) %>% 
   st_drop_geometry() %>% 
@@ -249,8 +249,8 @@ daily_cmhc <-
   st_drop_geometry() %>% 
   select(property_ID, zone) %>% 
   left_join(daily, .) %>% 
-  filter(housing, date %in% as.Date(c("2019-12-01", "2019-12-31", "2018-12-01",
-                                      "2018-12-31"))) %>% 
+  filter(housing, date %in% as.Date(c("2019-12-01", LTM_end_date, "2018-12-01",
+                                      LTM_end_date - years(1)))) %>% 
   mutate(FREH_3 = if_else(substr(date, 9, 9) == 0, FREH_3, 0),
          GH     = if_else(substr(date, 9, 9) == 3, GH, FALSE)) %>% 
   mutate(date = as.integer(substr(date, 1, 4))) %>% 
@@ -264,7 +264,8 @@ strs_by_zone <-
   st_drop_geometry() %>% 
   select(property_ID, zone) %>% 
   left_join(daily, .) %>% 
-  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+         status != "B") %>% 
   count(zone) %>% 
   mutate(active_strs = n / 365)
 

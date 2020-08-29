@@ -1,4 +1,4 @@
-#### 20 CHAPTER 2 ANALYSIS ####################################################0
+#### 20 CHAPTER 2 ANALYSIS #####################################################
 
 #' This script produces the tables and facts for chapter 2. It runs quickly.
 #' 
@@ -132,8 +132,9 @@ daily %>%
 
 #' [10] Active listing YOY change
 daily %>% 
-  filter(housing, status != "B", date >= "2018-01-01", date <= "2019-12-31") %>% 
-  group_by(year_2019 = date >= "2019-01-01") %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1), 
+         date <= LTM_end_date) %>% 
+  group_by(year_2019 = date >= LTM_start_date) %>% 
   summarize(active_listings = n() / 365,
             revenue = sum(price[status == "R"])) %>% 
   summarize(across(c(active_listings, revenue), ~{(.x[2] - .x[1]) / .x[1]}))
@@ -362,7 +363,8 @@ listing_type_breakdown <-
 
 listing_type_breakdown <- 
   daily %>% 
-  filter(housing, status != "B", date >= "2018-01-01", date <= "2018-12-31") %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1), 
+         date <= LTM_end_date - years(1)) %>% 
   group_by(listing_type) %>% 
   summarize(active_2018 = n() / 365) %>% 
   left_join(listing_type_breakdown, .) %>% 
@@ -433,7 +435,8 @@ active_tenure_2017 <-
 
 active_tenure_2019 <- 
   daily %>% 
-  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  filter(housing, date >= LTM_start_date, 
+         date <= LTM_end_date, status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings_2019 = n(),
@@ -631,7 +634,7 @@ commercial_listings <-
 
 #' [1] Bedrooms
 property %>% 
-  filter(housing, created <= "2019-12-31", scraped >= "2019-01-01", 
+  filter(housing, created <= LTM_end_date, scraped >= LTM_start_date, 
          listing_type == "Entire home/apt", !is.na(bedrooms)) %>% 
   st_drop_geometry() %>% 
   summarize(bedrooms_3_or_fewer = mean(bedrooms <= 3))
