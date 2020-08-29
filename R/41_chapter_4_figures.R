@@ -247,23 +247,73 @@ extrafont::embed_fonts("output/figures/figure_4_3.pdf")
 
 # Figure 4.4 Average nightly price ----------------------------------------
 
+# Get average nightly prices
 average_prices <- 
   daily %>% 
-  filter(housing, status == "R", date >= "2019-01-01",
+  filter(housing, status == "R", date >= "2016-01-01",
          listing_type == "Entire home/apt") %>% 
   group_by(date) %>% 
   summarize(price = mean(price))
 
+# Create monthly price time series
+monthly_prices <- 
+  average_prices %>% 
+  tsibble::as_tsibble() %>% 
+  tsibble::index_by(yearmon = tsibble::yearmonth(date)) %>% 
+  summarize(price = mean(price))
+
+# Get March-August seasonal
+mar_jul_price_seasonal <- 
+  monthly_prices %>% 
+  filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
+  model(x11 = feasts:::X11(price, type = "additive")) %>% 
+  components() %>%
+  slice(39:43) %>% 
+  pull(seasonal)
+
+# Get Feb trend
+feb_price_trend <- 
+  monthly_prices %>% 
+  filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
+  model(x11 = feasts:::X11(price, type = "additive")) %>% 
+  components() %>% 
+  slice(50) %>% 
+  pull(trend)
+
+# Apply March-Aug seasonal component to Feb trend
+mar_jul_price_trend <- 
+  tibble(yearmon = tsibble::yearmonth(c("2020-03", "2020-04", "2020-05", 
+                                        "2020-06", "2020-07")),
+         trend = feb_price_trend + mar_jul_price_seasonal)
+
+# Apply to daily averages to get trend
+average_prices <- 
+  average_prices %>% 
+  mutate(yearmon = tsibble::yearmonth(date)) %>% 
+  inner_join(mar_jul_price_trend) %>% 
+  group_by(yearmon) %>% 
+  mutate(trend = price * trend / mean(price)) %>% 
+  ungroup() %>% 
+  select(date, trend) %>% 
+  left_join(average_prices, .)
+
 figure_4_4 <- 
   average_prices %>% 
-  mutate(price = slide_dbl(price, mean, .before = 6)) %>% 
-  ggplot(aes(date, price)) +
+  mutate(across(c(price, trend), slide_dbl, mean, na.rm = TRUE, 
+                .before = 6)) %>% 
+  mutate(trend = if_else(date == "2020-02-29", price, trend)) %>% 
+  filter(date >= "2019-01-01") %>% 
+  pivot_longer(-date) %>% 
+  ggplot(aes(date, value, colour = name)) +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(50, NA),
                      label = scales::label_dollar(accuracy = 1)) +
+  scale_color_manual(name = NULL, values = col_palette[c(5, 1)],
+                     labels = c("Actual nightly price", 
+                                "Trend nightly price")) +
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
@@ -282,7 +332,8 @@ extrafont::embed_fonts("output/figures/figure_4_4.pdf")
 
 rm(active_by_status, average_prices, boroughs, boroughs_raw, city, DA, 
    daily_reservation_trajectories, figure_4_1, figure_4_2, figure_4_3,
-   figure_4_3_left, figure_4_3_right, figure_4_4, 
-   monthly_reservation_trajectories, province, reservations, 
-   reservations_with_trend, streets, streets_downtown, trends, feb_trend,
-   FREH_in_jan_feb, mar_aug_seasonal, mar_aug_trend)
+   figure_4_3_left, figure_4_3_right, figure_4_4, mar_jul_price_trend, 
+   monthly_prices, monthly_reservation_trajectories, province, reservations, 
+   reservations_with_trend, streets, streets_downtown, trends, feb_price_trend, 
+   feb_trend, FREH_in_jan_feb, mar_aug_seasonal, mar_aug_trend, 
+   mar_jul_price_seasonal)
