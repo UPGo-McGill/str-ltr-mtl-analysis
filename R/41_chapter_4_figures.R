@@ -243,3 +243,46 @@ ggsave("output/figures/figure_4_3.pdf", plot = figure_4_3, width = 8,
        height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_3.pdf")
+
+
+# Figure 4.4 Average nightly price ----------------------------------------
+
+average_prices <- 
+  daily %>% 
+  filter(housing, status == "R", date >= "2019-01-01",
+         listing_type == "Entire home/apt") %>% 
+  group_by(date) %>% 
+  summarize(price = mean(price))
+
+figure_4_4 <- 
+  average_prices %>% 
+  mutate(price = slide_dbl(price, mean, .before = 6)) %>% 
+  ggplot(aes(date, price)) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+           ymin = -Inf, ymax = Inf, alpha = 0.2) +
+  geom_line(lwd = 1) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, limits = c(50, NA),
+                     label = scales::label_dollar(accuracy = 1)) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain", family = "Futura"), 
+        legend.title = element_text(face = "bold", family = "Futura", 
+                                    size = 10),
+        legend.text = element_text( size = 10, family = "Futura"))
+
+ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_4_4.pdf")
+
+
+# Clean up ----------------------------------------------------------------
+
+rm(active_by_status, average_prices, boroughs, boroughs_raw, city, DA, 
+   daily_reservation_trajectories, figure_4_1, figure_4_2, figure_4_3,
+   figure_4_3_left, figure_4_3_right, figure_4_4, 
+   monthly_reservation_trajectories, province, reservations, 
+   reservations_with_trend, streets, streets_downtown, trends, feb_trend,
+   FREH_in_jan_feb, mar_aug_seasonal, mar_aug_trend)
