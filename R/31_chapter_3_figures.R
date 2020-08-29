@@ -15,6 +15,7 @@
 #' - `09_str_processing.R`
 #' - `11_FREH_model.R`
 #' - `12_rent_increases.R`
+#' - `13_condo_analysis.R`
 #' 
 #' External dependencies:
 #' - The Futura and Futura Condensed fonts, which can be imported in 

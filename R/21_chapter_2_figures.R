@@ -10,10 +10,11 @@
 #' - `figure_2_5.pdf`
 #' - `figure_2_6.pdf`
 #' - `figure_2_7.pdf`
+#' - `figure_2_8.pdf`
 #' 
 #' Script dependencies:
 #' - `09_str_processing.R`
-#' - `13_raffle_condo.R`
+#' - `13_condo_analysis.R`
 #' 
 #' External dependencies:
 #' - The Futura and Futura Condensed fonts, which can be imported in 
