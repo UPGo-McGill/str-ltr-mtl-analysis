@@ -13,11 +13,10 @@
 
 source("R/01_startup.R")
 
-# Load previous data ------------------------------------------------------
-
 load("output/str_processed.Rdata")
 
-# Prepare objects need for analysis -----------------------------------------------------
+
+# Prepare new objects -----------------------------------------------------
 
 FREH <- 
   daily %>% 

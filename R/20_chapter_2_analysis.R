@@ -16,9 +16,6 @@
 
 source("R/01_startup.R")
 
-
-# Load previous data ------------------------------------------------------
-
 load("output/str_processed.Rdata")
 load("output/national_comparison.Rdata")
 load("output/geometry.Rdata")

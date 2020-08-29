@@ -164,88 +164,7 @@ ggsave("output/figures/figure_4_2.pdf", plot = figure_4_2, width = 8,
 extrafont::embed_fonts("output/figures/figure_4_2.pdf")
 
 
-# Figure 4.3 Reservation trajectories of FREH and non-FREH listings -------
-
-FREH_in_jan_feb <- 
-  daily %>% 
-  filter(housing, date >= "2020-01-01", date <= "2020-02-28", FREH_3 > 0.5) %>% 
-  pull(property_ID) %>% 
-  unique()
-
-monthly_reservation_trajectories <- 
-  daily %>% 
-  filter(housing, status == "R", date >= "2019-01-01", 
-         listing_type == "Entire home/apt") %>% 
-  mutate(FREH_feb = if_else(property_ID %in% FREH_in_jan_feb, TRUE, FALSE)) %>% 
-  tsibble::as_tsibble(index = date, key = property_ID) %>% 
-  tsibble::group_by_key() %>% 
-  tsibble::index_by(yearmon = tsibble::yearmonth(date)) %>% 
-  summarize(n = sum(status == "R"),
-            FREH_feb = as.logical(prod(FREH_feb))) %>% 
-  group_by(FREH_feb) %>% 
-  tsibble::index_by(yearmon) %>% 
-  summarize(n = mean(n)) %>% 
-  arrange(yearmon, FREH_feb)
-
-daily_reservation_trajectories <- 
-  daily %>% 
-  filter(housing, status == "R", date >= "2019-01-01", 
-         listing_type == "Entire home/apt") %>% 
-  mutate(FREH_feb = if_else(property_ID %in% FREH_in_jan_feb, TRUE, FALSE)) %>% 
-  count(date, FREH_feb)
-
-figure_4_3_left <- 
-  daily_reservation_trajectories %>% 
-  group_by(FREH_feb) %>% 
-  mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
-  ungroup() %>% 
-  ggplot(aes(date, n, colour = FREH_feb)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
-           ymin = 0, ymax = Inf, alpha = 0.2) +
-  geom_line(lwd = 1) +
-  scale_x_date(name = NULL) +
-  scale_y_continuous(name = "Total daily reservations", limits = c(0, NA), 
-                     label = scales::comma) +
-  scale_color_manual(name = "FREH status in January-February 2020", 
-                     values = col_palette[c(5, 1)]) +
-  theme_minimal() +
-  theme(legend.position = "bottom", 
-        panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
-                                    size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
-
-figure_4_3_right <- 
-  monthly_reservation_trajectories %>% 
-  mutate(date = as.Date(yearmon)) %>% 
-  ggplot(aes(date, n, colour = FREH_feb)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
-           ymin = 0, ymax = Inf, alpha = 0.2) +
-  geom_line(lwd = 1) +
-  scale_x_date(name = NULL) +
-  scale_y_continuous(name = "Average monthly reservations", limits = c(0, NA), 
-                     label = scales::label_number(accuracy = 1)) +
-  scale_color_manual(name = "FREH status in January-February 2020", 
-                     values = col_palette[c(5, 1)]) +
-  theme_minimal() +
-  theme(legend.position = "bottom", 
-        panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
-                                    size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
-
-figure_4_3 <- figure_4_3_left + figure_4_3_right + 
-  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
-
-ggsave("output/figures/figure_4_3.pdf", plot = figure_4_3, width = 8, 
-       height = 4.2, units = "in", useDingbats = FALSE)
-
-extrafont::embed_fonts("output/figures/figure_4_3.pdf")
-
-
-# Figure 4.4 Average nightly price ----------------------------------------
+# Figure 4.3 Average nightly price ----------------------------------------
 
 # Get average nightly prices
 average_prices <- 
@@ -297,7 +216,7 @@ average_prices <-
   select(date, trend) %>% 
   left_join(average_prices, .)
 
-figure_4_4 <- 
+figure_4_3 <- 
   average_prices %>% 
   mutate(across(c(price, trend), slide_dbl, mean, na.rm = TRUE, 
                 .before = 6)) %>% 
@@ -322,6 +241,87 @@ figure_4_4 <-
                                     size = 10),
         legend.text = element_text( size = 10, family = "Futura"))
 
+ggsave("output/figures/figure_4_3.pdf", plot = figure_4_3, width = 8, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_4_3.pdf")
+
+
+# Figure 4.4 Reservation trajectories of FREH and non-FREH listings -------
+
+FREH_in_jan_feb <- 
+  daily %>% 
+  filter(housing, date >= "2020-01-01", date <= "2020-02-28", FREH_3 > 0.5) %>% 
+  pull(property_ID) %>% 
+  unique()
+
+monthly_reservation_trajectories <- 
+  daily %>% 
+  filter(housing, status == "R", date >= "2019-01-01", 
+         listing_type == "Entire home/apt") %>% 
+  mutate(FREH_feb = if_else(property_ID %in% FREH_in_jan_feb, TRUE, FALSE)) %>% 
+  tsibble::as_tsibble(index = date, key = property_ID) %>% 
+  tsibble::group_by_key() %>% 
+  tsibble::index_by(yearmon = tsibble::yearmonth(date)) %>% 
+  summarize(n = sum(status == "R"),
+            FREH_feb = as.logical(prod(FREH_feb))) %>% 
+  group_by(FREH_feb) %>% 
+  tsibble::index_by(yearmon) %>% 
+  summarize(n = mean(n)) %>% 
+  arrange(yearmon, FREH_feb)
+
+daily_reservation_trajectories <- 
+  daily %>% 
+  filter(housing, status == "R", date >= "2019-01-01", 
+         listing_type == "Entire home/apt") %>% 
+  mutate(FREH_feb = if_else(property_ID %in% FREH_in_jan_feb, TRUE, FALSE)) %>% 
+  count(date, FREH_feb)
+
+figure_4_4_left <- 
+  daily_reservation_trajectories %>% 
+  group_by(FREH_feb) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
+  ungroup() %>% 
+  ggplot(aes(date, n, colour = FREH_feb)) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+           ymin = 0, ymax = Inf, alpha = 0.2) +
+  geom_line(lwd = 1) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = "Total daily reservations", limits = c(0, NA), 
+                     label = scales::comma) +
+  scale_color_manual(name = "FREH status in January-February 2020", 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain", family = "Futura"), 
+        legend.title = element_text(face = "bold", family = "Futura", 
+                                    size = 10),
+        legend.text = element_text( size = 10, family = "Futura"))
+
+figure_4_4_right <- 
+  monthly_reservation_trajectories %>% 
+  mutate(date = as.Date(yearmon)) %>% 
+  ggplot(aes(date, n, colour = FREH_feb)) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+           ymin = 0, ymax = Inf, alpha = 0.2) +
+  geom_line(lwd = 1) +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = "Average monthly reservations", limits = c(0, NA), 
+                     label = scales::label_number(accuracy = 1)) +
+  scale_color_manual(name = "FREH status in January-February 2020", 
+                     values = col_palette[c(5, 1)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain", family = "Futura"), 
+        legend.title = element_text(face = "bold", family = "Futura", 
+                                    size = 10),
+        legend.text = element_text( size = 10, family = "Futura"))
+
+figure_4_4 <- figure_4_4_left + figure_4_4_right + 
+  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+
 ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8, 
        height = 4.2, units = "in", useDingbats = FALSE)
 
@@ -332,7 +332,7 @@ extrafont::embed_fonts("output/figures/figure_4_4.pdf")
 
 rm(active_by_status, average_prices, boroughs, boroughs_raw, city, DA, 
    daily_reservation_trajectories, figure_4_1, figure_4_2, figure_4_3,
-   figure_4_3_left, figure_4_3_right, figure_4_4, mar_jul_price_trend, 
+   figure_4_4, figure_4_4_left, figure_4_4_right, mar_jul_price_trend, 
    monthly_prices, monthly_reservation_trajectories, province, reservations, 
    reservations_with_trend, streets, streets_downtown, trends, feb_price_trend, 
    feb_trend, FREH_in_jan_feb, mar_aug_seasonal, mar_aug_trend, 

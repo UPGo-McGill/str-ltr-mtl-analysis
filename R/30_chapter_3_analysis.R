@@ -17,9 +17,6 @@
 
 source("R/01_startup.R")
 
-
-# Load previous data ------------------------------------------------------
-
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/cmhc.Rdata")
