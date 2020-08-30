@@ -18,10 +18,8 @@ source("R/01_startup.R")
 library(patchwork)
 library(feasts)
 library(fabletools)
-library(zoo)
 
 load("output/str_processed.Rdata")
-load("output/geometry.Rdata")
 
 
 # Figure 4.1 - Active and reserved listings since 2018 --------------------
@@ -29,13 +27,13 @@ load("output/geometry.Rdata")
 active_by_status <- 
   daily %>% 
   filter(housing, date >= "2016-01-01", status != "B") %>% 
-  count(date, status) %>% 
-  group_by(status) %>% 
-  mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
-  ungroup()
+  count(date, status)
 
 figure_4_1 <-
   active_by_status %>% 
+  group_by(status) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
+  ungroup() %>% 
   filter(date >= "2018-01-01") %>% 
   ggplot(aes(date, n, color = status)) +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
@@ -66,69 +64,67 @@ extrafont::embed_fonts("output/figures/figure_4_1.pdf")
 
 # Figure 4.2 Actual and trend reservations in 2020 ------------------------
 
-# Create reservations time series
+# Create and decompose reservations time series
 reservations <- 
   active_by_status %>% 
   filter(status == "R") %>% 
   tsibble::as_tsibble() %>% 
   tsibble::index_by(yearmon = tsibble::yearmonth(date)) %>% 
-  summarize(n = sum(n))
+  summarize(n = sum(n)) %>% 
+  filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
+  model(x11 = feasts:::X11(n, type = "additive")) %>% 
+  components()
 
 # Get March-August seasonal
 mar_aug_seasonal <- 
   reservations %>% 
-  filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
-  model(x11 = feasts:::X11(n, type = "additive")) %>% 
-  components() %>%
   slice(39:44) %>% 
   pull(seasonal)
 
 # Get Feb trend
 feb_trend <- 
   reservations %>% 
-  filter(yearmon <= tsibble::yearmonth("2020-02")) %>% 
-  model(x11 = feasts:::X11(n, type = "additive")) %>% 
-  components() %>% 
   slice(50) %>% 
   pull(trend)
 
 # Apply March-Aug seasonal component to Feb trend
-mar_aug_trend <- feb_trend + mar_aug_seasonal
-
-# Convert to daily average and assign to month midpoints
 trends <-
   tibble(
     date = as.Date(c("2020-03-16", "2020-04-16", "2020-05-16", "2020-06-16",
                      "2020-07-16", "2020-07-31")),
-    trend = mar_aug_trend / c(31, 30, 31, 30, 31, 31))
+    trend = (feb_trend + mar_aug_seasonal) / c(31, 30, 31, 30, 31, 31))
 
 # Set July 31 value to average of July and August
 trends[6,]$trend <- mean(trends[5:6,]$trend)
 
-reservations_with_trend <- 
+reservations <- 
   active_by_status %>% 
-  filter(date >= "2019-01-01", status == "R") %>% 
+  filter(status == "R") %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  filter(date >= "2019-01-01") %>% 
   left_join(trends) %>% 
   select(-status) %>% 
   mutate(trend = if_else(date == "2020-03-01", n, trend)) %>% 
   filter(date >= "2020-03-01") %>% 
-  mutate(trend = na.approx(trend))
+  mutate(trend = zoo::na.approx(trend))
 
-reservations_with_trend <- 
+reservations <- 
   active_by_status %>% 
-  filter(date >= "2019-01-01", date <= "2020-02-29", status == "R") %>% 
+  filter(status == "R") %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  filter(date >= "2019-01-01", date <= "2020-02-29") %>% 
   select(-status) %>% 
-  bind_rows(reservations_with_trend) 
+  bind_rows(reservations) 
 
 figure_4_2 <-
-  reservations_with_trend %>% 
+  reservations %>% 
   pivot_longer(-date) %>% 
   filter(!is.na(value)) %>%
   ggplot() +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = 0.2) +
   geom_ribbon(aes(x = date, ymin = n, ymax = trend, group = 1),
-              data = reservations_with_trend, fill = col_palette[3], 
+              data = reservations, fill = col_palette[3], 
               alpha = 0.3) +
   geom_line(aes(date, value, color = name), lwd = 1) +
   geom_text(aes(x = as.Date("2020-07-31"), 
@@ -136,7 +132,7 @@ figure_4_2 <-
                 label = paste(
                   prettyNum(round(abs(diff(
                     value[date == as.Date("2020-07-31")])), -1), ","),
-                  "daily", "reservations", "below", "trend", sep = "\n")), 
+                  "fewer", "reservations", "than", "expected", sep = "\n")), 
             family = "Futura Condensed", inherit.aes = FALSE, hjust = 1,
             nudge_x = -4) +
   geom_segment(aes(x = as.Date("2020-07-31"), xend = as.Date("2020-07-31"),
@@ -148,7 +144,7 @@ figure_4_2 <-
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(0, NA), label = scales::comma) +
   scale_color_manual(name = NULL, 
-                     labels = c("Actual reservations", "Trend reservations"), 
+                     labels = c("Actual reservations", "Expected reservations"), 
                      values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom", 
@@ -232,7 +228,7 @@ figure_4_3 <-
                      label = scales::label_dollar(accuracy = 1)) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1)],
                      labels = c("Actual nightly price", 
-                                "Trend nightly price")) +
+                                "Expected nightly price")) +
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
@@ -330,10 +326,8 @@ extrafont::embed_fonts("output/figures/figure_4_4.pdf")
 
 # Clean up ----------------------------------------------------------------
 
-rm(active_by_status, average_prices, boroughs, boroughs_raw, city, DA, 
-   daily_reservation_trajectories, figure_4_1, figure_4_2, figure_4_3,
-   figure_4_4, figure_4_4_left, figure_4_4_right, mar_jul_price_trend, 
-   monthly_prices, monthly_reservation_trajectories, province, reservations, 
-   reservations_with_trend, streets, streets_downtown, trends, feb_price_trend, 
-   feb_trend, FREH_in_jan_feb, mar_aug_seasonal, mar_aug_trend, 
-   mar_jul_price_seasonal)
+rm(active_by_status, average_prices, daily_reservation_trajectories, figure_4_1, 
+   figure_4_2, figure_4_3, figure_4_4, figure_4_4_left, figure_4_4_right, 
+   mar_jul_price_trend, monthly_prices, monthly_reservation_trajectories, 
+   reservations, trends, feb_price_trend, feb_trend, FREH_in_jan_feb, 
+   mar_aug_seasonal, mar_jul_price_seasonal)
