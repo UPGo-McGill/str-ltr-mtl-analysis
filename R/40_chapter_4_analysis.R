@@ -376,286 +376,198 @@ daily %>%
 
 # COVID’s impact on frequently rented entire-home listings ----------------
 
+#' According to the model, the number of housing units in Montreal lost due to 
+#' commercial STRs reached its all-time peak (5,860 [1]) at the beginning of 
+#' 2020. Most of these (5,570 [1]) were FREH listings, with the remainder
+#' (290 [1]) being ghost hostels—clusters of private-room listings operated 
+#' out of a single housing unit. As of July 2020, the number of FREH listings 
+#' had dropped to its lowest amount since we began tracking it in 2016, with 
+#' just 1,750 [4] listings displaying availability and reservations consistent 
+#' with historical patterns of full-time STR activity in Montreal.
 
-
-
-
-
-
-
-
-
-
-# Prepare new objects -----------------------------------------------------
-
-FREH <- 
-  daily %>% 
-  filter(date >= "2016-01-01") %>% 
-  group_by(date) %>% 
-  summarize(across(c(FREH_3), sum)) %>%
-  filter(substr(date, 9, 10) == "01")
-
-GH_total <-
-  GH %>%
-  st_drop_geometry() %>%
+#' [1] Peak housing loss
+GH_total <- 
+  GH %>% 
+  st_drop_geometry() %>% 
   filter(status != "B") %>% 
-  group_by(date) %>%
-  summarize(GH_units = sum(housing_units)) %>%
-  mutate(GH_average = frollmean(GH_units, 30, align = "right", fill = 198))
+  group_by(date) %>% 
+  summarize(GH_units = sum(housing_units))
 
-housing_loss <-
-  FREH %>%
-  select(date, FREH_3) %>% 
-  rename(`Entire home/apt` = FREH_3) %>%
-  left_join(GH_total, by = "date") %>%
-  select(-GH_units) %>% 
-  rename(`Private room` = GH_average) %>%
-  gather(`Entire home/apt`, `Private room`, 
-         key = `Listing type`, value = `Housing units`) 
-
-
-# Look at year-over-year growth of Reserved and Available listings over certain time periods ------------------------------------------------------
-
-#' [1] Year-over-year growth of Reserved listings
-(daily %>% 
-   filter(status == "R", date >= LTM_start_date, date <= LTM_end_date) %>% 
-   nrow() -
-   daily %>% 
-   filter(status == "R", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-   nrow()
-) /
-  daily %>% 
-  filter(status == "R", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-  nrow()
-
-#' [2] growth of Reserved listings for the first half of 2020
-(daily %>% 
-    filter(status == "R", date >= "2020-01-01", date <= max(date)) %>% 
-    nrow() -
-    daily %>% 
-    filter(status == "R", date >= "2019-01-01", date <= max(date) - years(1)) %>% 
-    nrow()
-) /
-  daily %>% 
-  filter(status == "R", date >= "2019-01-01", date <= max(date) - years(1)) %>% 
-  nrow()
-
-#' [3] Lowest point of available listings
 daily %>% 
-  filter(status == "A", date >= "2018-01-01") %>% 
-  count(date) %>% 
-  arrange(n)
+  group_by(date) %>% 
+  summarize(FREH = sum(FREH_3)) %>% 
+  left_join(GH_total) %>% 
+  mutate(housing_loss = FREH + GH_units) %>% 
+  filter(housing_loss == max(housing_loss, na.rm = TRUE)) %>% 
+  mutate(across(-date, round, -1))
 
+#' [2] Minimum housing loss
+daily %>% 
+  group_by(date) %>% 
+  summarize(FREH = sum(FREH_3)) %>% 
+  left_join(GH_total) %>% 
+  mutate(housing_loss = FREH + GH_units) %>% 
+  filter(date == "2020-07-01") %>% 
+  mutate(across(-date, round, -1))
 
-# Compare the number of reservations during the ban, compared to the same period the year before ------------------------------------------------------
+#' There were 5,900 [1] listings which we consider likely to have been FREH in 
+#' either or both of January and February 2020. Of these listings, 1,940 [2] 
+#' were no longer listed on Airbnb or VRBO as of July 31, 2020. This is 
+#' 32.9% [2] of these listings—twice as high as the 16.6% [3] of listings which 
+#' were FREH in either January or February 2019 and were no longer listed on the 
+#' STR platforms by the end of July 2019. In total, 36.2% [4] of non-FREH 
+#' listings active in January or February 2020 were deactivated by the end of 
+#' July 2020, while the corresponding figure last year was 32.9% [5].
 
-#' [1] Reservations between 28 march and 25 june 2020
-daily_comp_ban <-
-  strr_compress(filter(daily, date >= "2020-03-28", date <= "2020-06-25"))
+#' [1] FREH in either Jan or Feb 2020
+FREH_in_jan_feb <- 
+  daily %>% 
+  filter(housing, date >= "2020-01-01", date <= "2020-02-29", FREH_3 > 0.5) %>% 
+  pull(property_ID) %>% 
+  unique()
 
-daily_comp_ban %>%
-  filter(booked_date >= "2020-03-28", booked_date <= "2020-06-25")
+length(FREH_in_jan_feb) %>% round(-1)
 
-#' [2] Reservations between 28 march and 25 june 2019
-daily_comp_2019 <-
-  strr_compress(filter(daily, date >= "2019-03-28", date <= "2019-06-25"))
-
-daily_comp_2019 %>%
-  filter(booked_date >= "2019-03-28", booked_date <= "2019-06-25")
-
-#' [3] Difference between the two years
-(
-  (daily_comp_ban %>%
-  filter(booked_date >= "2020-03-28", booked_date <= "2020-06-25") %>% 
-  nrow())
-  -
-  (daily_comp_2019 %>%
-  filter(booked_date >= "2019-03-28", booked_date <= "2019-06-25") %>% 
-  nrow())
-  )/(daily_comp_2019 %>%
-     filter(booked_date >= "2019-03-28", booked_date <= "2019-06-25") %>% 
-     nrow()
-   )
-
-#' [4] Reservations of more than 30 days during the ban
-daily_comp_ban %>%
-  filter(booked_date >= "2020-03-28", booked_date <= "2020-06-25") %>% 
-  mutate(duration = end_date-start_date+1) %>% 
-  filter(duration >= 30)
-
-
-# Impact of COVID on FREH listings  ------------------------------------------------------
-
-#' [1] Get the lowest point in housing loss 
-(housing_loss %>% 
-    group_by(date) %>% 
-    summarize(housing_loss = round(sum(`Housing units`), digit = -1)) %>% 
-    arrange(housing_loss))[1,]
-
-#' [2] Calculate the FREH units on 2020-01-01 that were deleted by end of June 2020
+#' [2] Jan-Feb FREH units deleted by end of July 2020
 property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, 
-                                 housing, 
-                                 date == "2020-01-01", 
-                                 FREH_3 > 0.5)$property_ID,
-         scraped < max(scraped) - months(1),
-         scraped != "2020-05-21") %>% 
-  nrow() %>% round(digit = -1)
+  st_drop_geometry() %>% 
+  filter(property_ID %in% FREH_in_jan_feb) %>% 
+  summarize(total = round(sum(scraped <= "2020-07-31"), -1),
+            pct = round(mean(scraped <= "2020-07-31"), 3))
 
-#' [3] Calculate the FREH units on 2019-01-01 that were deleted by end of June 2019
+#' [3] Percentage of 2019 Jan-Feb FREH deleted by end of July 2019
+FREH_in_jan_feb_2019 <- 
+  daily %>% 
+  filter(housing, date >= "2019-01-01", date <= "2019-02-28", FREH_3 > 0.5) %>% 
+  pull(property_ID) %>% 
+  unique()
+
 property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, 
-                                 housing,
-                                 date == "2019-01-01",
-                                 FREH_3 > 0.5)$property_ID,
-         scraped < max(scraped) - months(1) - years(1)) %>% 
-  nrow() %>% round(digit = -1)
+  st_drop_geometry() %>% 
+  filter(property_ID %in% FREH_in_jan_feb_2019) %>% 
+  summarize(mean(scraped <= "2019-07-31"))
 
-
-#' [4] Percentage of FREH listings which were deleted by end of June 2020
+#' [4] Percentage of non-FREH Jan-Feb listings deleted by end of July 2020
 property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, 
-                                 housing,
-                                 date == "2020-01-01", 
-                                 FREH_3 > 0.5)$property_ID,
-         scraped < max(scraped) - months(1),
-         scraped != "2020-05-21") %>% 
-  nrow() /
-  filter(daily,  
-         housing,
-         date == "2020-01-01", 
-         FREH_3 > 0.5) %>% 
-  nrow()
+  st_drop_geometry() %>% 
+  filter(property_ID %in% {daily %>% 
+      filter(housing, date >= "2020-01-01", date <= "2020-02-29", 
+             status != "B") %>% 
+      pull(property_ID) %>% 
+      unique()}, !property_ID %in% FREH_in_jan_feb) %>% 
+  summarize(mean(scraped <= "2020-07-31"))
 
-#' [5] Percentage of FREH listings which were deleted by end of June 2019
+#' [5] Percentage of non-FREH Jan-Feb listings deleted by end of July 2019
 property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, housing,
-                                 date == "2019-01-01", 
-                                 FREH_3 > 0.5)$property_ID,
-         scraped < max(scraped) - months(1) - years(1)) %>% 
-  nrow() /
-  filter(daily, 
-         housing, 
-         date == "2019-01-01", 
-         FREH_3 > 0.5) %>% 
-  nrow()
+  st_drop_geometry() %>% 
+  filter(property_ID %in% {daily %>% 
+      filter(housing, date >= "2019-01-01", date <= "2019-02-28", 
+             status != "B") %>% 
+      pull(property_ID) %>% 
+      unique()}, !property_ID %in% FREH_in_jan_feb_2019) %>% 
+  summarize(mean(scraped <= "2019-07-31"))
 
-#' [6] FREH listings on January blocked ALL MONTH of June
+#' Of the 3,960 [1] FREH listings which remained listed throughout March - July,
+#' 1,340 [2] (33.9% [3]) were blocked (i.e. not available for reservations) for 
+#' all of the month of July, and 2,050 [4] (51.8% [5]) were blocked for a 
+#' majority of the month. This is extremely rare behaviour for a dedicated STR 
+#' listing, since the summer is usually the busiest season for tourist
+#' accommodations in Montreal. In 2019, only 11.9% [6] of listings which were 
+#' FREH in January or February were blocked for all of July, and only 20.3% [7] 
+#' were blocked for a majority of the month.
+
+#' [1] Jan-Feb FREH units still active at end of July 2020
 property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, housing, date == "2020-01-01", FREH_3 > 0.5)$property_ID,
-         property_ID %in% (daily %>% 
-                             filter(housing,
-                                    date >= "2020-06-01", 
-                                    status == "B") %>% 
-                             count(property_ID) %>% 
-                             filter(n == 30))$property_ID) %>% 
-  nrow() %>% round(digit = -1)
+  filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-07-31") %>% 
+  nrow() %>% 
+  round(-1)
 
-#' [7] FREH listings on January blocked A MAJORITY of June
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, housing, date == "2020-01-01", FREH_3 > 0.5)$property_ID,
-         property_ID %in% (daily %>% 
-                             filter(housing,
-                                    date >= "2020-06-01", 
-                                    status == "B") %>% 
-                             count(property_ID) %>% 
-                             filter(n > 15))$property_ID) %>% 
-  nrow() %>% round(digit = -1)
+#' [2] Jan-Feb FREH blocked all July
+daily %>% 
+  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  group_by(property_ID) %>% 
+  filter(mean(status == "B") == 1) %>% 
+  pull(property_ID) %>% 
+  unique() %>% 
+  {filter(property, property_ID %in% ., property_ID %in% FREH_in_jan_feb)} %>% 
+  nrow() %>% 
+  round(-1)
 
-#' [8] FREH listings on January blocked ALL MONTH of June in 2019
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, date == "2019-01-01", FREH_3 > 0.5)$property_ID,
-         property_ID %in% (daily %>% 
-                             filter(housing,
-                                    date >= "2019-06-01", date <= "2019-06-30",
-                                    status == "B") %>% 
-                             count(property_ID) %>% 
-                             filter(n == 30))$property_ID) %>% 
-  nrow() %>% round(digit = -1)
+#' [3] Percentage
+{daily %>% 
+  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  group_by(property_ID) %>% 
+  filter(mean(status == "B") == 1) %>% 
+  pull(property_ID) %>% 
+  unique() %>% 
+  {filter(property, property_ID %in% ., property_ID %in% FREH_in_jan_feb)} %>% 
+  nrow() %>% 
+  `/`(property %>% 
+        filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-07-31") %>% 
+        nrow())} %>% 
+  round(3)
 
-#' [9] FREH listings on January blocked A MAJORITY of June in 2019
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, housing, date == "2019-01-01", FREH_3 > 0.5)$property_ID,
-         property_ID %in% (daily %>% 
-                             filter(housing,
-                                    date >= "2019-06-01", date <= "2019-06-30", 
-                                    status == "B") %>% 
-                             count(property_ID) %>% 
-                             filter(n > 15))$property_ID) %>% 
-  nrow() %>% round(digit = -1)
+#' [4] Jan-Feb FREH blocked most of July
+daily %>% 
+  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  group_by(property_ID) %>% 
+  filter(mean(status == "B") > 0.5) %>% 
+  pull(property_ID) %>% 
+  unique() %>% 
+  {filter(property, property_ID %in% ., property_ID %in% FREH_in_jan_feb)} %>% 
+  nrow() %>% 
+  round(-1)
 
-#' [10] Get the FREH listings blocked for the last days of June (after ban)
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, housing, date == "2020-01-01", FREH_3 > 0.5)$property_ID,
-         property_ID %in% (daily %>% 
-                             filter(housing,
-                                    date >= "2020-06-25", date <= "2020-06-30",
-                                    status == "B") %>% 
-                             count(property_ID) %>% 
-                             filter(n == 6))$property_ID) %>% 
-  nrow() %>% round(digit = -1)
+#' [5] Percentage
+{daily %>% 
+    filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+    group_by(property_ID) %>% 
+    filter(mean(status == "B") > 0.5) %>% 
+    pull(property_ID) %>% 
+    unique() %>% 
+    {filter(property, property_ID %in% ., property_ID %in% FREH_in_jan_feb)} %>% 
+    nrow() %>% 
+    `/`(property %>% 
+          filter(property_ID %in% FREH_in_jan_feb, scraped > "2020-07-31") %>% 
+          nrow())} %>% 
+  round(3)
 
-# behavior of non-commercial listings during ban ------------------------------------------------------
-# numbers not in the text, but talked about at the end of chap.4 ------------------------------------------------------
+#' [6] Jan-Feb FREH 2019 percentage blocked all July 2019
+{daily %>% 
+    filter(housing, date >= "2019-07-01", date <= "2019-07-31") %>% 
+    group_by(property_ID) %>% 
+    filter(mean(status == "B") == 1) %>% 
+    pull(property_ID) %>% 
+    unique() %>% 
+    {filter(property, property_ID %in% ., 
+            property_ID %in% FREH_in_jan_feb_2019)} %>% 
+    nrow() %>% 
+    `/`(property %>% 
+          filter(property_ID %in% FREH_in_jan_feb_2019, 
+                 scraped > "2019-07-31") %>% 
+          nrow())} %>% 
+  round(3)
 
-#' [1] proportion of non-commercial listings which were deleted by end of June in 2020
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, housing, date == "2020-01-01", FREH_3 < 0.5, multi == F)$property_ID,
-         scraped < max(scraped) - months(1),
-         scraped != "2020-05-21") %>% 
-  nrow() /
-  filter(daily, housing, date == "2020-01-01", FREH_3 < 0.5, multi == F) %>% 
-  nrow()
+#' [5] Jan-Feb FREH 2019 percentage blocked most of July 2019
+{daily %>% 
+    filter(housing, date >= "2019-07-01", date <= "2019-07-31") %>% 
+    group_by(property_ID) %>% 
+    filter(mean(status == "B") > 0.5) %>% 
+    pull(property_ID) %>% 
+    unique() %>% 
+    {filter(property, property_ID %in% ., 
+            property_ID %in% FREH_in_jan_feb_2019)} %>% 
+    nrow() %>% 
+    `/`(property %>% 
+          filter(property_ID %in% FREH_in_jan_feb_2019, 
+                 scraped > "2019-07-31") %>% 
+          nrow())} %>% 
+  round(3)
 
-#' [2] proportion of non-commercial listings which were deleted by end of June in 2019
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, housing, date == "2019-01-01", FREH_3 < 0.5, multi == F)$property_ID,
-         scraped < max(scraped) - months(1) - years(1)) %>% 
-  nrow()/
-  filter(daily, housing, date == "2019-01-01", FREH_3 < 0.5, multi == F) %>% 
-  nrow()
+#' For example, in the month of February 2020, 63.4% [1] of all reserved nights
+#' were booked in these FREH properties. 
 
-#' [3] number of non-commercial listings blocked in June 2020
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, 
-                                 housing, 
-                                 date == "2020-01-01", 
-                                 FREH_3 < 0.5, multi == F)$property_ID,
-         property_ID %in% (daily %>% 
-                             filter(housing,
-                                    date >= "2020-06-01", 
-                                    status == "B") %>% 
-                             count(property_ID) %>% 
-                             filter(n == 30))$property_ID) %>% 
-  nrow() /
-  filter(daily, housing, date == "2020-01-01", FREH_3 < 0.5, multi == F) %>% 
-  nrow()
-
-#' [4] number of non-commercial listings blocked in June 2019
-property %>% 
-  st_drop_geometry %>% 
-  filter(property_ID %in% filter(daily, 
-                                 housing, 
-                                 date == "2019-01-01", 
-                                 FREH_3 < 0.5, multi == F)$property_ID,
-         property_ID %in% (daily %>% 
-                             filter(housing,
-                                    date >= "2019-06-01", date <= "2019-06-30",
-                                    status == "B") %>% 
-                             count(property_ID) %>% 
-                             filter(n == 30))$property_ID) %>% 
-  nrow() /
-  filter(daily, housing, date == "2019-01-01", FREH_3 < 0.5, multi == F) %>% 
-  nrow()
+#' [1] Percentage of reserved nights in FREH properties in Feb 2020
+daily %>% 
+  filter(housing, date >= "2020-02-01", date <= "2020-02-29", status == "R") %>% 
+  summarize(mean(property_ID %in% FREH_in_jan_feb))
