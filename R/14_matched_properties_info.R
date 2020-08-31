@@ -19,7 +19,7 @@ street_no_pat <- START %R% one_or_more(DGT)
 postal_code_pat <- WRD %R% DGT %R% WRD %R% optional(SPC) %R% DGT %R% WRD %R% DGT
 street_pat <- START %R% one_or_more(WRD) %R% optional(SPC) %R% one_or_more(optional(WRD))
 
-ltr <- 
+ltr <-
 ltr %>% 
   mutate(street_no = str_extract(location, pattern = street_no_pat),
          location = str_remove(location, pattern = street_no_pat %R% optional(" ")),
@@ -31,11 +31,8 @@ ltr %>%
          location = str_remove(location, pattern = boroughs$borough),
          
          location = str_remove_all(location, pattern = "Canada"),
-         location = str_remove_all(location, pattern = "Montréal"),
-         location = str_remove_all(location, pattern = "Montreal"),
-         location = str_remove_all(location, pattern = "montreal"),
-         location = str_remove_all(location, pattern = "QC"),
-         location = str_remove_all(location, pattern = "Qc"),
+         location = str_remove_all(location, pattern = or("Montréal", "Montreal", "montreal", "montréal")),
+         location = str_remove_all(location, pattern = or("QC", "Qc")),
          
          street = str_extract(location, pattern = "[^,]+"),
          street = str_trim(street),
@@ -44,7 +41,10 @@ ltr %>%
          location = str_remove_all(location, pattern = ",")
   ) %>% 
   rename(location_related = location) %>% 
-  mutate(location = str_c(street_no, ", ", street, ", ", postal_code))
+  mutate(location = if_else(!is.na(street_no), str_c(street_no, " ", street, ", ", postal_code),
+                                   postal_code),
+         location = if_else(is.na(postal_code), str_c(street_no, " ", street), location),
+         location = if_else(is.na(street_no) & is.na(postal_code), street, location))
 
 # Prepare the basic of the table ----------------------------------------------------------
 listings_info <- 
@@ -189,8 +189,6 @@ listings_info %>%
          `Frequently rented entire home` = FREH,
          `Ghost hostel` = GH)
 
-listings_info %>% 
-  View()
 
 write.csv(listings_info[1:100,], "output/listings_info.csv")
 
