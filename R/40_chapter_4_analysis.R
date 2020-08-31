@@ -12,6 +12,9 @@
 #' - None
 
 source("R/01_startup.R")
+library(patchwork)
+library(feasts)
+library(fabletools)
 
 load("output/str_processed.Rdata")
 
