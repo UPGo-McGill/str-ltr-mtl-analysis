@@ -7,6 +7,7 @@
 #' 
 #' Script dependencies:
 #' - `09_str_processing.R`
+#' - `11_FREH_model.R`
 #' 
 #' External dependencies:
 #' - None
