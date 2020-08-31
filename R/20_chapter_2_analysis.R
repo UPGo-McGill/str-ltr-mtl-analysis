@@ -52,7 +52,7 @@ revenue_2019 <-
 #'  listings can erroneously suggest that a city’s STR market is larger than it 
 #'  is; in the case of Montreal, blocked listings outnumber listings which are 
 #'  actually active. When these blocked but inactive listings are included, the 
-#'  average listing earned [6] $9,500 last year, and the average host earned 
+#'  average listing earned $9,500 [6] last year, and the average host earned 
 #'  $16,900 [7]. Finally, there was a daily average of 240 [8] listings that 
 #'  were not located in private housing units (B&Bs, hotels, etc.), which 
 #'  have been excluded from the analysis in this report. 
@@ -147,14 +147,14 @@ daily %>%
 #' was 0.9% [2], and the year-over-year change from 2018 to 2019 was -5.5% [3]. 
 #' In the first half of 2020, active listings fell much faster thanks to the 
 #' COVID-19 pandemic. The year-over-year change in active daily listings for 
-#' 2020 so far (January to July) is -24.8% [4].
+#' 2020 so far (January to July) is -25.2% [4].
 #' 
 #' Despite there being fewer active listings in 2019 than in 2018, the number of 
 #' reserved nights increased by 12.3% [5], from 1.70 million [6] reserved nights 
 #' to 1.91 million [6] reserved nights, while revenue increased 14.9% [7]. In 
 #' fact, with a few brief exceptions, revenue maintained a positive 
 #' year-over-year growth rate consistently until the COVID-19 pandemic began. 
-#' (Revenue from January to July 2020 is down 55.3% [8] compared to the same 
+#' (Revenue from January to July 2020 is down 55.8% [8] compared to the same 
 #' time last year).
 
 #' [1] YOY listing growth, 2016-2017

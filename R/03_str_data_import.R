@@ -45,6 +45,18 @@ host <- host %>% strr_expand()
 upgo_disconnect()
 
 
+# Manually remove wonky created dates -------------------------------------
+
+property <-
+  property %>% 
+  filter(!is.na(created)) %>% 
+  filter(created != "2020-07-01" | 
+           (created == "2020-07-01" & !str_starts(property_ID, "ha-")))
+
+daily <-
+  daily %>% 
+  filter(property_ID %in% property$property_ID)
+
 
 # Manually fix January scraped date issue ---------------------------------
 

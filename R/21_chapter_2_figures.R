@@ -116,7 +116,6 @@ ggsave("output/figures/figure_2_2.pdf", plot = figure_2_2, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_2.pdf")
 
 
-
 # Figure 2.3 Active listings as a share of dwellings ----------------------
 
 active_borough <-
