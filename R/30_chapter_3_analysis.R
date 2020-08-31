@@ -100,7 +100,7 @@ daily %>%
   summarize(eh = mean(FREH_3[listing_type == "Entire home/apt"] > 0.5),
             pr = mean(GH[listing_type == "Private room"])) %>% 
   mutate(across(c(eh, pr), slide_dbl, mean, .before = 30)) %>% 
-  filter(date %in% as.Date(c("2016-12-31", LTM_end_date)))
+  filter(date %in% as.Date(c("2016-12-31", "2019-12-31")))
 
 #' The 5,520 housing units taken off of Montreal’s housing market in 2019 is 
 #' only 0.7% [1] of the total amount of housing in the city, but this housing 
@@ -189,7 +189,7 @@ borough_housing_table %>%
 #' healthy rental market should have a vacancy rate of at least 3%, but most 
 #' neighbourhoods in the central city are significantly below that. Le Sud-Ouest 
 #' had the city’s lowest vacancy rate, at 0.3% [2], which means that, of the 
-#' zone’s approximately 30,100 [3] rental apartments, fewer than 100 [4] were 
+#' zone’s approximately 31,000 [3] rental apartments, fewer than 100 [4] were 
 #' available to be rented by prospective tenants in October 2019, when CMHC’s 
 #' survey was conducted. In general, vacancy rates are even lower for 
 #' family-sized housing units (defined by CMHC as units with two or more 
@@ -207,24 +207,29 @@ annual_vacancy %>%
 
 #' [3] Total rental units in Le Sud-Ouest
 annual_units %>% 
-  filter(zone == 2, date == 2019, dwelling_type == "Total", bedroom == "Total")
+  filter(zone == 2, date == 2019, dwelling_type == "Total", 
+         bedroom == "Total") %>% 
+  pull(units) %>% 
+  round(-2)
 
 #' [4] Total vacant units in Le Sud-Ouest
 annual_units %>% 
   left_join(annual_vacancy) %>% 
   filter(zone == 2, date == 2019, dwelling_type == "Total", 
          bedroom == "Total") %>% 
-  mutate(vacant_units = vacancy * units)
+  transmute(vacant_units = vacancy * units)
 
-#' 3+ bedroom vacancy rate in VM
+#' [5] 3+ bedroom vacancy rate in VM
 annual_vacancy %>% 
   filter(zone == 1, date == 2018, dwelling_type == "Total",
-         bedroom == "3 Bedroom +")
+         bedroom == "3 Bedroom +") %>% 
+  pull(vacancy)
 
-#' 3+ bedroom vacancy rate in LPM
+#' [6] 3+ bedroom vacancy rate in LPM
 annual_vacancy %>% 
   filter(zone == 6, date == 2019, dwelling_type == "Total",
-         bedroom == "3 Bedroom +")
+         bedroom == "3 Bedroom +") %>% 
+  pull(vacancy)
 
 #' For example, in the Notre-Dame-de-Grâce/Côte-St-Luc zone, 66.9% [1] of 
 #' households are renters, so we assume that 66.9% of housing units converted to 
@@ -249,7 +254,9 @@ rent_increase %>%
   slice(-1) %>% 
   mutate(rent_increase = rent_increase + 1) %>% 
   pull(rent_increase) %>% 
-  prod()
+  prod() %>% 
+  {. - 1} %>% 
+  round(3)
 
 #' [2] Average rent increase
 city_avg_rent %>% 
@@ -258,7 +265,9 @@ city_avg_rent %>%
   mutate(increase = slide_dbl(avg_rent, ~{.x[2] / .x[1]}, .before = 1)) %>% 
   slice(-1) %>% 
   pull(increase) %>% 
-  prod()
+  prod() %>% 
+  {. - 1} %>% 
+  round(3)
 
 #' [3] Extra rent payment
 city_avg_rent %>% 
@@ -271,7 +280,8 @@ city_avg_rent %>%
          cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
          extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
   pull(extra_rent) %>% 
-  sum()
+  sum() %>% 
+  round(-1)
 
 #' Table 3.2
 strs_by_zone <- 
