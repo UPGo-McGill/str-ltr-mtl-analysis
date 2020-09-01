@@ -1,4 +1,4 @@
-#### 40 CHAPTER 4 ANALYSIS ######################################################
+#### 40 CHAPTER 4 ANALYSIS #####################################################
 
 #' This script produces the facts for chapter 4. It runs quickly.
 #' 
@@ -138,7 +138,7 @@ average_prices <-
 #' have been steadily increasing en route to the summer peak, they instead 
 #' collapsed in the face of COVID-19. While total reserved nights from January 
 #' to February 2020 increased at a rapid 45.6% [3] compared to 2019, reserved 
-#' nights from March to August 2020 decreased 70.5% [4] compared to the previous 
+#' nights from March to August 2020 decreased 70.8% [4] compared to the previous 
 #' year.
 
 #' [1] YOY growth in reservations, 2018-2019
@@ -151,7 +151,10 @@ daily %>%
 #' [2] Peak 2019 nightly reservations
 daily %>% 
   filter(housing, status == "R", date >= LTM_start_date) %>% 
-  count(date, sort = TRUE)
+  count(date, sort = TRUE) %>% 
+  slice(1) %>% 
+  pull(n) %>% 
+  round(-2)
 
 #' [3] YOY reservation growth, Jan-Feb 2019-2020
 daily %>% 
@@ -167,16 +170,16 @@ daily %>%
   count(date_2020 = date >= LTM_start_date + years(1)) %>% 
   summarize((n[2] - n[1]) / n[1])
 
-#' On July 31, 2020, fewer than 2,000 [1] STRs were reserved in Montreal. But 
+#' On July 31, 2020, fewer than 1,900 [1] STRs were reserved in Montreal. But 
 #' the trajectory of STR activity established prior to the pandemic, combined 
 #' with the fact that bookings normally increase rapidly through the spring and 
 #' summer, suggests that, in the absence of the pandemic, Montreal would have 
-#' been expected to receive 8,700 [1] reservations instead. The COVID-19 
-#' pandemic, therefore, depressed STR activity by 77.2% [1], or 6,730 
+#' been expected to receive 8,720 [1] reservations instead. The COVID-19 
+#' pandemic, therefore, depressed STR activity by 78.3% [1], or 6,820 
 #' [1] reservations, on that date. In total, from March through July 2020, we 
-#' estimate that there have been 679,700 [2] fewer STR nights reserved than 
-#' would normally have been expected to occur. The 320,700 [2] total nights 
-#' reserved in this time period is only 32.1% [2] of the 1,000,000 [2] total 
+#' estimate that there have been 682,300 [2] fewer STR nights reserved than 
+#' would normally have been expected to occur. The 318,100 [2] total nights 
+#' reserved in this time period is only 31.8% [2] of the 1,000,000 [2] total 
 #' that would represent the previous growth trend.
 
 #' [1] Actual and expected reservations on 2020-07-31
@@ -228,7 +231,7 @@ average_prices %>%
 
 #' Between March 28 and June 25, there were a total of 36,820 [1] reservations 
 #' in the City, compared to 129,940 [2] for the same period in 2019 (a decrease 
-#' of 71.7% [3]). Only 390 [4] of these reservations were for longer than 30 
+#' of 71.7% [3]). Only 380 [4] of these reservations were for longer than 30 
 #' days, which means that the remaining 36,440 [5] reservations in Montreal were 
 #' illegal. Additionally, these illegal reservations were distributed widely 
 #' among Montreal’s STR hosts. There were 6,130 [6] hosts with active listings 
@@ -242,7 +245,7 @@ daily %>%
   filter(housing, status == "R", date >= "2020-03-28", date <= "2020-06-25") %>% 
   filter(is.na(res_ID)) %>% 
   select(1:12) %>% 
-  strr_compress() %>% 
+  strr_compress(quiet = TRUE) %>% 
   nrow() %>% 
   `+`(daily %>% 
         filter(housing, status == "R", date >= "2020-03-28", 
@@ -256,7 +259,7 @@ daily %>%
   filter(housing, status == "R", date >= "2019-03-28", date <= "2019-06-25") %>% 
   filter(is.na(res_ID)) %>% 
   select(1:12) %>% 
-  strr_compress() %>% 
+  strr_compress(quiet = TRUE) %>% 
   nrow() %>% 
   `+`(daily %>% 
         filter(housing, status == "R", date >= "2019-03-28", 
@@ -271,7 +274,7 @@ daily %>%
            date <= "2020-06-25") %>% 
     filter(is.na(res_ID)) %>% 
     select(1:12) %>% 
-    strr_compress() %>% 
+    strr_compress(quiet = TRUE) %>% 
     nrow() %>% 
     `+`(daily %>% 
           filter(housing, status == "R", date >= "2020-03-28", 
@@ -283,7 +286,7 @@ daily %>%
              date <= "2019-06-25") %>% 
       filter(is.na(res_ID)) %>% 
       select(1:12) %>% 
-      strr_compress() %>% 
+      strr_compress(quiet = TRUE) %>% 
       nrow() %>% 
       `+`(daily %>% 
             filter(housing, status == "R", date >= "2019-03-28", 
@@ -368,15 +371,6 @@ daily %>%
         nrow()}} %>% 
   round(3)
 
-# All reserved nights
-daily %>% 
-  filter(housing, status == "R", date >= "2020-03-28", date <= "2020-06-25") %>% 
-  nrow()
-
-daily %>% 
-  filter(housing, status == "R", date >= "2020-03-28", date <= "2020-06-25") %>% 
-  count(res_ID, sort = TRUE)
-
 
 # COVID’s impact on frequently rented entire-home listings ----------------
 
@@ -386,7 +380,7 @@ daily %>%
 #' (290 [1]) being ghost hostels—clusters of private-room listings operated 
 #' out of a single housing unit. As of July 2020, the number of FREH listings 
 #' had dropped to its lowest amount since we began tracking it in 2016, with 
-#' just 1,750 [4] listings displaying availability and reservations consistent 
+#' just 1,750 [2] listings displaying availability and reservations consistent 
 #' with historical patterns of full-time STR activity in Montreal.
 
 #' [1] Peak housing loss
@@ -552,7 +546,7 @@ daily %>%
           nrow())} %>% 
   round(3)
 
-#' [5] Jan-Feb FREH 2019 percentage blocked most of July 2019
+#' [7] Jan-Feb FREH 2019 percentage blocked most of July 2019
 {daily %>% 
     filter(housing, date >= "2019-07-01", date <= "2019-07-31") %>% 
     group_by(property_ID) %>% 
@@ -575,3 +569,11 @@ daily %>%
 daily %>% 
   filter(housing, date >= "2020-02-01", date <= "2020-02-29", status == "R") %>% 
   summarize(mean(property_ID %in% FREH_in_jan_feb))
+
+
+# Clean up ----------------------------------------------------------------
+
+rm(active_by_status, average_prices, GH_total, mar_jul_price_trend,
+   monthly_prices, reservations, trends, feb_price_trend, feb_trend,
+   FREH_in_jan_feb, FREH_in_jan_feb_2019, mar_aug_seasonal, 
+   mar_jul_price_seasonal)
