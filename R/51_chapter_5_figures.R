@@ -127,9 +127,56 @@ ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_1.pdf")
 
 
-# Figure 5.2 Spatial distribution of listing matches ----------------------
+# Figure 5.2 Date of first LTR listing ------------------------------------
 
-figure_5_2_left <-
+first_ltr_listing <-
+  ltr %>% 
+  st_drop_geometry() %>% 
+  unnest(property_ID) %>% 
+  arrange(created) %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  # mutate(early = if_else(
+  #   property_ID %in% filter(property, scraped >= "2020-01-01")$property_ID, 
+  #   FALSE, TRUE)) %>%
+  filter(property_ID %in% filter(property, 
+                                 scraped >= "2020-01-01")$property_ID) %>%
+  # count(created, early)
+  count(created, kj)
+
+figure_5_2 <- 
+  first_ltr_listing %>% 
+  filter(created >= "2020-03-01") %>% 
+  ggplot(aes(created, n, fill = kj)) +
+  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+         ymin = 0, ymax = Inf, alpha = .2) +
+  geom_col(lwd = 0) +
+  annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
+           y = 30, yend = 35, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-07-14"), y = 30,
+           label = "STRs banned \nby Province", family = "Futura Condensed") +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  scale_fill_manual(name = NULL, labels = c("Craigslist", "Kijiji"), 
+                    values = col_palette[c(1, 3)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain", family = "Futura"),
+        legend.title = element_text(face = "bold", family = "Futura", 
+                                    size = 10),
+        legend.text = element_text( size = 10, family = "Futura"))
+
+
+ggsave("output/figures/figure_5_2.pdf", plot = figure_5_2, width = 8, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_2.pdf")
+
+
+# Figure 5.3 Spatial distribution of listing matches ----------------------
+
+figure_5_3_left <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
@@ -152,7 +199,7 @@ figure_5_2_left <-
         legend.text = element_text(family = "Futura", size = 5),
         panel.border = element_rect(colour = "white", size = 2))
 
-figure_5_2_right <-
+figure_5_3_right <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
@@ -179,12 +226,12 @@ figure_5_2_right <-
         legend.text = element_text(family = "Futura", size = 5),
         panel.border = element_rect(colour = "white", size = 2))
 
-figure_5_2 <- figure_5_2_left + figure_5_2_right
+figure_5_3 <- figure_5_3_left + figure_5_3_right
 
-ggsave("output/figures/figure_5_2.pdf", plot = figure_5_2, width = 8, 
+ggsave("output/figures/figure_5_3.pdf", plot = figure_5_3, width = 8, 
        height = 4.2, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_2.pdf")
+extrafont::embed_fonts("output/figures/figure_5_3.pdf")
 
 
 
