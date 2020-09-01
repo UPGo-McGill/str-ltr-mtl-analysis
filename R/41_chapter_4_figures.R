@@ -243,7 +243,208 @@ ggsave("output/figures/figure_4_3.pdf", plot = figure_4_3, width = 8,
 extrafont::embed_fonts("output/figures/figure_4_3.pdf")
 
 
-# Figure 4.4 Reservation trajectories of FREH and non-FREH listings -------
+# Figure 4.4 Deactivated and blocked listings -----------------------------
+
+FREH_2020 <- 
+  daily %>% 
+  filter(housing, date >= "2020-01-01", date <= "2020-02-29", FREH_3 > 0.5) %>% 
+  pull(property_ID) %>% 
+  unique() %>% 
+  {filter(property, property_ID %in% .)} %>% 
+  st_drop_geometry()
+  
+non_FREH_2020 <- 
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% {daily %>% 
+      filter(housing, date >= "2020-01-01", date <= "2020-02-29", 
+             status != "B") %>% 
+      pull(property_ID) %>% 
+      unique()}, !property_ID %in% FREH_2020$property_ID)
+  
+FREH_2019 <- 
+  daily %>% 
+  filter(housing, date >= "2019-01-01", date <= "2019-02-28", FREH_3 > 0.5) %>% 
+  pull(property_ID) %>% 
+  unique() %>% 
+  {filter(property, property_ID %in% .)} %>% 
+  st_drop_geometry()
+
+non_FREH_2019 <- 
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% {daily %>% 
+      filter(housing, date >= "2019-01-01", date <= "2019-02-28", 
+             status != "B") %>% 
+      pull(property_ID) %>% 
+      unique()}, !property_ID %in% FREH_2019$property_ID)
+
+total_2020 <- 
+  tibble(
+    group = c("FREH", "non-FREH"),
+    year = 2020,
+    variable = "total listings",
+    value = c(nrow(FREH_2020), nrow(non_FREH_2020))
+    )
+
+total_2019 <- 
+  tibble(
+    group = c("FREH", "non-FREH"),
+    year = 2019,
+    variable = "total listings",
+    value = c(nrow(FREH_2019), nrow(non_FREH_2019))
+  )
+
+deactivated_2020 <- 
+  tibble(
+    group = c("FREH", "non-FREH"),
+    year = 2020,
+    variable = "deactivated",
+    value = c({
+      FREH_2020 %>% 
+        summarize(total = sum(scraped <= "2020-07-31")) %>% 
+        pull(total)}, {
+          non_FREH_2020 %>% 
+            summarize(total = sum(scraped <= "2020-07-31")) %>% 
+            pull(total)})
+  )
+
+deactivated_2019 <- 
+  tibble(
+    group = c("FREH", "non-FREH"),
+    year = 2019,
+    variable = "deactivated",
+    value = c({
+      FREH_2019 %>% 
+        summarize(total = sum(scraped <= "2019-07-31")) %>% 
+        pull(total)}, {
+          non_FREH_2019 %>% 
+            summarize(total = sum(scraped <= "2019-07-31")) %>% 
+            pull(total)})
+  )
+
+blocked_PIDs_2020 <- 
+  daily %>% 
+  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  group_by(property_ID) %>% 
+  filter(mean(status == "B") == 1) %>% 
+  pull(property_ID) %>% 
+  unique()
+
+blocked_PIDs_2019 <- 
+  daily %>% 
+  filter(housing, date >= "2019-07-01", date <= "2019-07-31") %>% 
+  group_by(property_ID) %>% 
+  filter(mean(status == "B") == 1) %>% 
+  pull(property_ID) %>% 
+  unique()
+
+blocked_2020 <-
+  tibble(
+    group = c("FREH", "non-FREH"),
+    year = 2020,
+    variable = "blocked",
+    value = c(nrow(filter(FREH_2020, property_ID %in% blocked_PIDs_2020)),
+              nrow(filter(non_FREH_2020, property_ID %in% blocked_PIDs_2020)))
+  )
+
+blocked_2019 <-
+  tibble(
+    group = c("FREH", "non-FREH"),
+    year = 2019,
+    variable = "blocked",
+    value = c(nrow(filter(FREH_2019, property_ID %in% blocked_PIDs_2019)),
+              nrow(filter(non_FREH_2019, property_ID %in% blocked_PIDs_2019)))
+  )
+
+active_2020 <- 
+  tibble(
+    group = c("FREH", "non-FREH"),
+    year = 2020,
+    variable = "active",
+    value = c(
+      nrow(FREH_2020) - deactivated_2020[1,]$value - blocked_2020[1,]$value,
+      nrow(non_FREH_2020) - deactivated_2020[2,]$value - blocked_2020[2,]$value)
+  )
+
+active_2019 <- 
+  tibble(
+    group = c("FREH", "non-FREH"),
+    year = 2019,
+    variable = "active",
+    value = c(
+      nrow(FREH_2019) - deactivated_2019[1,]$value - blocked_2019[1,]$value,
+      nrow(non_FREH_2019) - deactivated_2019[2,]$value - blocked_2019[2,]$value)
+  )
+
+comparison_df <- 
+  bind_rows(total_2020, total_2019, deactivated_2020, deactivated_2019,
+          blocked_2020, blocked_2019, active_2020, active_2019)
+
+test_df <- 
+  comparison_df %>% 
+  filter(group == "FREH", year == 2020) %>% 
+  mutate(x = )
+
+test_df <- 
+  tribble(
+    ~variable,        ~x, ~ymin, ~ymax,
+    "total listings",  1,     500,  5898 + 500,
+    "total listings",  2,     500,  5898 + 500
+  )
+
+test_df_2 <- 
+  tribble(
+    ~variable,    ~x,                ~ymin,                      ~ymax,
+    "deactivated", 2.5, 1344 + 2616 + 1000,  1344 + 2616 + 1938 + 1000, 
+    "deactivated", 3.5, 1344 + 2616 + 1000,  1344 + 2616 + 1938 + 1000,
+    "blocked",     2.5, 2616 + 500,  1344 + 2616 + 500,
+    "blocked",     3.5, 2616 + 500,  1344 + 2616 + 500,
+    "active",      2.5,          0,  2616,
+    "active",      3.5,          0,  2616
+  )
+
+test_df_3 <- 
+  tribble(
+    ~transition,    ~x,              ~ymin,                     ~ymax, ~ramp,
+    "deactivated", 2,    1344 + 2616 + 500,  1344 + 2616 + 1938 + 500, 1,
+    "deactivated", 2.5, 1344 + 2616 + 1000, 1344 + 2616 + 1938 + 1000, 2,
+    "blocked",     2,           2616 + 500,         1344 + 2616 + 500, 1,
+    "blocked",     2.5,         2616 + 500,         1344 + 2616 + 500, 3,
+    "active",      2,                  500,                2616 + 500, 1,
+    "active",      2.5,                  0,                      2616, 4
+  )
+
+ggplot(test_df, aes(x = x, ymin = ymin, ymax = ymax)) +
+  geom_ribbon(fill = col_palette[5]) +
+  geom_ribbon(aes(fill = variable), data = test_df_2) +
+  scale_fill_manual(values = c("active" = col_palette[1],
+                               "blocked" = col_palette[2],
+                               "deactivated" = col_palette[3])) +
+  ggnewscale::new_scale_fill() +
+  geom_ribbon(aes(fill = ramp), data = test_df_3) +
+  # scale_fill_gradientn(colours = col_palette[c(5, 1, 2, 3)], values = 1:4) +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+figure_4_4 <- 
+  ggplot() +
+  facet_wrap(vars(group, year), nrow = 2) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain", family = "Futura"), 
+        legend.title = element_text(face = "bold", family = "Futura", 
+                                    size = 10),
+        legend.text = element_text( size = 10, family = "Futura"))
+
+ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_4_4.pdf")
+
+
+# Figure 4.5 Reservation trajectories of FREH and non-FREH listings -------
 
 FREH_in_jan_feb <- 
   daily %>% 
@@ -273,7 +474,7 @@ daily_reservation_trajectories <-
   mutate(FREH_feb = if_else(property_ID %in% FREH_in_jan_feb, TRUE, FALSE)) %>% 
   count(date, FREH_feb)
 
-figure_4_4_left <- 
+figure_4_5_left <- 
   daily_reservation_trajectories %>% 
   group_by(FREH_feb) %>% 
   mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
@@ -295,7 +496,7 @@ figure_4_4_left <-
                                     size = 10),
         legend.text = element_text( size = 10, family = "Futura"))
 
-figure_4_4_right <- 
+figure_4_5_right <- 
   monthly_reservation_trajectories %>% 
   mutate(date = as.Date(yearmon)) %>% 
   ggplot(aes(date, n, colour = FREH_feb)) +
@@ -315,13 +516,13 @@ figure_4_4_right <-
                                     size = 10),
         legend.text = element_text( size = 10, family = "Futura"))
 
-figure_4_4 <- figure_4_4_left + figure_4_4_right + 
+figure_4_5 <- figure_4_5_left + figure_4_5_right + 
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
 
-ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8, 
+ggsave("output/figures/figure_4_5.pdf", plot = figure_4_5, width = 8, 
        height = 4.2, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_4_4.pdf")
+extrafont::embed_fonts("output/figures/figure_4_5.pdf")
 
 
 # Clean up ----------------------------------------------------------------
