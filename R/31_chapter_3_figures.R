@@ -358,7 +358,7 @@ figure_3_5 <-
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = vacancy), colour = "white", alpha = 0.7) +
-  geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
+  geom_sf_label(aes(label = label), size = 2, family = "Futura") +
   scale_fill_gradientn(colors = col_palette[c(2, 4, 6)], 
                        na.value = "grey80",
                        limits = c(0, 0.05), oob = scales::squish,
@@ -402,7 +402,7 @@ figure_3_6 <-
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
-  geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
+  geom_sf_label(aes(label = label), size = 2, family = "Futura") +
   scale_fill_gradientn(name = "2015-2019 rent increase",
                        colors = col_palette[c(3, 2)], 
                        na.value = "grey80",
