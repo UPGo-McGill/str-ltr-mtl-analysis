@@ -50,7 +50,7 @@ active_listings <-
 figure_2_1 <- 
   active_listings %>% 
   ggplot(aes(date, n , colour = listing_type, size = listing_type)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
   annotate("curve", x = as.Date("2019-08-01"), xend = as.Date("2020-05-01"),
            y = 12000, yend = 10500, curvature = -.2, lwd = 0.25,
@@ -98,7 +98,7 @@ figure_2_2 <-
   daily_variation %>% 
   ggplot(aes(date, value, colour = var)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
@@ -411,7 +411,7 @@ figure_2_7 <-
   ML %>% 
   ggplot() +
   geom_line(aes(date, value, colour = `Multilisting percentage`), lwd = 1) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2017-06-01"), NA)) +
   scale_y_continuous(name = NULL, 
@@ -445,7 +445,7 @@ figure_2_8 <-
   commercial_listings %>% 
   ggplot() +
   geom_line(aes(date, n, color = commercial), lwd = 1) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_y_continuous(name = NULL) +
