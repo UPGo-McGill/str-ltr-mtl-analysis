@@ -36,7 +36,7 @@ figure_4_1 <-
   ungroup() %>% 
   filter(date >= "2018-01-01") %>% 
   ggplot(aes(date, n, color = status)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = 0.2) +
   annotate("curve", x = as.Date("2019-02-01"), xend = as.Date("2020-05-01"),
            y = 7500, yend = 7500, curvature = -.3, lwd = 0.25,
@@ -121,7 +121,7 @@ figure_4_2 <-
   pivot_longer(-date) %>% 
   filter(!is.na(value)) %>%
   ggplot() +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = 0.2) +
   geom_ribbon(aes(x = date, ymin = n, ymax = trend, group = 1),
               data = reservations, fill = col_palette[3], 
@@ -220,7 +220,7 @@ figure_4_3 <-
   filter(date >= "2019-01-01") %>% 
   pivot_longer(-date) %>% 
   ggplot(aes(date, value, colour = name)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
@@ -238,7 +238,7 @@ figure_4_3 <-
         legend.text = element_text( size = 10, family = "Futura"))
 
 ggsave("output/figures/figure_4_3.pdf", plot = figure_4_3, width = 8, 
-       height = 4.2, units = "in", useDingbats = FALSE)
+       height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_3.pdf")
 
@@ -439,7 +439,7 @@ figure_4_4 <-
         legend.text = element_text( size = 10, family = "Futura"))
 
 ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8, 
-       height = 4.2, units = "in", useDingbats = FALSE)
+       height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_4.pdf")
 
@@ -520,7 +520,7 @@ figure_4_5 <- figure_4_5_left + figure_4_5_right +
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_4_5.pdf", plot = figure_4_5, width = 8, 
-       height = 4.2, units = "in", useDingbats = FALSE)
+       height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_5.pdf")
 

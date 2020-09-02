@@ -229,26 +229,26 @@ average_prices %>%
 
 # Compliance with the Provincial STR ban ----------------------------------
 
-#' Between March 28 and June 25, there were a total of 36,820 [1] reservations 
-#' in the City, compared to 129,940 [2] for the same period in 2019 (a decrease 
-#' of 71.7% [3]). Only 380 [4] of these reservations were for longer than 30 
-#' days, which means that the remaining 36,440 [5] reservations in Montreal were 
+#' Between March 29 and June 25, there were a total of 34,980 [1] reservations 
+#' in the City, compared to 129,020 [2] for the same period in 2019 (a decrease 
+#' of 72.9% [3]). Only 380 [4] of these reservations were for longer than 30 
+#' days, which means that the remaining 34,600 [5] reservations in Montreal were 
 #' illegal. Additionally, these illegal reservations were distributed widely 
-#' among Montreal’s STR hosts. There were 6,130 [6] hosts with active listings 
-#' in the March 28 - June 25 period, and 4,440 [7] of these hosts received at 
-#' least one reservation. 4,420 [8] hosts received reservations of 30 days or 
-#' fewer, which means that 72.1% [9] of Montreal’s active STR hosts appear to 
+#' among Montreal’s STR hosts. There were 6,120 [6] hosts with active listings 
+#' in the March 29 - June 25 period, and 4,360 [7] of these hosts received at 
+#' least one reservation. 4,330 [8] hosts received reservations of 30 days or 
+#' fewer, which means that 70.7% [9] of Montreal’s active STR hosts appear to 
 #' have violated the Provincial order.
 
 #' [1] Total reservations 2020: add unique res_ID count to compressed no-ID rows
 daily %>% 
-  filter(housing, status == "R", date >= "2020-03-28", date <= "2020-06-25") %>% 
+  filter(housing, status == "R", date >= "2020-03-29", date <= "2020-06-25") %>% 
   filter(is.na(res_ID)) %>% 
   select(1:12) %>% 
   strr_compress(quiet = TRUE) %>% 
   nrow() %>% 
   `+`(daily %>% 
-        filter(housing, status == "R", date >= "2020-03-28", 
+        filter(housing, status == "R", date >= "2020-03-29", 
                date <= "2020-06-25", !is.na(res_ID)) %>% 
         count(res_ID) %>% 
         nrow()) %>% 
@@ -256,44 +256,44 @@ daily %>%
 
 #' [2] Total reservations 2019
 daily %>% 
-  filter(housing, status == "R", date >= "2019-03-28", date <= "2019-06-25") %>% 
+  filter(housing, status == "R", date >= "2019-03-29", date <= "2019-06-25") %>% 
   filter(is.na(res_ID)) %>% 
   select(1:12) %>% 
   strr_compress(quiet = TRUE) %>% 
   nrow() %>% 
   `+`(daily %>% 
-        filter(housing, status == "R", date >= "2019-03-28", 
+        filter(housing, status == "R", date >= "2019-03-29", 
                date <= "2019-06-25", !is.na(res_ID)) %>% 
         count(res_ID) %>% 
         nrow()) %>% 
   round(-1)
 
 #' [3] Change in reservations
-1 - {daily %>% 
-    filter(housing, status == "R", date >= "2020-03-28", 
+{1 - {daily %>% 
+    filter(housing, status == "R", date >= "2020-03-29", 
            date <= "2020-06-25") %>% 
     filter(is.na(res_ID)) %>% 
     select(1:12) %>% 
     strr_compress(quiet = TRUE) %>% 
     nrow() %>% 
     `+`(daily %>% 
-          filter(housing, status == "R", date >= "2020-03-28", 
+          filter(housing, status == "R", date >= "2020-03-29", 
                  date <= "2020-06-25", !is.na(res_ID)) %>% 
           count(res_ID) %>% 
           nrow())} / 
   {daily %>% 
-      filter(housing, status == "R", date >= "2019-03-28", 
+      filter(housing, status == "R", date >= "2019-03-29", 
              date <= "2019-06-25") %>% 
       filter(is.na(res_ID)) %>% 
       select(1:12) %>% 
       strr_compress(quiet = TRUE) %>% 
       nrow() %>% 
       `+`(daily %>% 
-            filter(housing, status == "R", date >= "2019-03-28", 
+            filter(housing, status == "R", date >= "2019-03-29", 
                    date <= "2019-06-25", !is.na(res_ID)) %>% 
             count(res_ID) %>% 
             nrow())
-  } %>% 
+  }} %>% 
   round(3)
 
 #' [4] Long reservations
@@ -306,13 +306,13 @@ daily %>%
 
 #' [5] Short reservations
 daily %>% 
-  filter(housing, status == "R", date >= "2020-03-28", date <= "2020-06-25") %>% 
+  filter(housing, status == "R", date >= "2020-03-29", date <= "2020-06-25") %>% 
   filter(is.na(res_ID)) %>% 
   select(1:12) %>% 
   strr_compress() %>% 
   nrow() %>% 
   `+`(daily %>% 
-        filter(housing, status == "R", date >= "2020-03-28", 
+        filter(housing, status == "R", date >= "2020-03-29", 
                date <= "2020-06-25", !is.na(res_ID)) %>% 
         count(res_ID) %>% 
         nrow()) %>% 
@@ -325,7 +325,7 @@ daily %>%
 
 #' [6] All active hosts
 daily %>% 
-  filter(housing, status %in% c("R", "A"), date >= "2020-03-28", 
+  filter(housing, status %in% c("R", "A"), date >= "2020-03-29", 
          date <= "2020-06-25", !is.na(host_ID)) %>% 
   count(host_ID) %>% 
   nrow() %>% 
@@ -333,7 +333,7 @@ daily %>%
 
 #' [7] Hosts with reservations
 daily %>% 
-  filter(housing, status == "R", date >= "2020-03-28", 
+  filter(housing, status == "R", date >= "2020-03-29", 
          date <= "2020-06-25", !is.na(host_ID)) %>% 
   count(host_ID) %>% 
   nrow() %>% 
@@ -341,7 +341,7 @@ daily %>%
 
 #' [8] Hosts with short reservations
 daily %>% 
-  filter(housing, status == "R", date >= "2020-03-28", 
+  filter(housing, status == "R", date >= "2020-03-29", 
          date <= "2020-06-25", !is.na(host_ID), 
          (is.na(res_ID) | !res_ID %in% {
            daily %>% 
@@ -355,7 +355,7 @@ daily %>%
 
 #' [9] Percentage of hosts with short reservations
 {{daily %>% 
-    filter(housing, status == "R", date >= "2020-03-28", 
+    filter(housing, status == "R", date >= "2020-03-29", 
            date <= "2020-06-25", !is.na(host_ID), 
            (is.na(res_ID) | !res_ID %in% {
              daily %>% 
@@ -365,7 +365,7 @@ daily %>%
                pull(res_ID)})) %>% 
     count(host_ID) %>% 
     nrow()} / {daily %>% 
-        filter(housing, status %in% c("R", "A"), date >= "2020-03-28", 
+        filter(housing, status %in% c("R", "A"), date >= "2020-03-29", 
                date <= "2020-06-25", !is.na(host_ID)) %>% 
         count(host_ID) %>% 
         nrow()}} %>% 
