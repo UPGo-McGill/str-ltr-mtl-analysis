@@ -63,10 +63,10 @@ housing_loss <-
 figure_3_1 <- 
   housing_loss %>% 
   ggplot(aes(date, `Housing units`, fill = `Listing type`)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
   geom_col(lwd = 0) +
-  annotate("curve", x = as.Date("2019-03-20"), xend = as.Date("2020-05-01"),
+  annotate("curve", x = as.Date("2019-04-05"), xend = as.Date("2020-05-01"),
            y = 5500, yend = 5800, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date(LTM_start_date), y = 5500,
@@ -108,7 +108,7 @@ figure_3_2 <-
   housing_loss_share %>% 
   ggplot(aes(date, housing_loss_pct, colour = `Listing type`)) +
   geom_line(lwd = 1) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
   scale_y_continuous(name = NULL, labels = scales::percent) +
   scale_colour_manual(values = col_palette[c(5, 1)]) +
