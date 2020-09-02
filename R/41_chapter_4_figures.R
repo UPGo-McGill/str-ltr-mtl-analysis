@@ -480,7 +480,7 @@ figure_4_5_left <-
   mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
   ungroup() %>% 
   ggplot(aes(date, n, colour = FREH_feb)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = 0, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
@@ -500,7 +500,7 @@ figure_4_5_right <-
   monthly_reservation_trajectories %>% 
   mutate(date = as.Date(yearmon)) %>% 
   ggplot(aes(date, n, colour = FREH_feb)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = 0, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
