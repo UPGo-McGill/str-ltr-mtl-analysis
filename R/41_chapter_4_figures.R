@@ -465,7 +465,7 @@ figure_4_4 <-
                                "active" = col_palette[1],
                                "blocked" = col_palette[2],
                                "deactivated" = col_palette[3])) +
-  facet_wrap(vars(year, group), nrow = 2) +
+  facet_grid(rows = vars(group), cols = vars(year), switch = "y") +
   theme_void() +
   theme(legend.position = "none",
         text = element_text(face = "plain", family = "Futura"), 
@@ -560,8 +560,12 @@ extrafont::embed_fonts("output/figures/figure_4_5.pdf")
 
 # Clean up ----------------------------------------------------------------
 
-rm(active_by_status, average_prices, daily_reservation_trajectories, figure_4_1, 
-   figure_4_2, figure_4_3, figure_4_4, figure_4_4_left, figure_4_4_right, 
-   mar_jul_price_trend, monthly_prices, monthly_reservation_trajectories, 
-   reservations, trends, feb_price_trend, feb_trend, FREH_in_jan_feb, 
-   mar_aug_seasonal, mar_jul_price_seasonal)
+rm(active_2019, active_2020, active_by_status, average_prices, blocked_2019,
+   blocked_2020, comparison_df, daily_reservation_trajectories, 
+   deactivated_2019, deactivated_2020, fig_labels, fig_polys, fig_segments,
+   figure_4_1, figure_4_2, figure_4_3, figure_4_4, figure_4_5, figure_4_5_left, 
+   figure_4_5_right, FREH_2019, FREH_2020, mar_jul_price_trend, monthly_prices, 
+   monthly_reservation_trajectories, non_FREH_2019, non_FREH_2020,
+   reservations, total_2019, total_2020, trends, blocked_PIDs_2019,
+   blocked_PIDs_2020, feb_price_trend, feb_trend, FREH_in_jan_feb, 
+   mar_aug_seasonal, mar_jul_price_seasonal, max_y, n_segs, offset)
