@@ -1,4 +1,4 @@
-#### 31 CHAPTER 3 FIGURES ######################################################
+#### 31 CHAPTER 3 FIGURES FRANCAIS ######################################################
 
 #' This script produces the graphs and maps for chapter 3. It runs quickly.
 #' 
@@ -6,22 +6,28 @@
 #' - `figure_3_1.pdf`
 #' - `figure_3_2.pdf`
 #' - `figure_3_3.pdf`
+#' - `figure_3_4.pdf`
+#' - `figure_3_5.pdf`
+#' - `figure_3_6.pdf`
 #' 
 #' Script dependencies:
+#' - `05_cmhc_data_import.R`
 #' - `09_str_processing.R`
 #' - `11_FREH_model.R`
+#' - `12_rent_increases.R`
+#' - `13_condo_analysis.R`
 #' 
 #' External dependencies:
 #' - The Futura and Futura Condensed fonts, which can be imported in 
 #'   `01_startup.R`
 
 source("R/01_startup.R")
-library(patchwork)
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/cmhc.Rdata")
 load("output/rent_increases.Rdata")
+load("output/condo_analysis.Rdata")
 
 
 # Prepare objects for graphs -------------------------------------------------------------
@@ -254,6 +260,17 @@ daily_cmhc <-
   summarize(housing_loss = sum(FREH_3) + sum(GH)) %>% 
   ungroup()
 
+strs_by_zone <- 
+  property %>% 
+  st_intersection(cmhc) %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, zone) %>% 
+  left_join(daily, .) %>% 
+  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+         status != "B") %>% 
+  count(zone) %>% 
+  mutate(active_strs = n / 365)
+
 unit_change <- 
   annual_units %>% 
   filter(dwelling_type == "Total", bedroom == "Total") %>% 
@@ -312,26 +329,6 @@ extrafont::embed_fonts("output/figures/figure_3_4F.pdf")
 
 # Figure 3.5 Taux d'innoccupation ------------------------------------------------
 
-FREH_zone <- 
-  daily %>% 
-  filter(date == "2019-12-01") %>% 
-  left_join(select(property, property_ID, geometry)) %>% 
-  st_as_sf() %>% 
-  st_intersection(cmhc) %>% 
-  st_drop_geometry() %>% 
-  group_by(zone) %>% 
-  summarize(FREH = sum(FREH_3))
-
-GH_zone <- 
-  GH %>% 
-  filter(date == "2019-12-31") %>% 
-  mutate(geometry = st_centroid(geometry)) %>% 
-  st_intersection(cmhc) %>% 
-  st_drop_geometry() %>% 
-  group_by(zone) %>% 
-  summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
-  as_tibble()
-
 vacancy_for_map <- 
   annual_vacancy %>% 
   filter(dwelling_type == "Total", bedroom == "Total", !is.na(vacancy)) %>% 
@@ -341,10 +338,8 @@ vacancy_for_map <-
   left_join(annual_units) %>% 
   select(-dwelling_type, -bedroom, -quality) %>% 
   mutate(vacant_units = vacancy * units) %>% 
-  left_join(FREH_zone) %>% 
-  left_join(GH_zone) %>% 
-  mutate(housing_loss = FREH + if_else(is.na(GH), 0L, GH)) %>% 
-  select(-FREH, -GH) %>% 
+  left_join(select(filter(daily_cmhc, date == 2019), zone, housing_loss)) %>% 
+  left_join(renter_zone) %>% 
   filter(housing_loss >= 50) %>% 
   arrange(zone) %>% 
   mutate(units_returning = housing_loss * .675,
@@ -399,7 +394,7 @@ rent_increase_for_map <-
   summarize(total_rent_increase = prod(rent_increase)) %>% 
   mutate(total_rent_increase = total_rent_increase - 1) %>% 
   left_join(cmhc, .) %>% 
-  slice(c(1, 6, 9, 2, 5, 8, 17, 7, 4))
+  filter(zone %in% c(1, 6, 9, 2, 5, 8, 17, 7, 4))
 
 figure_3_6 <- 
   rent_increase_for_map %>% 
@@ -408,7 +403,7 @@ figure_3_6 <-
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
-  geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
+  geom_sf_label(aes(label = label), size = 2, family = "Futura") +
   scale_fill_gradientn(name = "Augmentation du prix des loyers 2015-2019",
                        colors = col_palette[c(3, 2)], 
                        na.value = "grey80",
@@ -428,5 +423,18 @@ ggsave("output/figures/figure_3_6F.pdf", plot = figure_3_6, width = 3.0,
        height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_3_6F.pdf")
+
+# Nettoyage ----------------------------------------------------------------
+
+rm(annual_avg_rent, annual_units, annual_vacancy, boroughs, boroughs_raw,
+   city, city_avg_rent, city_units, city_vacancy, cmhc, DA,
+   DA_probabilities_2017, DA_probabilities_2019, daily_cmhc, fig_zoom,
+   figure_3_1, figure_3_2, figure_3_3, figure_3_3_left, figure_3_3_right,
+   figure_3_4, figure_3_5, figure_3_6, FREH_borough, FREH_DA, FREH_total,
+   GH_borough, GH_DA, GH_total, housing_loss, housing_loss_borough,
+   housing_loss_DA, housing_loss_share, layout, listing_probabilities_2017,
+   listing_probabilities_2019, province, rent_increase, rent_increase_for_map,
+   rent_increase_zone, renter_zone, streets, streets_downtown, strs_by_zone,
+   unit_change, vacancy_for_map, make_housing_map)
 
 
