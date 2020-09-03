@@ -213,7 +213,7 @@ average_prices %>%
 
 #' When the lower prices on reservations which did occur is combined with the 
 #' reservations which did not occur, our estimate is that Montreal’s STR hosts 
-#' lost a total of $105.6 million [1] in revenue between March and August 2020 
+#' lost a total of $106.2 million [1] in revenue between March and August 2020 
 #' because of the COVID-19 pandemic.
 
 #' [1] Total lost revenue
@@ -408,7 +408,7 @@ daily %>%
   mutate(across(-date, round, -1))
 
 #' There were 5,900 [1] listings which we consider likely to have been FREH in 
-#' either or both of January and February 2020. Of these listings, 1,930 [2] 
+#' either or both of January and February 2020. Of these listings, 1,940 [2] 
 #' were no longer listed on Airbnb or VRBO as of July 31, 2020. This is 
 #' 32.8% [2] of these listings—twice as high as the 16.6% [3] of listings which 
 #' were FREH in either January or February 2019 and were no longer listed on the 
