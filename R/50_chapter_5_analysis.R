@@ -32,15 +32,27 @@ ltr_unique <-
   arrange(desc(scraped)) %>% 
   distinct(id, .keep_all = TRUE)
 
+# Unique STR matches with their information on longer-term market
+ltr_unique_property_ID <-
+  ltr %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(property_ID)) %>% 
+  unnest(property_ID) %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(property_ID) %>% 
+  inner_join(unnest(filter(ltr, !is.na(property_ID)), property_ID), by = "property_ID") %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(property_ID, .keep_all = T)
+
 
 # How many STR listings have returned to the long-term market? ------------
 
-#' Our image matching algorithm recognized 2,583 [1] unique Airbnb listings 
-#' which matched with 4,871 [2] different LTR listings (as some units are posted 
+#' Our image matching algorithm recognized 2,569 [1] unique Airbnb listings 
+#' which matched with 4,842 [2] different LTR listings (as some units are posted 
 #' multiple times) in the City of Montreal. The matching LTR listings were 
-#' evenly split between Kijiji (2,616 [2] listings, or 53.7%) and Craigslist 
-#' (2,255 [2] listings, or 46.3%). Out of the 2,583 matching Airbnb listings,
-#' 57.1% (1,474 [3] listings) were active STRs in 2020, which establishes a 
+#' evenly split between Kijiji (2,596 [2] listings, or 53.6%) and Craigslist 
+#' (2,246 [2] listings, or 46.4%). Out of the 2,569 matching Airbnb listings,
+#' 57.6% (1,479 [3] listings) were active STRs in 2020, which establishes a 
 #' lower bound for the number of unique housing units that went from the STR 
 #' market to the LTR market due to the COVID-19 pandemic.
 
@@ -56,78 +68,66 @@ ltr %>%
   group_by(id) %>% 
   slice(1) %>% 
   ungroup() %>% 
-  count(kj)
+  nrow()
+
+ltr %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(property_ID)) %>% 
+  unnest(property_ID) %>% 
+  filter(!is.na(property_ID)) %>%
+  group_by(id) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  count(kj) %>% 
+  mutate(pct = n/sum(n))
 
 #' [3] Unique STR matches active in 2020
 property %>% 
   filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
   nrow()
 
-#' Out of the 2,616 Kijiji listings which matched a STR listing, 73.7% [1] were 
-#' identified by their hosts as “long-term rentals” and 26.3% [1] were 
-#' identified as “short-term rentals”. Among these listings, 50.2% [2] specified 
-#' lease lengths of 1 year, 19.3% [2] specified month-to-month, and 30.5% [2] 
-#' did not specify.
+property %>% 
+  filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
+  nrow()/
+  property %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  nrow()
+
+
+#' Out of the 2,569 unique Airbnb listings which matched, 1,690 (66.9%) [1] were observed 
+#' on Kijiji. Of these listings, 74.0% [2] were identified by their hosts as 
+#' “long-term rentals” and 26.0% [2] were identified as “short-term rentals”. 
+#' Among these listings, 50.3% [3] specified lease lengths of 1 year, 21.9% [3] 
+#' specified month-to-month, and 27.8% [3] did not specify.
 
 #' [1] Long-term or short-term
-ltr %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(property_ID), kj) %>% 
-  group_by(id) %>% 
-  slice(1) %>% 
+ltr_unique_property_ID %>% 
+  group_by(kj) %>% 
+  count() %>% 
   ungroup() %>% 
-  count(short_long) %>% 
-  mutate(pct = n / sum(n))
+  mutate(pct = n/sum(n))
 
-#' [2] Agreement length
-ltr %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(property_ID), kj) %>% 
-  group_by(id) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
-  count(type) %>% 
-  mutate(pct = n / sum(n))
-
-
-
-
-
-# Get the unique number of STR-LTR matches based on location ---------------------------------------------------
-
-ltr_unique_property_ID <-
-  ltr %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(property_ID)) %>% 
-  unnest(property_ID) %>% 
-  filter(property_ID %in% filter(property, scraped >= "2020-01-01")$property_ID) %>% 
-  arrange(desc(scraped)) %>% 
-  distinct(property_ID) %>% 
-  inner_join(unnest(filter(ltr, !is.na(property_ID)), property_ID), by = "property_ID") %>% 
-  arrange(desc(scraped)) %>% 
-  distinct(property_ID, .keep_all = T)
-
-
-# Look at the unique matches based on agreement type ---------------------------------------------------
-
+#' [2] Long-term or short-term
 ltr_unique_property_ID %>% 
   filter(kj) %>% 
   count(short_long) %>% 
   mutate(perc = n/sum(n))
 
+#' [3] Agreement length
 ltr_unique_property_ID %>% 
   filter(kj) %>% 
   count(type) %>% 
   mutate(perc = n/sum(n))
-
 
 # Spatial distribution of the matches ---------------------------------------------------
 
 #' [1] Total number of unique matches by borough
-ltr_unique_property_ID %>% 
+property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID)) %>% 
   count(borough) %>% 
-  mutate(perc = n/sum(n)) %>% 
-  arrange(desc(perc))
+  mutate(pct = n/sum(n)) %>% 
+  arrange(desc(pct))
 
 ltr %>% 
   filter(kj == F, !is.na(property_ID)) %>% 
@@ -159,7 +159,7 @@ for(i in 1:length(perc_size_units$`Number of bedrooms`)) {
        filter(property_ID %in% filter(daily, housing, status != "B", date >= "2019-01-01", date <= "2019-12-31")$property_ID) %>% 
        mutate(bedrooms = ifelse(bedrooms >= 3, 3, bedrooms)) %>% 
        count(bedrooms) %>% 
-       mutate(perc = n/sum(n)))[i,3] %>% 
+       mutate(pct = n/sum(n)))[i,3] %>% 
     pull()
   
   
@@ -194,32 +194,63 @@ perc_size_units %>%
 
 
 # Amenities (furnished or unfurnished status) ---------------------------------------------------
+#' To accommodate temporary guests, STR properties are overwhelmingly furnished. 
+#' Properties that have moved from the STR to LTR market during the pandemic are 
+#' listed as furnished at much higher rates than other LTR properties on LTR platforms 
+#' like Kijiji and Craigslist. Of the 82,016 LTR listings scraped and analysed, 
+#' 26.8% [1] of the listings were listed as furnished, 55.8% [1] as unfurnished, and 17.4% [1]
+#' did not give this information. Listings which matched with STRs had a significantly 
+#' higher proportion classified as furnished: 76.7% [2] furnished and 22.7% [2] unfurnished, 
+#' while only 0.6% [2] of these listings did not offer this information). STR listings 
+#' clearly represent an influx of units with different amenities than is the norm of 
+#' LTR listings, suggesting that very little is being changed when STR hosts move 
+#' former STRs to the LTR market. The lack of change to the furnishings of these 
+#' units might suggest that STR hosts are prepared to return to the STR market as 
+#' soon as demand returns.
 
 #' [1] Proportion of ALL furnished and unfurnished longer-term rentals
 ltr_unique %>% 
   count(furnished) %>% 
-  mutate(perc = n/sum(n))
+  mutate(pct = n/sum(n))
 
 #' [2] Proportion of MATCHES that are furnished and unfurnished
 ltr_unique_property_ID %>% 
   count(furnished) %>% 
-  mutate(perc = n/sum(n))
+  mutate(pct = n/sum(n))
 
 
 # Asking rents on the LTR platform ---------------------------------------------------
+#' The LTR listings which matched with STR listings had higher average prices than 
+#' other LTR listings, as depicted in Figure 5.2. While the increase in housing 
+#' supply could have lowered asking rents, the addition of these STRs in the LTR 
+#' market did not have a great impact on the overall average asking rents 
+#' (represented by the grey line), potentially due to their fairly low 
+#' representation in the entire dataset (matches make up only 5.9% [1] of the dataset). 
+#' If anything, they contributed to a slight increase in the overall average due to 
+#' their significantly higher asking rents. The asking rent of STRs which moved to 
+#' the LTR market was on average 19.3% [2] higher than the rest of the dataset. Factors 
+#' involved in the consistently higher average prices of the matches could be 
+#' explained by their overrepresentation in furnished listings and their more 
+#' central location, among others. The decrease in asking prices for STR matches 
+#' over time suggests a market correction potentially reflecting a lack of demand. 
+#' Due to data limitations, we have not been able to calculate the trend in average 
+#' asking rents compared to previous years. Indeed, the scrapes have not been 
+#' conducted long enough to provide for year-over-year comparisons. 
+
 
 #' [1] representation of matched LTR listings
 ltr_unique %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   count(matched) %>% 
-  mutate(perc = n/sum(n))
+  mutate(pct = n/sum(n))
 
 #' [2] Average asking rent of the matches
 ltr_unique %>% 
   filter(price >425, price <8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched) %>%
-  summarize(avg_price = mean(price))
+  summarize(avg_price = mean(price)) %>% 
+  summarize(pct_diff = (avg_price[2] - avg_price[1])/avg_price[2])
 
 
 # Analysis of the STRs that turned to the LTR platforms during the pandemic ---------------------------------------------------
@@ -484,15 +515,15 @@ property %>%
   filter(property_ID %in% property_IDs_ltr_rented) %>% 
   count(borough) %>% 
   st_drop_geometry() %>% 
-  mutate(perc = n/sum(n)) %>% 
-  arrange(desc(perc))
+  mutate(pct = n/sum(n)) %>% 
+  arrange(desc(pct))
 
 property %>% 
   filter(property_ID %in% property_IDs_ltr_rented) %>% 
   count(borough) %>% 
   st_drop_geometry() %>% 
-  mutate(perc = n/sum(n)) %>% 
-  arrange(desc(perc)) %>% 
+  mutate(pct = n/sum(n)) %>% 
+  arrange(desc(pct)) %>% 
   filter(n < 60) %>% 
   summarize(sum(n))
 
