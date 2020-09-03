@@ -75,4 +75,5 @@ rent_increase_zone <-
 
 # Save output -------------------------------------------------------------
 
+rm(magic_value)
 save(rent_increase, rent_increase_zone, file = "output/rent_increases.Rdata")

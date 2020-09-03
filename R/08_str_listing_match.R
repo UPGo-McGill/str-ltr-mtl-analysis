@@ -5,6 +5,7 @@
 #' 
 #' Output:
 #' - `str_processed.Rdata` (updated)
+#' - `ltr_processed.Rdata` (updated)
 #' 
 #' Script dependencies:
 #' - `07_ltr_listing_match.R`
@@ -18,6 +19,7 @@ source("R/01_startup.R")
 # Load previous data ------------------------------------------------------
 
 load("output/str_processed.Rdata")
+load("output/ltr_processed.Rdata")
 load("output/matches_processed.Rdata")
 dl_location <- "/Volumes/Data/Scrape photos/mtl"
 
@@ -118,9 +120,9 @@ group_matches <-
   groupings %>% 
   map(~{
     property %>% 
-      filter(property_ID %in% .x,
-             listing_type =="Entire home/apt",
-             active >= created)
+      filter(property_ID %in% .x, listing_type == "Entire home/apt") %>% 
+      mutate(active = if_else(is.na(active), created, active)) %>% 
+      filter(active >= created)
   })
 
 group_matches <- group_matches[map_int(group_matches, nrow) > 0]
@@ -152,9 +154,9 @@ property_change_table <-
               filter(.x, active - created == max(active - created)) %>% 
               slice(1) %>% 
               pull(property_ID),
-            new_created = min(.x$created),
-            new_scraped = max(.x$scraped),
-            new_active = max(.x$active),
+            new_created = min(.x$created, na.rm = TRUE),
+            new_scraped = max(.x$scraped, na.rm = TRUE),
+            new_active = max(.x$active, na.rm = TRUE),
             new_ltr_IDs = list(unique(unlist(.x$ltr_ID)))
           ))
 
@@ -191,11 +193,27 @@ rm(group_matches, property_change_collapsed, property_change_table,
    property_to_delete)
 
 
-# Recalculate host table --------------------------------------------------
+# Trim LTR data -----------------------------------------------------------
 
-host <- strr_host(daily)
+property_map <- 
+  property %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, all_PIDs) %>% 
+  unnest(all_PIDs)
+
+ltr <- 
+  ltr %>% 
+  mutate(property_ID = map(property_ID, ~{
+    tibble(all_PIDs = .x) %>% 
+      left_join(property_map, by = "all_PIDs") %>% 
+      mutate(property_ID = if_else(is.na(property_ID), all_PIDs, 
+                                   property_ID)) %>% 
+      pull(property_ID) %>% 
+      unique()
+  }))
 
 
 # Save output -------------------------------------------------------------
 
 save(property, daily, host, file = "output/str_processed.Rdata")
+save(ltr, file = "output/ltr_processed.Rdata")

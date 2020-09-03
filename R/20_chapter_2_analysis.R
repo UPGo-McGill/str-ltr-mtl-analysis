@@ -373,10 +373,10 @@ listing_type_breakdown <-
 
 #' The vast majority of STRs in Montreal are entire homes, a category which 
 #' includes single-family homes, townhouses, apartments and condominiums. 
-#' Nearly half of these (43.7% [1]) were one-bedroom housing units, with the 
+#' Nearly half of these (43.6% [1]) were one-bedroom housing units, with the 
 #' remainder relatively evenly split between studio apartments (12.6% [1]), 
-#' two-bedroom units (27.6% [1]), and three-or-more-bedroom units (16.2% [1]). 
-#' In 2019 entire-home listings accounted for 75.6% [2] of all daily active 
+#' two-bedroom units (27.7% [1]), and three-or-more-bedroom units (16.0% [1]). 
+#' In 2019 entire-home listings accounted for 75.4% [2] of all daily active 
 #' listings, and 91.0% [2] of total host revenue. Private rooms accounted for 
 #' nearly all of the remainder.
 
@@ -475,10 +475,10 @@ tenure_breakdown <-
 #' identified as “Apartment”, and most of the rest were either “House” 
 #' (5.5% [1]) or “Loft” (4.6% [1]).... There are 12 dissemination areas in 
 #' Montreal in which condominiums are more than 95% of the housing stock [2]. 
-#' These 12 areas contain 113 [3] active STR listings, which by definition must 
-#' be nearly entirely condominiums. And yet only 44.2% [4] of these listings are 
-#' described as condominiums by their hosts; 39.8% [4] are described as 
-#' apartments and 6.2% [4] are described as lofts. In fact, the correlation 
+#' These 12 areas contain 114 [3] active STR listings, which by definition must 
+#' be nearly entirely condominiums. And yet only 44.7% [4] of these listings are 
+#' described as condominiums by their hosts; 39.5% [4] are described as 
+#' apartments and 6.1% [4] are described as lofts. In fact, the correlation 
 #' between the proportion of condominiums in a dissemination area and the 
 #' proportion of listings in the area which self-describe as condominiums is 
 #' -0.01 [5]—completely random.
@@ -495,6 +495,8 @@ high_condos <-
   DA_probabilities_2019 %>% 
   filter(p_condo >= 0.95) %>% 
   pull(GeoUID)
+
+length(high_condos)
 
 #' [3] Listings in high-condo DAs
 property %>% 
@@ -571,33 +573,36 @@ host_rev <-
   
 #' Among all the STR hosts who earned revenue in the City of Montreal last year, 
 #' the median revenue was $4,300 [1], while the top host (in this case a network 
-#' of numerous host accounts which we discuss below) earned $12.8 million [2] 
+#' of numerous host accounts which we discuss below) earned $12.9 million [2] 
 #' (Table 2.5). Throughout the City of Montreal, there were 38 hosts [3] that 
 #' earned more than $500,000 in 2019. Figure 2.6 shows the percentage of the 
-#' total $222.7 million in STR revenue which accrued to each decile of hosts. 
-#' The most successful 10% of hosts earned more than two-thirds (68.8% [4]) of 
-#' all STR revenue. The revenue concentration is even steeper among the top 10%: 
-#' the top 5% earned 58.9% [5] of revenue, while the top 1% of hosts earned 
-#' 40.7% [6] of all revenue. 
+#' total $224.6 million [4] in STR revenue which accrued to each decile of 
+#' hosts. The most successful 10% of hosts earned more than two-thirds 
+#' (68.8% [5]) of all STR revenue. The revenue concentration is even steeper 
+#' among the top 10%: the top 5% earned 58.9% [6] of revenue, while the top 1% 
+#' of hosts earned 40.7% [7] of all revenue. 
 
 #' [1] Median host revenue
-median(host_rev$rev)
+median(host_rev$rev) %>% round(-2)
 
 #' [2] Top earner
-max(host_rev$rev)
+max(host_rev$rev) %>% round(-5)
 
 #' [3] Hosts above $500,000
 host_rev %>% 
   filter(rev >= 500000) %>% 
   nrow()
 
-#' [4] Top 10% revenue
+#' [4] Total annual revenue
+prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
+
+#' [5] Top 10% revenue
 host_rev %>% summarize(top_10 = sum(rev[rev > quantile(rev, .9)]) / sum(rev))
   
-#' [4] Top 5% revenue
+#' [6] Top 5% revenue
 host_rev %>% summarize(top_10 = sum(rev[rev > quantile(rev, .95)]) / sum(rev))
 
-#' [4] Top 1% revenue
+#' [7] Top 1% revenue
 host_rev %>% summarize(top_10 = sum(rev[rev > quantile(rev, .99)]) / sum(rev))
 
 #' Table 2.5
@@ -630,7 +635,7 @@ commercial_listings <-
   ungroup()
 
 
-#' Since 94.6% [1] of entire-home listings have three or fewer bedrooms...
+#' Since 94.7% [1] of entire-home listings have three or fewer bedrooms...
 
 #' [1] Bedrooms
 property %>% 
@@ -639,8 +644,8 @@ property %>%
   st_drop_geometry() %>% 
   summarize(bedrooms_3_or_fewer = mean(bedrooms <= 3))
 
-#' In 2019, 50.8% [1] of active listings in Montreal were multilistings, earning 
-#' 64.1% [2] of total host revenue. Multilistings have been a steadily growing 
+#' In 2019, 52.7% [1] of active listings in Montreal were multilistings, earning 
+#' 65.8% [2] of total host revenue. Multilistings have been a steadily growing 
 #' share of both listings and revenue in Montreal since 2017 (Figure 2.7), and 
 #' amidst generally declining STR activity during the COVID-19 pandemic,
 #' multilistings briefly earned nearly 3 out of every 4 dollars [3] on STR 
@@ -668,22 +673,24 @@ daily %>%
   tally(price) %>% 
   summarize(multi_rev = n[2] / sum(n))
 
-#' On January 1, 2017, there were 5,460 [1] non-commercial listings and 
-#' 4,050 [1] commercial listings active in Montreal. By January 1, 2020, three 
+#' On January 1, 2017, there were 5,310 [1] non-commercial listings and 
+#' 4,200 [1] commercial listings active in Montreal. By January 1, 2020, three 
 #' years later, these numbers had flipped; while the total number of active 
 #' listings was roughly the same (9,680 in 2020 and 9,510 in 2017 [2]) the 
-#' number of commercial listings had increased by more than 50% to 6,640 [1], 
-#' while the number of non-commercial listings had nearly halved to 3,050 [1].
+#' number of commercial listings had increased by more than 50% to 6,740 [1], 
+#' while the number of non-commercial listings had nearly halved to 2,950 [1].
 
 #' [1] Commercial and non-commercial listings
 commercial_listings %>% 
-  filter(date == "2017-01-01" | date == "2020-01-01")
+  filter(date == "2017-01-01" | date == "2020-01-01") %>% 
+  mutate(n = round(n, -1))
 
 #' [2] Total listings
 commercial_listings %>% 
   filter(date == "2017-01-01" | date == "2020-01-01") %>% 
   group_by(date) %>% 
-  summarize(n = sum(n))
+  summarize(n = sum(n)) %>% 
+  mutate(n = round(n, -1))
 
 
 # Clean up ----------------------------------------------------------------
