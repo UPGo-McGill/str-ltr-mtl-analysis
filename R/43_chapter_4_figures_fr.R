@@ -277,25 +277,25 @@ non_FREH_2019 <-
 
 total_2020 <- 
   tibble(
-    group = c("FREH", "non-FREH"),
+    group = c("LEFL", "non-LEFL"),
     year = 2020,
-    variable = "total listings",
+    variable = "nombre total d'annonces",
     value = c(nrow(FREH_2020), nrow(non_FREH_2020))
   )
 
 total_2019 <- 
   tibble(
-    group = c("FREH", "non-FREH"),
+    group = c("LEFL", "non-LEFL"),
     year = 2019,
-    variable = "total listings",
+    variable = "nombre total d'annonces",
     value = c(nrow(FREH_2019), nrow(non_FREH_2019))
   )
 
 deactivated_2020 <- 
   tibble(
-    group = c("FREH", "non-FREH"),
+    group = c("LEFL", "non-LEFL"),
     year = 2020,
-    variable = "deactivated",
+    variable = "désactivées",
     value = c({
       FREH_2020 %>% 
         summarize(total = sum(scraped <= "2020-07-31")) %>% 
@@ -307,9 +307,9 @@ deactivated_2020 <-
 
 deactivated_2019 <- 
   tibble(
-    group = c("FREH", "non-FREH"),
+    group = c("LEFL", "non-LEFL"),
     year = 2019,
-    variable = "deactivated",
+    variable = "désactivées",
     value = c({
       FREH_2019 %>% 
         summarize(total = sum(scraped <= "2019-07-31")) %>% 
@@ -337,27 +337,27 @@ blocked_PIDs_2019 <-
 
 blocked_2020 <-
   tibble(
-    group = c("FREH", "non-FREH"),
+    group = c("LEFL", "non-LEFL"),
     year = 2020,
-    variable = "blocked",
+    variable = "bloquées",
     value = c(nrow(filter(FREH_2020, property_ID %in% blocked_PIDs_2020)),
               nrow(filter(non_FREH_2020, property_ID %in% blocked_PIDs_2020)))
   )
 
 blocked_2019 <-
   tibble(
-    group = c("FREH", "non-FREH"),
+    group = c("LEFL", "non-LEFL"),
     year = 2019,
-    variable = "blocked",
+    variable = "bloquées",
     value = c(nrow(filter(FREH_2019, property_ID %in% blocked_PIDs_2019)),
               nrow(filter(non_FREH_2019, property_ID %in% blocked_PIDs_2019)))
   )
 
 active_2020 <- 
   tibble(
-    group = c("FREH", "non-FREH"),
+    group = c("LEFL", "non-LEFL"),
     year = 2020,
-    variable = "active",
+    variable = "actives",
     value = c(
       nrow(FREH_2020) - deactivated_2020[1,]$value - blocked_2020[1,]$value,
       nrow(non_FREH_2020) - deactivated_2020[2,]$value - blocked_2020[2,]$value)
@@ -365,9 +365,9 @@ active_2020 <-
 
 active_2019 <- 
   tibble(
-    group = c("FREH", "non-FREH"),
+    group = c("LEFL", "non-LEFL"),
     year = 2019,
-    variable = "active",
+    variable = "actives",
     value = c(
       nrow(FREH_2019) - deactivated_2019[1,]$value - blocked_2019[1,]$value,
       nrow(non_FREH_2019) - deactivated_2019[2,]$value - blocked_2019[2,]$value)
@@ -379,36 +379,43 @@ comparison_df <-
 
 # Figure parameters
 n_segs <- 1000
-offset <- 500
+offset <- 1000
+max_y <- comparison_df %>% filter(value == max(value)) %>% 
+  mutate(value = value + 2 * offset) %>% pull(value)
 
 fig_polys <- 
   comparison_df %>% 
   # filter(group == "FREH", year == 2020) %>% 
   group_by(group, year, variable) %>%
-  # group_by(variable) %>% 
   summarize(
-    x = c(3, 5) - (variable == "total listings") * 3,
+    x = c(3, 5) - (variable == "nombre total d'annonces") * 3,
     ymax = rep(value, 2)
   ) %>% 
   ungroup() %>% 
   arrange(desc(variable)) %>% 
+  group_by(group, year) %>% 
   mutate(
     ymin = case_when(
-      variable == "total listings" ~ offset,
-      variable == "active"         ~ 0,
-      variable == "blocked"        ~ ymax[variable == "active"][1] + offset,
-      variable == "deactivated"    ~ ymax[variable == "blocked"][1] + 
-        ymax[variable == "active"][1] + offset * 2
+      variable == "nombre total d'annonces" ~ offset,
+      variable == "actives"         ~ 0,
+      variable == "bloquées"        ~ ymax[variable == "actives"][1] + offset,
+      variable == "désactivées"    ~ ymax[variable == "bloquées"][1] + 
+        ymax[variable == "actives"][1] + offset * 2
     ),
-    ymax = ymax + ymin, .before = ymax)
+    ymax = ymax + ymin, .before = ymax) %>% 
+  mutate(adjustment = max_y / 2 - mean(c(ymax[variable == "nombre total d'annonces"], 
+                                         ymin[variable == "nombre total d'annonces"])),
+         ymin = ymin + adjustment,
+         ymax = ymax + adjustment) %>% 
+  ungroup()
 
 fig_segments <-
   fig_polys %>% 
-  filter(variable != "total listings") %>% 
+  filter(variable != "nombre total d'annonces") %>% 
   mutate(orientation = case_when(
-    variable == "deactivated" ~ -1,
-    variable == "blocked"     ~ 0,
-    variable == "active"      ~ 1)) %>% 
+    variable == "désactivées" ~ -1,
+    variable == "bloquées"     ~ 0,
+    variable == "actives"      ~ 1)) %>% 
   group_by(group, year, variable) %>% 
   mutate(across(c(ymin, ymax), ~{.x + c(offset, 0) * orientation})) %>% 
   ungroup() %>% 
@@ -430,34 +437,42 @@ fig_segments <-
   ) %>% 
   ungroup()
 
-fig_polys %>% 
+fig_labels <-
+  fig_polys %>% 
+  group_by(group, year, variable) %>% 
+  summarize(x = mean(x),
+            y = mean(c(ymin, ymax)),
+            label = paste(mean(ymax) - mean(ymin), variable, sep = " ")) %>% 
+  ungroup() %>% 
+  mutate(label = if_else(variable == "annonces au total", 
+                         paste0(label, "\nen Jan/Fev"), label),
+         label = if_else(variable == "actives", 
+                         paste0(label, "\nen Juillet"), label))
+
+figure_4_4 <- 
+  fig_polys %>% 
   ggplot() +
   geom_ribbon(aes(x = x, ymin = ymin, ymax = ymax, fill = variable)) +
   geom_segment(aes(x = x, xend = xend, y = y, yend = yend, group = variable,
                    colour = ramp), data = fig_segments, inherit.aes = FALSE) +
+  geom_text(aes(x, y, group = variable, label = label), data = fig_labels,
+            colour = "white", #family = "Futura", 
+            size = 2) +
   scale_colour_gradientn(colours = col_palette[c(5, 3, 5, 2, 5, 1)]) +
-  scale_fill_manual(values = c("total listings" = col_palette[5], 
-                               "active" = col_palette[1],
-                               "blocked" = col_palette[2],
-                               "deactivated" = col_palette[3])) +
+  scale_fill_manual(values = c("nombre total d'annonces" = col_palette[5], 
+                               "actives" = col_palette[1],
+                               "bloquées" = col_palette[2],
+                               "désactivées" = col_palette[3])) +
   facet_wrap(vars(year, group), nrow = 2) +
   theme_void() +
-  theme(legend.position = "bottom")
-
-
-figure_4_4 <- 
-  ggplot() +
-  facet_wrap(vars(group, year), nrow = 2) +
-  theme_minimal() +
-  theme(legend.position = "bottom", 
-        panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
-                                    size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+  theme(legend.position = "none",
+        text = element_text(face = "plain", #family = "Futura"
+                            ), 
+        strip.text = element_text(face = "bold", #family = "Futura"
+                                  ))
 
 ggsave("output/figures/figure_4_4F.pdf", plot = figure_4_4, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 6, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_4F.pdf")
 
