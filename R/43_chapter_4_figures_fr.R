@@ -41,7 +41,7 @@ figure_4_1 <-
            y = 7500, yend = 7500, curvature = -.3, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-12-11"), y = 7500,
-           label = "LCTs bannies\npar la province", family = "Futura Condensed") +
+           label = "Interdiction des LCT \npar la province", family = "Futura Condensed") +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(0, NA), label = scales::comma) +
