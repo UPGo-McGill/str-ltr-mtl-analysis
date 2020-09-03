@@ -382,7 +382,9 @@ comparison_df <-
 
 # Figure parameters
 n_segs <- 1000
-offset <- 500
+offset <- 1000
+max_y <- comparison_df %>% filter(value == max(value)) %>% 
+  mutate(value = value + 2 * offset) %>% pull(value)
 
 fig_polys <- 
   comparison_df %>% 
@@ -394,6 +396,7 @@ fig_polys <-
   ) %>% 
   ungroup() %>% 
   arrange(desc(variable)) %>% 
+  group_by(group, year) %>% 
   mutate(
     ymin = case_when(
       variable == "total listings" ~ offset,
@@ -402,7 +405,12 @@ fig_polys <-
       variable == "deactivated"    ~ ymax[variable == "blocked"][1] + 
         ymax[variable == "active"][1] + offset * 2
       ),
-    ymax = ymax + ymin, .before = ymax)
+    ymax = ymax + ymin, .before = ymax) %>% 
+  mutate(adjustment = max_y / 2 - mean(c(ymax[variable == "total listings"], 
+                                         ymin[variable == "total listings"])),
+         ymin = ymin + adjustment,
+         ymax = ymax + adjustment) %>% 
+  ungroup()
 
 fig_segments <-
   fig_polys %>% 
@@ -432,34 +440,39 @@ fig_segments <-
   ) %>% 
   ungroup()
 
-fig_polys %>% 
+fig_labels <-
+  fig_polys %>% 
+  group_by(group, year, variable) %>% 
+  summarize(x = mean(x),
+            y = mean(c(ymin, ymax)),
+            label = paste(mean(ymax) - mean(ymin), variable, sep = " ")) %>% 
+  ungroup() %>% 
+  mutate(label = if_else(variable == "total listings", 
+                         paste0(label, "\nin Jan/Feb"), label),
+         label = if_else(variable == "active", 
+                         paste0(label, "\nin July"), label))
+  
+figure_4_4 <- 
+  fig_polys %>% 
   ggplot() +
   geom_ribbon(aes(x = x, ymin = ymin, ymax = ymax, fill = variable)) +
   geom_segment(aes(x = x, xend = xend, y = y, yend = yend, group = variable,
                    colour = ramp), data = fig_segments, inherit.aes = FALSE) +
+  geom_text(aes(x, y, group = variable, label = label), data = fig_labels,
+            colour = "white", family = "Futura", size = 2) +
   scale_colour_gradientn(colours = col_palette[c(5, 3, 5, 2, 5, 1)]) +
   scale_fill_manual(values = c("total listings" = col_palette[5], 
                                "active" = col_palette[1],
                                "blocked" = col_palette[2],
                                "deactivated" = col_palette[3])) +
   facet_wrap(vars(year, group), nrow = 2) +
-  # theme_void() +
-  theme(legend.position = "bottom")
-
-
-figure_4_4 <- 
-  ggplot() +
-  facet_wrap(vars(group, year), nrow = 2) +
-  theme_minimal() +
-  theme(legend.position = "bottom", 
-        panel.grid.minor.x = element_blank(),
+  theme_void() +
+  theme(legend.position = "none",
         text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
-                                    size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 6, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_4.pdf")
 
