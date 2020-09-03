@@ -10,6 +10,7 @@
 #' - `figure_2_5.pdf`
 #' - `figure_2_6.pdf`
 #' - `figure_2_7.pdf`
+#' - `figure_2_8.pdf`
 #' 
 #' Script dependencies:
 #' - `09_str_processing.R`
@@ -20,10 +21,10 @@
 #'   `01_startup.R`
 
 source("R/01_startup.R")
-library(patchwork)
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
+load("output/condo_analysis.Rdata")
 
 
 # Figure 2.1 - Active daily listings --------------------------------------
@@ -157,34 +158,47 @@ make_listing_map <- function(df) {
                                   title.vjust = 1)) + 
     gg_bbox(df) +
     theme_void() +
-    theme(text = element_text(#family = "Futura", 
-      face = "plain"),
-          legend.title = element_text(#family = "Futura", 
-            face = "bold",
+    theme(text = element_text(family = "Futura", face = "plain"),
+          legend.title = element_text(family = "Futura", face = "bold",
                                       size = 7),
           legend.title.align = 0.9,
-          legend.text = element_text(#family = "Futura", 
-            size = 5),
-          panel.border = element_rect(#colour = "white", 
-            size = 2))
+          legend.text = element_text(family = "Futura", size = 5),
+          panel.border = element_rect(colour = "white", size = 2))
 }
 
 figure_2_3_left <- make_listing_map(active_borough)
-figure_2_3_right <-  make_listing_map(active_DA)
+
+figure_2_3_right <- 
+  make_listing_map(active_DA) +
+  geom_rect(xmin = 607000, ymin = 5038000, xmax = 614000, ymax = 5045000,
+            fill = NA, colour = "black", size = 0.3)
+
+fig_2_3_zoom <- 
+  figure_2_3_right +
+  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
+  coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
+           expand = FALSE) +
+  theme(legend.position = "none",
+        panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
+
+layout <- c(
+  area(1, 1, 42, 40),
+  area(1, 41, 42, 80),
+  area(3, 41, 22, 60)
+)
 
 figure_2_3 <- 
-  figure_2_3_left + figure_2_3_right + plot_layout(ncol = 2) + 
-  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+  figure_2_3_left + figure_2_3_right + fig_2_3_zoom + 
+  plot_layout(design = layout) + plot_layout(guides = 'collect') & 
+  theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_2_3F.pdf", plot = figure_2_3, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_3F.pdf")
 
 
 # Figure 2.4 Percentage of listings in condos -----------------------------
-
-load("output/raffle_condo.Rdata")
 
 active_condos_borough <- 
   daily %>% 
@@ -211,26 +225,42 @@ make_condo_map <- function(df) {
                                   title.vjust = 1)) + 
     gg_bbox(df) +
     theme_void() +
-    theme(text = element_text(#family = "Futura", 
-      face = "plain"),
-          legend.title = element_text(#family = "Futura", 
-            face = "bold",
+    theme(text = element_text(family = "Futura", face = "plain"),
+          legend.title = element_text(family = "Futura", face = "bold",
                                       size = 7),
           legend.title.align = 0.9,
-          legend.text = element_text(#family = "Futura", 
-            size = 5),
+          legend.text = element_text(family = "Futura", size = 5),
           panel.border = element_rect(colour = "white", size = 2))
 }
 
 figure_2_4_left <- make_condo_map(active_condos_borough)
-figure_2_4_right <- make_condo_map(DA_probabilities_2019)
+
+figure_2_4_right <- 
+  make_condo_map(DA_probabilities_2019) +
+  geom_rect(xmin = 607000, ymin = 5038000, xmax = 614000, ymax = 5045000,
+            fill = NA, colour = "black", size = 0.3)
+
+fig_2_4_zoom <- 
+  figure_2_4_right +
+  geom_sf(data = streets_downtown, size = 0.3, colour = "white") +
+  coord_sf(xlim = c(607000, 614000), ylim = c(5038000, 5045000),
+           expand = FALSE) +
+  theme(legend.position = "none",
+        panel.border = element_rect(fill = NA, colour = "black", size = 0.6))
+
+layout <- c(
+  area(1, 1, 42, 40),
+  area(1, 41, 42, 80),
+  area(3, 41, 22, 60)
+)
 
 figure_2_4 <- 
-  figure_2_4_left + figure_2_4_right + plot_layout(ncol = 2) + 
-  plot_layout(guides = 'collect') & theme(legend.position = "bottom")
+  figure_2_4_left + figure_2_4_right + fig_2_4_zoom + 
+  plot_layout(design = layout) + plot_layout(guides = 'collect') & 
+  theme(legend.position = "bottom")
 
 ggsave("output/figures/figure_2_4F.pdf", plot = figure_2_4, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 4.2, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_4F.pdf")
 
@@ -275,9 +305,8 @@ figure_2_5 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        #text = element_text(family = "Futura"),
-        legend.title = element_text(#family = "Futura", 
-          face = "bold"))
+        text = element_text(family = "Futura"),
+        legend.title = element_text(family = "Futura", face = "bold"))
 
 ggsave("output/figures/figure_2_5F.pdf", plot = figure_2_5, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -382,13 +411,13 @@ ML <-
             Revenu = sum(price[status == "R" & multi], na.rm = TRUE) / 
               sum(price[status == "R"], na.rm = TRUE)) %>% 
   mutate(across(where(is.numeric), slide_dbl, mean, .before = 13)) %>% 
-  pivot_longer(c(Annonces, Revenu), names_to = "Pourcentage de multi-annonces",
+  pivot_longer(c(Annonces, Revenu), names_to = "Pourcentage d'annonces multiples",
                values_to = "value")
 
 figure_2_7 <- 
   ML %>% 
   ggplot() +
-  geom_line(aes(date, value, colour = `Pourcentage de multi-annonces`), lwd = 1) +
+  geom_line(aes(date, value, colour = `Pourcentage d'annonces multiples`), lwd = 1) +
   annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2017-06-01"), NA)) +
@@ -398,16 +427,60 @@ figure_2_7 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        text = element_text(#family = "Futura", 
-          face = "plain"),
-        legend.title = element_text(#family = "Futura", 
-          face = "bold"),
-        #legend.text = element_text(family = "Futura")
-        )
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold"),
+        legend.text = element_text(family = "Futura"))
 
 ggsave("output/figures/figure_2_7F.pdf", plot = figure_2_7, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_7F.pdf")
+
+
+# Figure 2.8 Commercialization of STR listings ----------------------------
+
+commercial_listings <- 
+  daily %>% 
+  filter(status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  count(date, commercial) %>% 
+  group_by(commercial) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
+  ungroup()
+
+figure_2_8 <- 
+  commercial_listings %>% 
+  ggplot() +
+  geom_line(aes(date, n, color = commercial), lwd = 1) +
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
+           ymin = -Inf, ymax = Inf, alpha = .2) +
+  scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
+  scale_y_continuous(name = NULL) +
+  scale_colour_manual(name = "Type d'annonce",
+                      values = col_palette[c(5, 1)],
+                      labels = c("Non-commercial", "Commercial")) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold"),
+        legend.text = element_text(family = "Futura"))
+
+ggsave("output/figures/figure_2_8F.pdf", plot = figure_2_8, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_2_8F.pdf")
+
+
+# Nettoyage ----------------------------------------------------------------
+
+rm(active_borough, active_condos_borough, active_DA, active_listings,
+   boroughs, boroughs_raw, city, commercial_listings, condo_scatter, DA,
+   DA_probabilities_2017, DA_probabilities_2019, daily_variation, fig_2_3_zoom,
+   fig_2_4_zoom, figure_2_1, figure_2_2, figure_2_3, figure_2_3_left,
+   figure_2_3_right, figure_2_4, figure_2_4_left, figure_2_4_right,
+   figure_2_5, figure_2_6, figure_2_7, figure_2_8, host_deciles, layout,
+   listing_probabilities_2017, listing_probabilities_2019, ML, province,
+   streets, streets_downtown, revenue_colour, make_condo_map, make_listing_map)
 
 
