@@ -465,14 +465,15 @@ figure_4_4 <-
                                "active" = col_palette[1],
                                "blocked" = col_palette[2],
                                "deactivated" = col_palette[3])) +
-  facet_grid(rows = vars(group), cols = vars(year), switch = "y") +
+  facet_grid(rows = vars(group), cols = vars(year), switch = "y",
+             scales = "free_y", space = "free_y") +
   theme_void() +
   theme(legend.position = "none",
         text = element_text(face = "plain", family = "Futura"), 
         strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8, 
-       height = 6, units = "in", useDingbats = FALSE)
+       height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_4.pdf")
 
