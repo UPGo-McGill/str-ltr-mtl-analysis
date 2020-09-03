@@ -380,51 +380,73 @@ comparison_df <-
   bind_rows(total_2020, total_2019, deactivated_2020, deactivated_2019,
           blocked_2020, blocked_2019, active_2020, active_2019)
 
-test_df <- 
+# Figure parameters
+n_segs <- 1000
+offset <- 500
+
+fig_polys <- 
   comparison_df %>% 
-  filter(group == "FREH", year == 2020) %>% 
-  mutate(x = )
+  # filter(group == "FREH", year == 2020) %>% 
+  group_by(group, year, variable) %>%
+  # group_by(variable) %>% 
+  summarize(
+    x = c(3, 5) - (variable == "total listings") * 3,
+    ymax = rep(value, 2)
+  ) %>% 
+  ungroup() %>% 
+  arrange(desc(variable)) %>% 
+  mutate(
+    ymin = case_when(
+      variable == "total listings" ~ offset,
+      variable == "active"         ~ 0,
+      variable == "blocked"        ~ ymax[variable == "active"][1] + offset,
+      variable == "deactivated"    ~ ymax[variable == "blocked"][1] + 
+        ymax[variable == "active"][1] + offset * 2
+      ),
+    ymax = ymax + ymin, .before = ymax)
 
-test_df <- 
-  tribble(
-    ~variable,        ~x, ~ymin, ~ymax,
-    "total listings",  1,     500,  5898 + 500,
-    "total listings",  2,     500,  5898 + 500
-  )
+fig_segments <-
+  fig_polys %>% 
+  filter(variable != "total listings") %>% 
+  mutate(orientation = case_when(
+    variable == "deactivated" ~ -1,
+    variable == "blocked"     ~ 0,
+    variable == "active"      ~ 1)) %>% 
+  group_by(group, year, variable) %>% 
+  mutate(across(c(ymin, ymax), ~{.x + c(offset, 0) * orientation})) %>% 
+  ungroup() %>% 
+  select(-orientation) %>% 
+  mutate(x = (x + 1) / 2) %>% 
+  group_by(group, year) %>% 
+  mutate(ramp = 1:6) %>% 
+  group_by(group, year, variable) %>% 
+  mutate(ymin_slope = diff(ymin) / diff(x),
+         ymin_intercept = ymin[1] - ymin_slope * x[1],
+         ymax_slope = diff(ymax) / diff(x),
+         ymax_intercept = ymax[1] - ymax_slope * x[1]) %>% 
+  summarize(
+    x = seq(min(x), max(x), length.out = n_segs),
+    xend = x,
+    y = x * ymin_slope[1] + ymin_intercept[1],
+    yend = xend * ymax_slope[1] + ymax_intercept[1],
+    ramp = x - min(x) + min(ramp)
+  ) %>% 
+  ungroup()
 
-test_df_2 <- 
-  tribble(
-    ~variable,    ~x,                ~ymin,                      ~ymax,
-    "deactivated", 2.5, 1344 + 2616 + 1000,  1344 + 2616 + 1938 + 1000, 
-    "deactivated", 3.5, 1344 + 2616 + 1000,  1344 + 2616 + 1938 + 1000,
-    "blocked",     2.5, 2616 + 500,  1344 + 2616 + 500,
-    "blocked",     3.5, 2616 + 500,  1344 + 2616 + 500,
-    "active",      2.5,          0,  2616,
-    "active",      3.5,          0,  2616
-  )
-
-test_df_3 <- 
-  tribble(
-    ~transition,    ~x,              ~ymin,                     ~ymax, ~ramp,
-    "deactivated", 2,    1344 + 2616 + 500,  1344 + 2616 + 1938 + 500, 1,
-    "deactivated", 2.5, 1344 + 2616 + 1000, 1344 + 2616 + 1938 + 1000, 2,
-    "blocked",     2,           2616 + 500,         1344 + 2616 + 500, 1,
-    "blocked",     2.5,         2616 + 500,         1344 + 2616 + 500, 3,
-    "active",      2,                  500,                2616 + 500, 1,
-    "active",      2.5,                  0,                      2616, 4
-  )
-
-ggplot(test_df, aes(x = x, ymin = ymin, ymax = ymax)) +
-  geom_ribbon(fill = col_palette[5]) +
-  geom_ribbon(aes(fill = variable), data = test_df_2) +
-  scale_fill_manual(values = c("active" = col_palette[1],
+fig_polys %>% 
+  ggplot() +
+  geom_ribbon(aes(x = x, ymin = ymin, ymax = ymax, fill = variable)) +
+  geom_segment(aes(x = x, xend = xend, y = y, yend = yend, group = variable,
+                   colour = ramp), data = fig_segments, inherit.aes = FALSE) +
+  scale_colour_gradientn(colours = col_palette[c(5, 3, 5, 2, 5, 1)]) +
+  scale_fill_manual(values = c("total listings" = col_palette[5], 
+                               "active" = col_palette[1],
                                "blocked" = col_palette[2],
                                "deactivated" = col_palette[3])) +
-  ggnewscale::new_scale_fill() +
-  geom_ribbon(aes(fill = ramp), data = test_df_3) +
-  # scale_fill_gradientn(colours = col_palette[c(5, 1, 2, 3)], values = 1:4) +
+  facet_wrap(vars(year, group), nrow = 2) +
   theme_void() +
   theme(legend.position = "bottom")
+
 
 figure_4_4 <- 
   ggplot() +

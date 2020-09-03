@@ -44,8 +44,6 @@ ltr_unique_property_ID <-
   st_drop_geometry() %>% 
   filter(!is.na(property_ID)) %>% 
   unnest(property_ID) %>% 
-  filter(property_ID %in% filter(property, 
-                                 scraped >= "2020-01-01")$property_ID) %>% 
   arrange(desc(scraped)) %>% 
   distinct(property_ID) %>% 
   inner_join(unnest(ltr, property_ID), by = "property_ID") %>% 
@@ -147,7 +145,7 @@ figure_5_2 <-
   first_ltr_listing %>% 
   filter(created >= "2020-03-01") %>% 
   ggplot(aes(created, n, fill = kj)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
          ymin = 0, ymax = Inf, alpha = .2) +
   geom_col(lwd = 0) +
   annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
@@ -182,10 +180,11 @@ figure_5_3_left <-
   count(borough) %>% 
   left_join(boroughs, .) %>% 
   ggplot() +
-  geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  # geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(aes(fill = n), colour = "white") +
   scale_fill_gradientn(colors = col_palette[c(3, 4)],
-                       breaks = c(0, 200, 400, 600),
+                       limits = c(0, 1500),
+                       breaks = c(0, 300, 600, 900, 1200, 1500),
                        na.value = "grey80")  +
   guides(fill = guide_colourbar(title = "Total STR to\nLTR matches",
                                 title.vjust = 1)) + 
@@ -212,7 +211,8 @@ figure_5_3_right <-
   geom_sf(aes(fill = pct), colour = "white") +
   scale_fill_gradientn(colors = col_palette[c(5, 2)], 
                        na.value = "grey80",
-                       breaks = c(0, 0.05, .1, .15, .2, .25),
+                       limits = c(0, .5),
+                       breaks = c(0, 0.1, .2, .3, .4, .5),
                        label = scales::label_percent(accuracy = 1))  +
   guides(fill = guide_colourbar(title = "Matches as %\nof active STRs",
                                 title.vjust = 1)) + 
@@ -234,63 +234,72 @@ ggsave("output/figures/figure_5_3.pdf", plot = figure_5_3, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_3.pdf")
 
 
+# Figure 5.4. Median asking rents for matches and non-matches through time -----------------------------------------------------
 
-# Figure 5.3. Median asking rents for matches and non-matches through time -----------------------------------------------------
-
-figure_5_3 <- unique_ltr %>% 
+asking_rents <- 
+  ltr_unique %>% 
   filter(price > 425, price < 8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
   summarize(avg_price = mean(price)) %>% 
-  ggplot()+
-  geom_line(aes(created, avg_price, color = matched), alpha = 0.2)+
-  geom_smooth(aes(created, avg_price, color = matched), se = F)+
-  geom_smooth(data = (unique_ltr %>% 
-                        filter(price >425, price <8000) %>% 
-                        group_by(created) %>%
-                        summarize(avg_price = mean(price))), aes(created, avg_price),  se = F,
-              color = "grey80")+
-  scale_x_date(name = "Date created") +
-  scale_y_continuous(name = "Average daily price ($)", label = scales::comma) +
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup()
+
+ltr_unique %>% 
+  filter(price > 425, price < 8000) %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup() %>% 
+  mutate()
+
+figure_5_4 <-
+  asking_rents %>% 
+  filter(created >= "2020-03-13", created <= "2020-07-31") %>% 
+  ggplot(aes(created, avg_price, color = matched)) +
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
+           ymin = -Inf, ymax = Inf, alpha = .2) +
+  geom_line(lwd = 1) +
+  scale_x_date(name = NULL, limits = c(as.Date("2020-03-01"), NA)) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
   scale_color_manual(name = "Group",
                      values = col_palette[c(1, 3)],
                      labels = c("Did not match", "Matched")) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), ymin = -Inf, ymax = Inf, alpha = .1)+
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        #text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(#family = "Futura", face = "bold", 
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold", 
           size = 10),
-        legend.text = element_text(#family = "Futura", 
-          size = 10)
-  )
+        legend.text = element_text(family = "Futura", size = 10))
 
-ggsave("output/figures/figure_5_2.pdf", plot = figure_5_2, width = 8, 
+ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_2.pdf")
+extrafont::embed_fonts("output/figures/figure_5_4.pdf")
 
 
-# Figure 5.3. Distribution of matches and non-matches by date created on STR platforms -----------------------------------------------------
+# Figure 5.4 Date of first STR listing ------------------------------------
 
-figure_5_3 <- property %>% 
+figure_5_4 <- 
+  property %>% 
   st_drop_geometry() %>% 
   filter(scraped >= "2020-01-01",
          property_ID %in% filter(daily, housing, status != "B", date >= "2020-01-01")$property_ID) %>% 
-  mutate(how_long_they_stay = round((scraped-created) / 30) /12) %>% 
+  mutate(how_long_they_stay = round((scraped - created) / 30) / 12) %>% 
   arrange(desc(how_long_they_stay)) %>% 
   mutate(matched = if_else(!is.na(ltr_ID), TRUE, FALSE)) %>% 
   count(how_long_they_stay, matched) %>% 
   group_by(matched) %>% 
   mutate(perc = n/sum(n)) %>% 
-  ggplot()+
-  geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3)+
-  geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F)+
-  xlab("Years of activity")+
-  ylab("Percentage of all listings within the group")+
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  ggplot() +
+  geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3) +
+  geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F) +
+  xlab("Years of activity") +
+  ylab("Percentage of all listings within the group") +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   scale_color_manual(name = "Group",
                      values = col_palette[c(1, 3)],
                      labels = c("Did not match", "Matched")) +
@@ -310,6 +319,7 @@ ggsave("output/figures/figure_5_3.pdf", plot = figure_5_3, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_5_3.pdf")
 
+  
 
 # Figure 5.4. Distribution of matches by revenue earned in 2019 ---------------------------------------------------------------
 
