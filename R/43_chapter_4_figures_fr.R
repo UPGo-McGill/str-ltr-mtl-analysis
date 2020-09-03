@@ -20,38 +20,6 @@ library(fabletools)
 
 load("output/str_processed.Rdata")
 
-### FIGURE 4.1. Annonces disponibles et réservés depuis 2018 ####################################################
-
-#YOY growth of R number
-(daily %>% 
-   filter(status == "R", date >= LTM_start_date, date <= LTM_end_date) %>% 
-   nrow() -
-   daily %>% 
-   filter(status == "R", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-   nrow()
-) /
-  daily %>% 
-  filter(status == "R", date >= LTM_start_date - years(1), date <= LTM_end_date - years(1)) %>% 
-  nrow()
-
-# growth of R for first half of 2020
-(daily %>% 
-    filter(status == "R", date >= "2020-01-01", date <= max(date)) %>% 
-    nrow() -
-    daily %>% 
-    filter(status == "R", date >= "2019-01-01", date <= max(date) - years(1)) %>% 
-    nrow()
-) /
-  daily %>% 
-  filter(status == "R", date >= "2019-01-01", date <= max(date) - years(1)) %>% 
-  nrow()
-
-# Lowest point of As
-daily %>% 
-  filter(status == "A", date >= "2018-01-01") %>% 
-  count(date) %>% 
-  arrange(n)
-
 
 ### FIGURE 4.1. Annonces disponibles et réservés depuis 2018 ####################################################
 
