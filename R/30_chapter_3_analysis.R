@@ -54,7 +54,7 @@ GH_borough <-
 
 # STR-induced housing loss ------------------------------------------------
 
-#' At the end of 2019, there were 5,150 [1] FREH listings in the City of 
+#' At the end of 2019, there were 5,160 [1] FREH listings in the City of 
 #' Montreal, and 370 [2] more housing units which were operating as ghost 
 #' hostels. In total, therefore, short-term rentals removed 5,520 [3] housing 
 #' units from Montreal’s long-term market last year (Figure 3.1). Notably, while 
@@ -87,7 +87,7 @@ GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>%
       sum()}} %>% 
   round(digit = -1)
 
-#' At the end of 2019 more than six in ten (62.1% [1]) entire-home listings 
+#' At the end of 2019 more than six in ten (62.0% [1]) entire-home listings 
 #' and one in four (26.0% [1]) private-room listings were taking housing off 
 #' the market in Montreal (Figure 3.2). Three years earlier, the proportions 
 #' were only 34.2% [1] and 12.7% [1] respectively.
