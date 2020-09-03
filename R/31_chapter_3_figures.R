@@ -22,7 +22,6 @@
 #'   `01_startup.R`
 
 source("R/01_startup.R")
-library(patchwork)
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")

@@ -87,7 +87,7 @@ GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>%
       sum()}} %>% 
   round(digit = -1)
 
-#' At the end of 2019 more than six in ten (62.0% [1]) entire-home listings 
+#' At the end of 2019 more than six in ten (62.1% [1]) entire-home listings 
 #' and one in four (26.0% [1]) private-room listings were taking housing off 
 #' the market in Montreal (Figure 3.2). Three years earlier, the proportions 
 #' were only 34.2% [1] and 12.7% [1] respectively.
@@ -236,7 +236,20 @@ annual_vacancy %>%
 #' dedicated STRs would have been rental housing, and the remaining 33.1% would 
 #' have been ownership housing.
 
-renter_zone %>% filter(zone == 4)
+DA_probabilities_2019 %>% 
+  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
+  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
+  select(dwellings, p_condo, p_renter, geometry) %>% 
+  st_interpolate_aw(cmhc, extensive = TRUE) %>% 
+  st_drop_geometry() %>% 
+  select(-Group.1) %>% 
+  rename(n_condo = p_condo, n_renter = p_renter) %>% 
+  cbind(cmhc, .) %>% 
+  as_tibble() %>% 
+  select(-geometry) %>% 
+  mutate(p_renter = n_renter / dwellings) %>% 
+  select(zone, p_renter) %>% 
+  filter(zone == 4)
 
 
 # The impact of STRs on residential rents ---------------------------------
