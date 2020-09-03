@@ -193,13 +193,6 @@ rm(group_matches, property_change_collapsed, property_change_table,
    property_to_delete)
 
 
-# Trim host table ---------------------------------------------------------
-
-host <- 
-  host %>% 
-  filter(host_ID %in% property$host_ID)
-
-
 # Trim LTR data -----------------------------------------------------------
 
 property_map <- 

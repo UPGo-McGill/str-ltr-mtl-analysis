@@ -24,10 +24,27 @@ load("output/str_processed.Rdata")
 
 # Calculate multilistings -------------------------------------------------
 
+host <- 
+  host %>% 
+  filter(host_ID %in% property$host_ID)
+
+host_new <- 
+  strr_host(daily)
+
+host <- 
+  host_new %>% 
+  left_join(host, by = c("host_ID", "date", "listing_type", "housing")) %>% 
+  rowwise() %>% 
+  mutate(count = max(count.x, count.y, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  select(-count.x, -count.y)
+
 daily <- 
   daily %>% 
   strr_multi(host) %>% 
   as_tibble()
+
+rm(host_new)
 
 
 # Calculate ghost hostels -------------------------------------------------
