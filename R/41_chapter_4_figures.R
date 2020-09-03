@@ -388,7 +388,6 @@ fig_polys <-
   comparison_df %>% 
   # filter(group == "FREH", year == 2020) %>% 
   group_by(group, year, variable) %>%
-  # group_by(variable) %>% 
   summarize(
     x = c(3, 5) - (variable == "total listings") * 3,
     ymax = rep(value, 2)
@@ -444,7 +443,7 @@ fig_polys %>%
                                "blocked" = col_palette[2],
                                "deactivated" = col_palette[3])) +
   facet_wrap(vars(year, group), nrow = 2) +
-  theme_void() +
+  # theme_void() +
   theme(legend.position = "bottom")
 
 
