@@ -13,7 +13,6 @@
 #' - None
 
 source("R/01_startup.R")
-library(patchwork)
 library(feasts)
 library(fabletools)
 
@@ -194,9 +193,9 @@ reservations %>%
   mutate(dif = trend - n, pct = n / trend)
   
 #' Throughout the May-August period of 2020, nightly prices have been an average 
-#' of 21.3% [1] lower than expected. Spread across the 320,700 nights reserved 
+#' of 22.2% [1] lower than expected. Spread across the 320,700 nights reserved 
 #' during this period, this means that STR operators collectively earned 
-#' $8.8 million [2] less than they would have on their bookings in the absence 
+#' $9.0 million [2] less than they would have on their bookings in the absence 
 #' of the pandemic.
 
 #' [1] Average price difference
@@ -375,8 +374,8 @@ daily %>%
 # COVID’s impact on frequently rented entire-home listings ----------------
 
 #' According to the model, the number of housing units in Montreal lost due to 
-#' commercial STRs reached its all-time peak (5,860 [1]) at the beginning of 
-#' 2020. Most of these (5,570 [1]) were FREH listings, with the remainder
+#' commercial STRs reached its all-time peak (5,870 [1]) at the beginning of 
+#' 2020. Most of these (5,580 [1]) were FREH listings, with the remainder
 #' (290 [1]) being ghost hostels—clusters of private-room listings operated 
 #' out of a single housing unit. As of July 2020, the number of FREH listings 
 #' had dropped to its lowest amount since we began tracking it in 2016, with 
@@ -409,13 +408,13 @@ daily %>%
   mutate(across(-date, round, -1))
 
 #' There were 5,900 [1] listings which we consider likely to have been FREH in 
-#' either or both of January and February 2020. Of these listings, 1,940 [2] 
+#' either or both of January and February 2020. Of these listings, 1,930 [2] 
 #' were no longer listed on Airbnb or VRBO as of July 31, 2020. This is 
-#' 32.9% [2] of these listings—twice as high as the 16.6% [3] of listings which 
+#' 32.8% [2] of these listings—twice as high as the 16.6% [3] of listings which 
 #' were FREH in either January or February 2019 and were no longer listed on the 
-#' STR platforms by the end of July 2019. In total, 36.2% [4] of non-FREH 
+#' STR platforms by the end of July 2019. In total, 36.1% [4] of non-FREH 
 #' listings active in January or February 2020 were deactivated by the end of 
-#' July 2020, while the corresponding figure last year was 32.9% [5].
+#' July 2020, while the corresponding figure last year was 32.7% [5].
 
 #' [1] FREH in either Jan or Feb 2020
 FREH_in_jan_feb <- 
@@ -465,9 +464,9 @@ property %>%
       unique()}, !property_ID %in% FREH_in_jan_feb_2019) %>% 
   summarize(mean(scraped <= "2019-07-31"))
 
-#' Of the 3,960 [1] FREH listings which remained listed throughout March - July,
-#' 1,340 [2] (33.9% [3]) were blocked (i.e. not available for reservations) for 
-#' all of the month of July, and 2,050 [4] (51.8% [5]) were blocked for a 
+#' Of the 3,970 [1] FREH listings which remained listed throughout March - July,
+#' 1,340 [2] (33.8% [3]) were blocked (i.e. not available for reservations) for 
+#' all of the month of July, and 2,060 [4] (51.8% [5]) were blocked for a 
 #' majority of the month. This is extremely rare behaviour for a dedicated STR 
 #' listing, since the summer is usually the busiest season for tourist
 #' accommodations in Montreal. In 2019, only 11.9% [6] of listings which were 
@@ -562,7 +561,7 @@ daily %>%
           nrow())} %>% 
   round(3)
 
-#' For example, in the month of February 2020, 63.4% [1] of all reserved nights
+#' For example, in the month of February 2020, 63.5% [1] of all reserved nights
 #' were booked in these FREH properties. 
 
 #' [1] Percentage of reserved nights in FREH properties in Feb 2020

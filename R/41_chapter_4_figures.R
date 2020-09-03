@@ -15,7 +15,6 @@
 #'   `01_startup.R`
 
 source("R/01_startup.R")
-library(patchwork)
 library(feasts)
 library(fabletools)
 
