@@ -103,13 +103,24 @@ rm(host_change_table, host_IDs, can_merge, merge_fun, reduce_fun)
 
 # Get matches -------------------------------------------------------------
 
+# Get final activity date
+property <- 
+  daily %>% 
+  filter(status != "B") %>% 
+  group_by(property_ID) %>% 
+  filter(date == max(date)) %>% 
+  ungroup() %>% 
+  select(property_ID, active = date) %>% 
+  left_join(property, .) %>% 
+  select(property_ID:scraped, active, housing:ltr_ID, old_host, geometry)
+
 group_matches <- 
   groupings %>% 
   map(~{
     property %>% 
       filter(property_ID %in% .x,
              listing_type =="Entire home/apt",
-             scraped - created >= 7)
+             active >= created)
   })
 
 group_matches <- group_matches[map_int(group_matches, nrow) > 0]
@@ -123,7 +134,7 @@ group_matches <-
     next_created <- next_created[2:length(next_created)] 
     .x %>%
       mutate(next_created = next_created) %>%
-      filter(scraped < next_created | is.na(next_created)) 
+      filter(active < next_created | is.na(next_created)) 
   })
 
 group_matches <- group_matches[map_int(group_matches, nrow) > 1]
@@ -138,11 +149,12 @@ property_change_table <-
           ~tibble(
             property_ID = .x$property_ID, 
             new_PID = 
-              filter(.x, scraped - created == max(scraped - created)) %>% 
+              filter(.x, active - created == max(active - created)) %>% 
               slice(1) %>% 
               pull(property_ID),
             new_created = min(.x$created),
             new_scraped = max(.x$scraped),
+            new_active = max(.x$active),
             new_ltr_IDs = list(unique(unlist(.x$ltr_ID)))
           ))
 
@@ -151,11 +163,11 @@ daily <-
   left_join(property_change_table) %>% 
   mutate(old_PID = if_else(is.na(new_PID), NA_character_, property_ID),
          property_ID = if_else(is.na(new_PID), property_ID, new_PID)) %>% 
-  select(-new_PID, -new_created, -new_scraped)
+  select(-new_PID, -new_created, -new_scraped, -new_active)
 
 property_change_collapsed <-
   property_change_table %>% 
-  group_by(new_PID, new_created, new_scraped) %>% 
+  group_by(new_PID, new_created, new_scraped, new_active) %>% 
   summarize(all_PIDs = list(property_ID),
             new_ltr_ID = list(unique(unlist(new_ltr_IDs))))
 
@@ -169,9 +181,10 @@ property <-
   filter(!property_ID %in% property_to_delete$property_ID) %>% 
   mutate(created = if_else(!is.na(new_created), new_created, created),
          scraped = if_else(!is.na(new_scraped), new_scraped, scraped),
+         active = if_else(!is.na(new_active), new_active, active),
          ltr_ID = map2(ltr_ID, new_ltr_ID, ~{if (is.null(.y)) .x else .y}),
          ltr_ID = map(ltr_ID, unique)) %>% 
-  select(-new_created, -new_scraped, -new_ltr_ID) %>% 
+  select(-new_created, -new_scraped, -new_active, -new_ltr_ID) %>% 
   select(-geometry, everything(), geometry)
 
 rm(group_matches, property_change_collapsed, property_change_table, 

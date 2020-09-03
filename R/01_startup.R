@@ -24,6 +24,7 @@ library(slider)
 library(data.table)
 library(gt)
 library(extrafont)
+library(patchwork)
 
 # Set global variables ----------------------------------------------------
 

@@ -57,6 +57,10 @@ daily <-
   daily %>% 
   filter(property_ID %in% property$property_ID)
 
+host <- 
+  host %>% 
+  filter(host_ID %in% property$host_ID)
+
 
 # Manually fix January scraped date issue ---------------------------------
 

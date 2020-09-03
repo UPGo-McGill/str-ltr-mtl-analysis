@@ -86,6 +86,8 @@ daily <-
   left_join(GH_daily, by = c("property_ID", "date")) %>% 
   mutate(GH = if_else(is.na(GH), FALSE, GH))
 
+rm(GH_daily)
+
 
 # Save output -------------------------------------------------------------
 

@@ -231,7 +231,7 @@ daily %>%
 #' active listing numbers (9,040 [1]) and host revenue ($224.6 million [2]), 
 #' falling in both cases behind Toronto (Table 2.2). However, in relative terms 
 #' Vancouver stands considerably ahead of both Montreal and Toronto. Vancouver 
-#' had the most active listings per 1000 households (13.4 [3] compared to 
+#' had the most active listings per 1000 households (12.3 [3] compared to 
 #' 10.7 [3] in Montreal) and the most revenue per listing ($38,500 [4] compared 
 #' to $24,700 [4] in Montreal).
 

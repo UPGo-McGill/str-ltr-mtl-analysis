@@ -140,7 +140,7 @@ daily <-
 # probabilities_12 <- model_12_test %>% predict(test_data_12, type = "response")
 # predicted_classes_12 <- ifelse(probabilities_12 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_12 == test_data_12$FREH)
-# # Outcome: 0.863
+# # Outcome: 0.865
 
 
 # Model based on last n months --------------------------------------------
@@ -214,16 +214,16 @@ daily <- daily %>% select(-year, -month)
 # probabilities_1 <- model_1_test %>% predict(test_data_1_3, type = "response")
 # predicted_classes_1 <- ifelse(probabilities_1 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_1 == test_data_1_3$FREH)
-# # Outcome: 0.797
+# # Outcome: 0.794
 # 
 # probabilities_3 <- model_3_test %>% predict(test_data_1_3, type = "response")
 # predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_3 == test_data_1_3$FREH)
-# # Outcome: 0.837
+# # Outcome: 0.836
 
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, host, GH, file = "output/str_processed.Rdata")
+save(property, daily, GH, file = "output/str_processed.Rdata")
 save(FREH, monthly, first_year, model_12, model_12_results, after_one_year,
      model_1, model_3, model_1_3_results, file = "output/FREH_model.Rdata")

@@ -51,6 +51,11 @@ matches <-
   bind_rows(kj_matches, cl_matches) %>% 
   select(property_ID = x_name, ltr_ID = y_name)
 
+# Make sure matches is in sync with property file
+matches <- 
+  matches %>% 
+  filter(property_ID %in% property$property_ID)
+
 rm(cl_matches, kj_matches)
 
 
