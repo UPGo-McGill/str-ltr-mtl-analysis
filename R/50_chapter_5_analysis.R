@@ -88,7 +88,7 @@ ltr %>%
   ungroup() %>% 
   count(type) %>% 
   mutate(pct = n / sum(n))
-  
+
 
 
 
@@ -111,10 +111,12 @@ ltr_unique_property_ID <-
 # Look at the unique matches based on agreement type ---------------------------------------------------
 
 ltr_unique_property_ID %>% 
+  filter(kj) %>% 
   count(short_long) %>% 
   mutate(perc = n/sum(n))
 
 ltr_unique_property_ID %>% 
+  filter(kj) %>% 
   count(type) %>% 
   mutate(perc = n/sum(n))
 
@@ -288,11 +290,11 @@ property %>%
 property %>% 
   st_drop_geometry() %>% 
   filter(scraped >= "2020-01-01", host_ID %in% (property %>%
-                                                st_drop_geometry() %>% 
-                                                filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
-                                                count(host_ID) %>% 
-                                                filter(n > 1) %>% 
-                                                arrange(desc(n)))[1,1]) %>% 
+                                                  st_drop_geometry() %>% 
+                                                  filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
+                                                  count(host_ID) %>% 
+                                                  filter(n > 1) %>% 
+                                                  arrange(desc(n)))[1,1]) %>% 
   nrow()
 
 
@@ -420,7 +422,7 @@ property %>%
   filter(!is.na(ltr_ID),
          scraped >= "2020-01-01") %>% 
   nrow() -
-property %>%
+  property %>%
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID),
          scraped >= "2020-07-01") %>% 
@@ -430,10 +432,10 @@ property %>%
 ltr_unique %>%
   unnest(property_ID) %>%
   filter(property_ID %in% (property %>%
-                       st_drop_geometry() %>% 
-                       filter(!is.na(ltr_ID),
-                              scraped >= "2020-07-01") %>% 
-                       pull(property_ID))) %>%
+                             st_drop_geometry() %>% 
+                             filter(!is.na(ltr_ID),
+                                    scraped >= "2020-07-01") %>% 
+                             pull(property_ID))) %>%
   filter(scraped < max(scraped)) %>% 
   distinct(property_ID) %>% 
   nrow()
@@ -650,7 +652,3 @@ daily %>%
   filter(daily, date >= "2017-06-01", date <= "2017-06-30",
          property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
   nrow()
-
-
-
-
