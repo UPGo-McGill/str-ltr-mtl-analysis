@@ -22,8 +22,8 @@
 source("R/01_startup.R")
 library(imager)
 
-load("output/geometry.Rdata")
 load("output/str_processed.Rdata")
+load("output/geometry.Rdata")
 load("output/ltr_processed.Rdata")
 load("output/matches_raw.Rdata")
 
@@ -130,27 +130,25 @@ first_ltr_listing <-
   ltr %>% 
   st_drop_geometry() %>% 
   unnest(property_ID) %>% 
+  filter(!is.na(property_ID)) %>% 
   arrange(created) %>% 
-  distinct(property_ID, .keep_all = T) %>% 
-  # mutate(early = if_else(
-  #   property_ID %in% filter(property, scraped >= "2020-01-01")$property_ID, 
-  #   FALSE, TRUE)) %>%
-  filter(property_ID %in% filter(property, 
-                                 scraped >= "2020-01-01")$property_ID) %>%
-  # count(created, early)
+  distinct(property_ID, .keep_all = TRUE) %>% 
   count(created, kj)
 
 figure_5_2 <- 
   first_ltr_listing %>% 
+  group_by(kj) %>% 
+  mutate(n = slide_dbl(n, mean, .before = 2)) %>% 
+  ungroup() %>% 
   filter(created >= "2020-03-01") %>% 
   ggplot(aes(created, n, fill = kj)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
          ymin = 0, ymax = Inf, alpha = .2) +
   geom_col(lwd = 0) +
   annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
-           y = 30, yend = 35, curvature = .2, lwd = 0.25,
+           y = 45, yend = 50, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-07-14"), y = 30,
+  annotate("text", x = as.Date("2020-07-14"), y = 45,
            label = "STRs banned \nby Province", family = "Futura Condensed") +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, label = scales::comma) +
@@ -179,7 +177,7 @@ figure_5_3_left <-
   count(borough) %>% 
   left_join(boroughs, .) %>% 
   ggplot() +
-  # geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(aes(fill = n), colour = "white") +
   scale_fill_gradientn(colors = col_palette[c(3, 4)],
                        limits = c(0, 1500),
@@ -283,7 +281,7 @@ ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_4.pdf")
 
 
-# Figure 5.5 Date of first STR listing ------------------------------------
+# Figure 5.5 Match comparisons --------------------------------------------
 
 first_listing <- 
   property %>% 
@@ -291,9 +289,9 @@ first_listing <-
   filter(active > "2020-01-01") %>% 
   transmute(property_ID,
             active_length = as.numeric(round((active - created) / 30) / 12),
-            matched = if_else(!is.na(ltr_ID), "Matched STR", "Not matched"))
+            matched = if_else(!is.na(ltr_ID), "Matched to STR", "Not matched"))
 
-figure_5_5 <- 
+figure_5_5_1 <- 
   first_listing %>% 
   ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 27) +
@@ -313,14 +311,6 @@ figure_5_5 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
-       height = 2.5, units = "in", useDingbats = FALSE)
-
-extrafont::embed_fonts("output/figures/figure_5_5.pdf")
-
-
-# Figure 5.6 Annual revenue -----------------------------------------------
-
 annual_revenue <- 
   daily %>%
   filter(housing,
@@ -337,7 +327,7 @@ annual_revenue <-
   group_by(host_ID, matched) %>% 
   summarize(host_rev = sum(revenue_LTM))
 
-figure_5_6 <-
+figure_5_5_2 <-
   annual_revenue %>% 
   ggplot(aes(host_rev, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 30) +
@@ -358,21 +348,13 @@ figure_5_6 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_6.pdf", plot = figure_5_6, width = 8, 
-       height = 2.5, units = "in", useDingbats = FALSE)
-
-extrafont::embed_fonts("output/figures/figure_5_6.pdf")
-
-
-# Figure 5.7 Length of stay -----------------------------------------------
-
 length_of_stay <- 
   ltr_unique %>% 
   mutate(active_length = scraped - created) %>% 
   mutate(matched = if_else(!is.na(property_ID), "Matched to STR", 
                            "Not matched"))
 
-figure_5_7 <-  
+figure_5_5_3 <-  
   length_of_stay %>% 
   ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 27) +
@@ -391,7 +373,19 @@ figure_5_7 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_7.pdf", plot = figure_5_7, width = 8, 
-       height = 2.5, units = "in", useDingbats = FALSE)
+figure_5_5 <- figure_5_5_1 + figure_5_5_2 + figure_5_5_3 + plot_layout(nrow = 3)
 
-extrafont::embed_fonts("output/figures/figure_5_7.pdf")
+ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
+       height = 7.5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_5.pdf")
+
+
+# Clean up ----------------------------------------------------------------
+
+rm(ab_matches, annual_revenue, asking_rents, boroughs, boroughs_raw, city,
+   cl_matches, DA, figure_5_1, figure_5_2, figure_5_3, figure_5_3_left,
+   figure_5_3_right, figure_5_4, figure_5_5, figure_5_5_1, figure_5_5_2,
+   figure_5_5_3, first_listing, first_ltr_listing, first_photo_pair,
+   kj_matches, length_of_stay, ltr, ltr_unique, ltr_unique_property_ID, photos,
+   province, second_photo_pair, streets, streets_downtown, titles)
