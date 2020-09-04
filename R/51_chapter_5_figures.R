@@ -291,7 +291,7 @@ first_listing <-
   filter(active > "2020-01-01") %>% 
   transmute(property_ID,
             active_length = as.numeric(round((active - created) / 30) / 12),
-            matched = if_else(!is.na(ltr_ID), "Matched to STR", "Not matched"))
+            matched = if_else(!is.na(ltr_ID), "Matched STR", "Not matched"))
 
 figure_5_5 <- 
   first_listing %>% 
