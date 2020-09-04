@@ -1,0 +1,318 @@
+#### 51 CHAPTER 5 FIGURES FRANCAIS ######################################################
+
+#' This script produces the graphs and maps for chapter 5. It runs quickly.
+#' 
+#' Output:
+#' - `figure_5_1.pdf`
+#' - `figure_5_2.pdf`
+#' - `figure_5_3.pdf`
+#' - `figure_5_4.pdf`
+#' - `figure_5_5.pdf`
+#' 
+#' Script dependencies:
+#' - `02_geometry_import.R`
+#' - `07_ltr_listing_match.R`
+#' - `09_str_processing.R`
+#' - `11_FREH_model.R`
+#' 
+#' External dependencies:
+#' - The Futura and Futura Condensed fonts, which can be imported in 
+#'   `01_startup.R`
+
+source("R/01_startup.R")
+library(imager)
+
+load("output/geometry.Rdata")
+load("output/str_processed.Rdata")
+load("output/ltr_processed.Rdata")
+load("output/matches_raw.Rdata")
+
+
+# Prepare new objects -----------------------------------------------------
+
+# Distinct LTR listings
+ltr_unique <- 
+  ltr %>% 
+  st_drop_geometry() %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(id, .keep_all = TRUE)
+
+# Unique matching property_ID locations
+ltr_unique_property_ID <- 
+  ltr %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(property_ID)) %>% 
+  unnest(property_ID) %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(property_ID) %>% 
+  inner_join(unnest(ltr, property_ID), by = "property_ID") %>% 
+  arrange(desc(scraped)) %>% 
+  distinct(property_ID, .keep_all = TRUE)
+
+
+# Figure 5.1 Airbnb/Kijiji comparaison d'images -------------------------------
+
+first_photo_pair <- 
+  kj_matches %>% 
+  mutate(across(c(x_name, y_name), str_replace, "mtl", "montreal")) %>% 
+  slice(1:100) %>% 
+  filter(confirmation == "match") %>% 
+  slice(4)
+
+second_photo_pair <- 
+  cl_matches %>% 
+  mutate(across(c(x_name, y_name), str_replace, "mtl", "montreal")) %>% 
+  filter(confirmation == "match") %>% 
+  slice(2633)
+
+titles <- list(
+  
+  first_photo_pair$x_name %>% 
+    str_extract('ab-.*(?=\\.jpg)') %>% 
+    {filter(property, property_ID == .)} %>% 
+    pull(listing_title),
+  
+  first_photo_pair$y_name %>% 
+    str_extract('kj-.*(?=-[:digit:]\\.jpg)') %>% 
+    {filter(ltr, id == .)} %>% 
+    slice(1) %>% 
+    pull(title) %>% 
+    str_remove(' \\|.*'),
+  
+  property %>% 
+    filter(map_lgl(all_PIDs, ~{
+      str_extract(second_photo_pair$x_name, 'ab-.*(?=\\.jpg)') %in% .x})) %>% 
+    pull(listing_title),
+  
+  second_photo_pair$y_name %>% 
+    str_extract('cl-.*(?=-[:digit:]\\.jpg)') %>% 
+    {filter(ltr, id == .)} %>% 
+    slice(1) %>% 
+    pull(title) %>% 
+    str_remove(' - apts.*')
+)
+
+photos <- 
+  pmap(list(list(first_photo_pair$x_name, first_photo_pair$y_name, 
+                 second_photo_pair$x_name, second_photo_pair$y_name), 
+            titles,
+            c("A", "B", "C", "D")),
+       ~{.x %>% 
+           load.image() %>% 
+           as.data.frame(wide = "c") %>% 
+           mutate(rgb = rgb(c.1, c.2, c.3)) %>% 
+           ggplot(aes(x, y)) +
+           geom_raster(aes(fill = rgb)) + 
+           scale_fill_identity() +
+           scale_y_continuous(trans = scales::reverse_trans()) +
+           ggtitle(paste0(..3, ". ", case_when(
+             str_detect(..1, "ab-") ~ "Airbnb",
+             str_detect(..1, "cl-") ~ "Craigslist",
+             str_detect(..1, "kj-") ~ "Kijiji")),
+             subtitle = paste0('"', ..2, '"')) +
+           theme_void() +
+           theme(plot.title = element_text(family = "Futura",
+                                           face = "bold", size = 9),
+                 plot.subtitle = element_text(family = "Futura Condensed",
+                                              face = "plain", size = 9))})
+
+figure_5_1 <- wrap_plots(photos)
+
+ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_1.pdf")
+
+
+# Figure 5.2 Date de la premiere annonce LLT------------------------------------
+
+first_ltr_listing <-
+  ltr %>% 
+  st_drop_geometry() %>% 
+  unnest(property_ID) %>% 
+  arrange(created) %>% 
+  distinct(property_ID, .keep_all = T) %>% 
+  # mutate(early = if_else(
+  #   property_ID %in% filter(property, scraped >= "2020-01-01")$property_ID, 
+  #   FALSE, TRUE)) %>%
+  filter(property_ID %in% filter(property, 
+                                 scraped >= "2020-01-01")$property_ID) %>%
+  # count(created, early)
+  count(created, kj)
+
+figure_5_2 <- 
+  first_ltr_listing %>% 
+  filter(created >= "2020-03-01") %>% 
+  ggplot(aes(created, n, fill = kj)) +
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
+           ymin = 0, ymax = Inf, alpha = .2) +
+  geom_col(lwd = 0) +
+  annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
+           y = 30, yend = 35, curvature = .2, lwd = 0.25,
+           arrow = arrow(length = unit(0.05, "inches"))) +
+  annotate("text", x = as.Date("2020-07-14"), y = 30,
+           label = "LCT interdits \npar la province", family = "Futura Condensed") +
+  scale_x_date(name = NULL) +
+  scale_y_continuous(name = NULL, label = scales::comma) +
+  scale_fill_manual(name = NULL, labels = c("Craigslist", "Kijiji"), 
+                    values = col_palette[c(1, 3)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(face = "plain", family = "Futura"),
+        legend.title = element_text(face = "bold", family = "Futura", 
+                                    size = 10),
+        legend.text = element_text( size = 10, family = "Futura"))
+
+
+ggsave("output/figures/figure_5_2F.pdf", plot = figure_5_2, width = 8, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_2F.pdf")
+
+
+# Figure 5.3 Distribution spatiale des correspondances ----------------------
+
+figure_5_3_left <-
+  ltr_unique_property_ID %>% 
+  select(-geometry) %>% 
+  count(borough) %>% 
+  left_join(boroughs, .) %>% 
+  ggplot() +
+  # geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  geom_sf(aes(fill = n), colour = "white") +
+  scale_fill_gradientn(colors = col_palette[c(3, 4)],
+                       limits = c(0, 1500),
+                       breaks = c(0, 300, 600, 900, 1200, 1500),
+                       na.value = "grey80")  +
+  guides(fill = guide_colourbar(title = "Nombre total de\ncorrespondances LCT-LLT",
+                                title.vjust = 1)) + 
+  gg_bbox(boroughs) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold",
+                                    size = 7),
+        legend.title.align = 0.9,
+        legend.text = element_text(family = "Futura", size = 5),
+        panel.border = element_rect(colour = "white", size = 2))
+
+figure_5_3_right <-
+  ltr_unique_property_ID %>% 
+  select(-geometry) %>% 
+  count(borough) %>% 
+  left_join(count(filter(daily, status != "B", date == "2020-03-01"), borough),
+            by = "borough") %>% 
+  mutate(pct = n.x / n.y) %>% 
+  left_join(boroughs, .) %>% 
+  ggplot() +
+  geom_sf(data = province, colour = "transparent", fill = "grey93") +
+  geom_sf(aes(fill = pct), colour = "white") +
+  scale_fill_gradientn(colors = col_palette[c(5, 2)], 
+                       na.value = "grey80",
+                       limits = c(0, .5),
+                       breaks = c(0, 0.1, .2, .3, .4, .5),
+                       label = scales::label_percent(accuracy = 1))  +
+  guides(fill = guide_colourbar(title = "% de correspondances\npar LCT actives",
+                                title.vjust = 1)) + 
+  gg_bbox(boroughs) +
+  theme_void() +
+  theme(legend.position = "bottom",
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold",
+                                    size = 7),
+        legend.title.align = 0.9,
+        legend.text = element_text(family = "Futura", size = 5),
+        panel.border = element_rect(colour = "white", size = 2))
+
+figure_5_3 <- figure_5_3_left + figure_5_3_right
+
+ggsave("output/figures/figure_5_3F.pdf", plot = figure_5_3, width = 8, 
+       height = 4.2, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_3F.pdf")
+
+
+# Figure 5.4 Loyer moyen demandé -----------------------------------------
+
+asking_rents <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000) %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(matched, created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup() %>% 
+  mutate(status = if_else(matched, "Correspondances", "Non-correspondances"), 
+         .before = created) %>% 
+  select(-matched)
+
+asking_rents <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000) %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup() %>% 
+  mutate(status = "Toutes les annonces", .before = created) %>% 
+  bind_rows(asking_rents)
+
+figure_5_4 <-
+  asking_rents %>% 
+  filter(created >= "2020-03-13", created <= "2020-07-31") %>% 
+  ggplot(aes(created, avg_price, color = status)) +
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
+           ymin = -Inf, ymax = Inf, alpha = .2) +
+  geom_line(lwd = 1) +
+  scale_x_date(name = NULL, limits = c(as.Date("2020-03-01"), NA)) +
+  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_color_manual(name = NULL, values = col_palette[c(5, 1, 3)]) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold", 
+                                    size = 10),
+        legend.text = element_text(family = "Futura", size = 10))
+
+ggsave("output/figures/figure_5_4F.pdf", plot = figure_5_4, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_4F.pdf")
+
+
+# Figure 5.5. Durée de la présence des correspondances et non-correspondances sur les plate-formes de LLT--------------------------------------------------
+
+figure_5_5 <- unique_ltr %>% 
+  mutate(how_long_they_stay = scraped-created) %>% 
+  arrange(desc(how_long_they_stay)) %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  count(how_long_they_stay, matched) %>% 
+  group_by(matched) %>% 
+  mutate(perc = n/sum(n)) %>% 
+  ggplot()+
+  # geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3)+
+  geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F)+
+  xlab("Nombre de jours en ligne")+
+  ylab("Pourcentage de toutes les annonces dans le groupe")+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  scale_color_manual(name = "Group",
+                     values = col_palette[c(1, 3)],
+                     labels = c("N'a pas correspondu", "A correspondu")) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        #text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(#family = "Futura", face = "bold", 
+          size = 10),
+        legend.text = element_text(#family = "Futura", 
+          size = 10)
+  )
+
+ggsave("output/figures/figure_5_5F.pdf", plot = figure_5_5, width = 8, 
+       height = 5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_5F.pdf")
