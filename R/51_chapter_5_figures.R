@@ -21,7 +21,6 @@
 
 source("R/01_startup.R")
 library(imager)
-library(patchwork)
 
 load("output/geometry.Rdata")
 load("output/str_processed.Rdata")
@@ -234,7 +233,7 @@ ggsave("output/figures/figure_5_3.pdf", plot = figure_5_3, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_3.pdf")
 
 
-# Figure 5.4. Median asking rents for matches and non-matches through time -----------------------------------------------------
+# Figure 5.4 Average asking rents -----------------------------------------
 
 asking_rents <- 
   ltr_unique %>% 
@@ -243,29 +242,32 @@ asking_rents <-
   group_by(matched, created) %>%
   summarize(avg_price = mean(price)) %>% 
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
-  ungroup()
+  ungroup() %>% 
+  mutate(status = if_else(matched, "Matched to STR", "Not matched"), 
+         .before = created) %>% 
+  select(-matched)
 
-ltr_unique %>% 
+asking_rents <- 
+  ltr_unique %>% 
   filter(price > 425, price < 8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(created) %>%
   summarize(avg_price = mean(price)) %>% 
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
   ungroup() %>% 
-  mutate()
+  mutate(status = "All listings", .before = created) %>% 
+  bind_rows(asking_rents)
 
 figure_5_4 <-
   asking_rents %>% 
   filter(created >= "2020-03-13", created <= "2020-07-31") %>% 
-  ggplot(aes(created, avg_price, color = matched)) +
+  ggplot(aes(created, avg_price, color = status)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL, limits = c(as.Date("2020-03-01"), NA)) +
   scale_y_continuous(name = NULL, label = scales::dollar) +
-  scale_color_manual(name = "Group",
-                     values = col_palette[c(1, 3)],
-                     labels = c("Did not match", "Matched")) +
+  scale_color_manual(name = NULL, values = col_palette[c(5, 1, 3)]) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
