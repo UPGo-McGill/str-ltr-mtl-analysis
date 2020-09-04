@@ -39,6 +39,15 @@ property <-
   mutate(active = active_new) %>% 
   select(-active_new)
 
+daily <- 
+  daily %>% 
+  group_by(property_ID, date, status) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  group_by(property_ID, date) %>% 
+  filter(n() == 1 | (n() == 2 & status != "B")) %>% 
+  ungroup()
+
 
 # Calculate multilistings -------------------------------------------------
 
