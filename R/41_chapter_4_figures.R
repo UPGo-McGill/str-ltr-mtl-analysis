@@ -483,6 +483,7 @@ ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_4_4.pdf")
 
 
+# Figure 4.5 Reservation trajectories of FREH and non-FREH listings -------
 
 FREH_in_jan_feb <- 
   daily %>% 
