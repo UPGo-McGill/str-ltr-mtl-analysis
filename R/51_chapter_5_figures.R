@@ -297,12 +297,12 @@ figure_5_5 <-
   first_listing %>% 
   ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 27) +
-  facet_wrap(vars(matched)) +
   scale_x_continuous(name = "Years of activity", limits = c(NA, 10),
                      breaks = c(0:2 * 5)) +
   scale_y_continuous(name = "Percentage of listings",
                      labels = scales::percent_format(accuracy = 1)) +
   scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+  facet_wrap(vars(matched)) +
   theme_minimal() +
   theme(legend.position = "none",
         panel.grid.minor.x = element_blank(),
@@ -314,87 +314,84 @@ figure_5_5 <-
         strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 2.5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_5_5.pdf")
 
-  
 
-# Figure 5.4. Distribution of matches by revenue earned in 2019 ---------------------------------------------------------------
+# Figure 5.6 Annual revenue -----------------------------------------------
 
-figure_5_4 <- daily %>%
+annual_revenue <- 
+  daily %>%
   filter(housing,
          date <= LTM_end_date, date >= LTM_start_date,
          status == "R") %>%
   group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price) ) %>% 
-  inner_join(property, .) %>% # still a lot of more work to do on that!!!!!
+  summarize(revenue_LTM = sum(price)) %>% 
+  inner_join(property, .) %>%
   st_drop_geometry() %>% 
-  filter(revenue_LTM > 0) %>%
-  mutate(matched = if_else(host_ID %in% (property %>%
-                                           st_drop_geometry() %>%
-                                           filter(property_ID %in% ltr_unique_property_ID$property_ID) %>%
-                                           pull(host_ID)), TRUE, FALSE)) %>%
+  mutate(matched = if_else(
+    host_ID %in% (filter(property, property_ID %in% 
+                           ltr_unique_property_ID$property_ID))$host_ID, 
+    "Matched to STR", "Not matched")) %>%
   group_by(host_ID, matched) %>% 
-  summarize(host_rev = sum(revenue_LTM)) %>% 
-  group_by(matched) %>% 
-  ggplot()+
-  geom_density(aes(host_rev, fill = matched), colour=NA, alpha = 0.7)+
-  scale_x_continuous(name="Hosts revenue", limits = c(0, 100000),
-                     labels =scales::dollar)+
-  scale_y_continuous(name="Density of all hosts within the group",
-                     labels =scales::comma)+
-  scale_fill_manual(name = "Group",
-                     values = col_palette[c(1, 3)],
-                     labels = c("Did not match", "Matched"))+
+  summarize(host_rev = sum(revenue_LTM))
+
+figure_5_6 <-
+  annual_revenue %>% 
+  ggplot(aes(host_rev, after_stat(width * density), fill = matched)) +
+  geom_histogram(bins = 30) +
+  scale_x_continuous(name = "Annual host revenue", limits = c(0, 100000),
+                     labels = scales::dollar_format(scale = 0.001, 
+                                                    suffix = "k")) +
+  scale_y_continuous(name = "Percentage of hosts", limits = c(NA, .25),
+                     labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+  facet_wrap(vars(matched)) +
   theme_minimal() +
-  theme(legend.position = "bottom",
+  theme(legend.position = "none",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        text = element_text(face = "plain"), #family = "Futura", 
-        legend.title = element_text(#family = "Futura", face = "bold", 
-          size = 10),
-        legend.text = element_text(#family = "Futura", 
-          size = 10)
-  )
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold", 
+                                    size = 10),
+        legend.text = element_text(family = "Futura", size = 10),
+        strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+ggsave("output/figures/figure_5_6.pdf", plot = figure_5_6, width = 8, 
+       height = 2.5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_4.pdf")
+extrafont::embed_fonts("output/figures/figure_5_6.pdf")
 
 
-# Figure 5.5. Length of stay of matches and non-matches on LTR platforms --------------------------------------------------
+# Figure 5.7 Length of stay -----------------------------------------------
 
-figure_5_5 <- unique_ltr %>% 
-  mutate(how_long_they_stay = scraped-created) %>% 
-  arrange(desc(how_long_they_stay)) %>% 
-  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
-  count(how_long_they_stay, matched) %>% 
-  group_by(matched) %>% 
-  mutate(perc = n/sum(n)) %>% 
-  ggplot()+
-  # geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3)+
-  geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F)+
-  xlab("Days online")+
-  ylab("Percentage of all listings within the group")+
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
-  scale_color_manual(name = "Group",
-                     values = col_palette[c(1, 3)],
-                     labels = c("Did not match", "Matched")) +
+length_of_stay <- 
+  ltr_unique %>% 
+  mutate(active_length = scraped - created) %>% 
+  mutate(matched = if_else(!is.na(property_ID), "Matched to STR", 
+                           "Not matched"))
+
+figure_5_7 <-  
+  length_of_stay %>% 
+  ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
+  geom_histogram(bins = 27) +
+  scale_x_continuous(name = "Days online") +
+  scale_y_continuous(name = "Percentage of listings",
+                     labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+  facet_wrap(vars(matched)) +
   theme_minimal() +
-  theme(legend.position = "bottom",
+  theme(legend.position = "none",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        #text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(#family = "Futura", face = "bold", 
-          size = 10),
-        legend.text = element_text(#family = "Futura", 
-          size = 10)
-        )
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold", 
+                                    size = 10),
+        legend.text = element_text(family = "Futura", size = 10),
+        strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+ggsave("output/figures/figure_5_7.pdf", plot = figure_5_7, width = 8, 
+       height = 2.5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_5.pdf")
-
+extrafont::embed_fonts("output/figures/figure_5_7.pdf")
