@@ -213,7 +213,7 @@ figure_5_3_right <-
                        limits = c(0, .5),
                        breaks = c(0, 0.1, .2, .3, .4, .5),
                        label = scales::label_percent(accuracy = 1))  +
-  guides(fill = guide_colourbar(title = "% de correspondances\npar LCT actives",
+  guides(fill = guide_colourbar(title = "% de correspondances\npar annonces LCT actives",
                                 title.vjust = 1)) + 
   gg_bbox(boroughs) +
   theme_void() +
@@ -299,7 +299,7 @@ figure_5_5 <-
   geom_histogram(bins = 27) +
   scale_x_continuous(name = "Années d'activité", limits = c(NA, 10),
                      breaks = c(0:2 * 5)) +
-  scale_y_continuous(name = "Percentage d'annonces",
+  scale_y_continuous(name = "Pourcentage d'annonces",
                      labels = scales::percent_format(accuracy = 1)) +
   scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
   facet_wrap(vars(matched)) +
@@ -310,7 +310,8 @@ figure_5_5 <-
         text = element_text(family = "Futura", face = "plain"),
         legend.title = element_text(family = "Futura", face = "bold", 
                                     size = 10),
-        legend.text = element_text(family = "Futura", size = 10),
+        legend.text = element_text(family = "Futura", 
+          size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_5_5F.pdf", plot = figure_5_5, width = 8, 
@@ -341,7 +342,7 @@ figure_5_6 <-
   annual_revenue %>% 
   ggplot(aes(host_rev, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 30) +
-  scale_x_continuous(name = "Revenus annuels des hôtes", limits = c(0, 100000),
+  scale_x_continuous(name = "Revenu annuel des hôtes", limits = c(0, 100000),
                      labels = scales::dollar_format(scale = 0.001, 
                                                     suffix = "k")) +
   scale_y_continuous(name = "Percentage d'hôtes", limits = c(NA, .25),
@@ -376,8 +377,8 @@ figure_5_7 <-
   length_of_stay %>% 
   ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 27) +
-  scale_x_continuous(name = "Days online") +
-  scale_y_continuous(name = "Percentage of listings",
+  scale_x_continuous(name = "Jours en ligne") +
+  scale_y_continuous(name = "Pourcentage d'annonces",
                      labels = scales::percent_format(accuracy = 1)) +
   scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
   facet_wrap(vars(matched)) +
