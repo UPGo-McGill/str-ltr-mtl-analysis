@@ -54,13 +54,13 @@ GH_borough <-
 
 # STR-induced housing loss ------------------------------------------------
 
-#' At the end of 2019, there were 5,160 [1] FREH listings in the City of 
+#' At the end of 2019, there were 5,150 [1] FREH listings in the City of 
 #' Montreal, and 370 [2] more housing units which were operating as ghost 
 #' hostels. In total, therefore, short-term rentals removed 5,520 [3] housing 
 #' units from Montreal’s long-term market last year (Figure 3.1). Notably, while 
-#' the number of active daily listings declined by 5.5% over 2019, the number of 
+#' the number of active daily listings declined by 5.6% over 2019, the number of 
 #' housing units which STRs took off of Montreal’s housing market increased by 
-#' 16.5% [4] in that same time period, from 4,740 [5] to 5,520.
+#' 16.6% [4] in that same time period, from 4,730 [5] to 5,520.
 
 #' [1] FREH in 2019-1
 FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3) %>% round(digit = -1)
@@ -75,11 +75,13 @@ GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>%
   round(digit = -1)
 
 #' [4] YOY increase in housing loss
-{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
+{{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
     {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} /
   {{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
       {GH %>% filter(date == LTM_end_date - years(1)) %>% 
-          pull(housing_units) %>% sum()}}
+          pull(housing_units) %>% sum()}}} %>% 
+  {. - 1} %>% 
+  round(3)
 
 #' [5] Total housing loss for 2018
 {{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
@@ -88,9 +90,9 @@ GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>%
   round(digit = -1)
 
 #' At the end of 2019 more than six in ten (62.0% [1]) entire-home listings 
-#' and one in four (26.0% [1]) private-room listings were taking housing off 
+#' and one in four (25.4% [1]) private-room listings were taking housing off 
 #' the market in Montreal (Figure 3.2). Three years earlier, the proportions 
-#' were only 34.2% [1] and 12.7% [1] respectively.
+#' were only 34.2% [1] and 12.3% [1] respectively.
 
 #' [1] Housing loss shares
 daily %>% 
