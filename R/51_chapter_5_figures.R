@@ -283,43 +283,40 @@ ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_4.pdf")
 
 
-# Figure 5.4 Date of first STR listing ------------------------------------
+# Figure 5.5 Date of first STR listing ------------------------------------
 
-figure_5_4 <- 
+first_listing <- 
   property %>% 
   st_drop_geometry() %>% 
-  filter(scraped >= "2020-01-01",
-         property_ID %in% filter(daily, housing, status != "B", date >= "2020-01-01")$property_ID) %>% 
-  mutate(how_long_they_stay = round((scraped - created) / 30) / 12) %>% 
-  arrange(desc(how_long_they_stay)) %>% 
-  mutate(matched = if_else(!is.na(ltr_ID), TRUE, FALSE)) %>% 
-  count(how_long_they_stay, matched) %>% 
-  group_by(matched) %>% 
-  mutate(perc = n/sum(n)) %>% 
-  ggplot() +
-  geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3) +
-  geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F) +
-  xlab("Years of activity") +
-  ylab("Percentage of all listings within the group") +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-  scale_color_manual(name = "Group",
-                     values = col_palette[c(1, 3)],
-                     labels = c("Did not match", "Matched")) +
+  filter(active > "2020-01-01") %>% 
+  transmute(property_ID,
+            active_length = as.numeric(round((active - created) / 30) / 12),
+            matched = if_else(!is.na(ltr_ID), "Matched to STR", "Not matched"))
+
+figure_5_5 <- 
+  first_listing %>% 
+  ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
+  geom_histogram(bins = 27) +
+  facet_wrap(vars(matched)) +
+  scale_x_continuous(name = "Years of activity", limits = c(NA, 10),
+                     breaks = c(0:2 * 5)) +
+  scale_y_continuous(name = "Percentage of listings",
+                     labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
   theme_minimal() +
-  theme(legend.position = "bottom",
+  theme(legend.position = "none",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        #text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(#family = "Futura", face = "bold", 
-          size = 10),
-        legend.text = element_text(#family = "Futura", 
-          size = 10)
-  )
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold", 
+                                    size = 10),
+        legend.text = element_text(family = "Futura", size = 10),
+        strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_3.pdf", plot = figure_5_3, width = 8, 
+ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_3.pdf")
+extrafont::embed_fonts("output/figures/figure_5_5.pdf")
 
   
 
