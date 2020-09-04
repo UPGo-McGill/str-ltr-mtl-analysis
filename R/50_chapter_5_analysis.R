@@ -52,7 +52,7 @@ ltr_unique_property_ID <-
 #' multiple times) in the City of Montreal. The matching LTR listings were 
 #' evenly split between Kijiji (2,596 [2] listings, or 53.6%) and Craigslist 
 #' (2,246 [2] listings, or 46.4%). Out of the 2,526 matching Airbnb listings,
-#' half (1,264 [3] listings) were active STRs in 2020, which establishes a 
+#' 49.7% (1,264 [3] listings) were active STRs in 2020, which establishes a 
 #' lower bound for the number of unique housing units that went from the STR 
 #' market to the LTR market due to the COVID-19 pandemic.
 
@@ -555,9 +555,9 @@ ltr_unique %>%
 #' listing up-and-running for future bookings? Looking at whether the listings that matched 
 #' remained on a STR platform is an indicator of the strategy of the hosts. As stated above, 
 #' we identified 1,264 STR listings that were still in operation in 2020, from which it is 
-#' possible to study recent activity. Out of this number, 638 [1] STR listings were still active 
+#' possible to study recent activity. Out of this number, 635 [1] STR listings were still active 
 #' at least once in the month of July 2020. The number of active listings by July 31th, last 
-#' day of data, was already down to 421 [2]. It means that a very conservative minimum of 626 [3]
+#' day of data, was already down to 420 [2]. It means that a very conservative minimum of 621 [3]
 #' of our matches (50.5% were removed from the STR platform.
 
 #' [1] number of matches that remained on STR platforms
@@ -587,8 +587,8 @@ property %>%
 #' to make sure no reservations can occur, while keeping their perfectly good listings 
 #' intact for when activity in the STR market starts again. The units that matched and still 
 #' appear on the STR platforms, but have a blocked calendar on every day of the month of 
-#' July 2020, may have successfully made the move to the LTR market. These account for 325 [1]
-#' units out of the 626 units (51.9% [2]) which we conservatively consider that could have moved 
+#' July 2020, may have successfully made the move to the LTR market. These account for 327 [1]
+#' units out of the 621 units (51.9% [2]) which we conservatively consider that could have moved 
 #' to the LTR market. The rest are listings deactivated indefinitely. 
 
 #' [1] Number of units inactive in July, but still on the platform
@@ -613,18 +613,19 @@ property %>%
 
 #' More info on listings matching
 
-#' Of these 626 units, 369 [1] had at least three months of reservations and availability 
+#' Of these 626 units, 368 [1] had at least three months of reservations and availability 
 #' which are consistent with a year-long full-time operation. These 626 housing units have 
-#' been available on a STR platform for the last 19.48 [2] months on average, while the average 
+#' been available on a STR platform for the last 19.5 [2] months on average, while the average 
 #' for all listings active in 2020 on the STR platform is 26.2 [2] months. This indicates that 
 #' the matches most likely rented through an LTR platform were on average newer listings. As 
-#' for spatial distribution of these matches, 45.4% (284) [3] of the 626 housing units that were 
-#' rented on the LTR market are located in Ville-Marie, 23.8% (149) [3] in Le Plateau-Mont-Royal, 
-#' and 9.0% (56) [3] in le Sud-Ouest. The rest (137) [4] are distributed in 13 [4] other boroughs. The 
+#' for spatial distribution of these matches, 45.4% (282) [3] of the 621 housing units that were 
+#' rented on the LTR market are located in Ville-Marie, 23.7% (147) [3] in Le Plateau-Mont-Royal, 
+#' and 9.0% (55) [3] in le Sud-Ouest. The rest (137) [4] are distributed in 13 [4] other boroughs. The 
 #' total 626 STR listings were operated by 348 [5] hosts. These hosts had a median revenue of 
 #' $23,600 [6] in 2019, while the median revenue for the entire STR platforms in the City of 
 #' Montreal was $4,300. The average revenue of these hosts is $224,000 [7], while it was $16,900 
 #' for hosts active on STR platforms in Montreal in 2019. 
+
 
 #' [1] FREH? 
 property %>%
