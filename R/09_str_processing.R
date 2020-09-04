@@ -22,6 +22,24 @@ doParallel::registerDoParallel()
 load("output/str_processed.Rdata")
 
 
+# Recalculate active date -------------------------------------------------
+
+daily_active <- 
+  daily %>% 
+  filter(status != "B") %>% 
+  group_by(property_ID) %>% 
+  filter(date == max(date)) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  select(property_ID, active_new = date)
+
+property <- 
+  property %>% 
+  left_join(daily_active) %>% 
+  mutate(active = active_new) %>% 
+  select(-active_new)
+
+
 # Calculate multilistings -------------------------------------------------
 
 host <- 
