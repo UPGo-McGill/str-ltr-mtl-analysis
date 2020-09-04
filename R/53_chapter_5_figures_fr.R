@@ -8,6 +8,8 @@
 #' - `figure_5_3.pdf`
 #' - `figure_5_4.pdf`
 #' - `figure_5_5.pdf`
+#' - `figure_5_6.pdf`
+#' - `figure_5_7.pdf`
 #' 
 #' Script dependencies:
 #' - `02_geometry_import.R`
