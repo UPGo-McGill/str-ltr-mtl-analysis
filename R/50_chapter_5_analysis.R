@@ -52,7 +52,7 @@ ltr_unique_property_ID <-
 #' multiple times) in the City of Montreal. The matching LTR listings were 
 #' evenly split between Kijiji (2,596 [2] listings, or 53.6%) and Craigslist 
 #' (2,246 [2] listings, or 46.4%). Out of the 2,526 matching Airbnb listings,
-#' 58.4% (1,475 [3] listings) were active STRs in 2020, which establishes a 
+#' half (1,264 [3] listings) were active STRs in 2020, which establishes a 
 #' lower bound for the number of unique housing units that went from the STR 
 #' market to the LTR market due to the COVID-19 pandemic.
 
@@ -83,11 +83,11 @@ ltr %>%
 
 #' [3] Unique STR matches active in 2020
 property %>% 
-  filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
+  filter(!is.na(ltr_ID), active >= "2020-01-01") %>% 
   nrow()
 
 property %>% 
-  filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
+  filter(!is.na(ltr_ID), active >= "2020-01-01") %>% 
   nrow()/
   property %>% 
   filter(!is.na(ltr_ID)) %>% 
@@ -119,7 +119,23 @@ ltr_unique_property_ID %>%
   count(type) %>% 
   mutate(perc = n/sum(n))
 
-# Spatial distribution of the matches ---------------------------------------------------
+# Spatial distribution of the matches --------------------------------------
+
+#' Out of the 2,526 unique STR listings matched to LTR listings in the City 
+#' of Montreal, 44.5% were situated in the Ville-Marie borough (1143 matches) 
+#' and 28.5% in Le Plateau-Mont-Royal (733 matches). Le Sud-Ouest had 210 
+#' matches (8.2%), Côte-des-Neiges-Notre-Dame-de-Grâce had 128 matches 
+#' (5.0%),  and Rosemont-La-Petite-Patrie had 102 matches (4.0%). In general, 
+#' this is congruent with the distribution of all active STR listings in 
+#' the City of Montreal (see section 2), which are predominantly located 
+#' in Ville-Marie and Le Plateau-Mont-Royal boroughs. However, Ville-Marie 
+#' was overrepresented with over half of the STRs found on a LTR platform 
+#' originating from this borough, while STRs in Ville-Marie represented only
+#' 32.6% of all STRs in Montreal. However, the movement of STR listings to
+#' LTR platforms closely proportionality corresponds to the level of 
+#' commercial listings (listings representing housing loss and run by STR 
+#' operators with multiple listings), which are concentrated in these two 
+#' boroughs.
 
 #' [1] Total number of unique matches by borough
 property %>% 
@@ -134,7 +150,23 @@ ltr %>%
   View()
 
 
-# Unit size of the matches ---------------------------------------------------
+# Detailed information on matches ------------------------------------------
+
+#'Unit size of the matches 
+
+#' Table 5.1 shows the distributions of units by number of bedrooms for 
+#' entire-home STRs, as well as all the units that were posted for rent on LTR 
+#' platforms (both the ones that matched with an STR listing and the ones 
+#' that did not match), and for the rental housing stock of the City of 
+#' Montreal. Studios were over-represented among LTR matches (17.0%) 
+#' compared with both STR listings (in 2019, 10.0%) and Montreal’s rental 
+#' stock (9.9%). Units with three-bedrooms or more were over-represented in 
+#' LTR listings, at 21.4% for matches and 19.9% for non-matches, compared to 
+#' that of the City (10.3%) and of the STR market (12.2%). One-bedrooms, which 
+#' were considerably over-represented in STR listings (56.5%) compared with the 
+#' overall rental housing stock (27.2%), constituted 34.6% of LTR listings 
+#' that matched with STR listings, and a similar proportion among non-matched 
+#' listings (32.9%).
 
 #' Table 5.1 
 perc_size_units <- tibble(`Number of bedrooms` = numeric(length = 4), 
@@ -193,7 +225,8 @@ perc_size_units %>%
   fmt_percent(columns = c(2:5), decimals = 1)
 
 
-# Amenities (furnished or unfurnished status) ---------------------------------------------------
+#' Amenities (furnished or unfurnished status)
+
 #' To accommodate temporary guests, STR properties are overwhelmingly furnished. 
 #' Properties that have moved from the STR to LTR market during the pandemic are 
 #' listed as furnished at much higher rates than other LTR properties on LTR platforms 
@@ -219,7 +252,8 @@ ltr_unique_property_ID %>%
   mutate(pct = n/sum(n))
 
 
-# Asking rents on the LTR platform ---------------------------------------------------
+#' Asking rents on the LTR platform
+
 #' The LTR listings which matched with STR listings had higher average prices than 
 #' other LTR listings, as depicted in Figure 5.2. While the increase in housing 
 #' supply could have lowered asking rents, the addition of these STRs in the LTR 
@@ -253,7 +287,7 @@ ltr_unique %>%
   summarize(pct_diff = (avg_price[2] - avg_price[1]) / avg_price[2])
 
 
-# Analysis of the STRs that turned to the LTR platforms during the pandemic ---------------------------------------------------
+# Description of the typical STR unit that has returned to the LTR market --------
 
 #' As we have seen in a previous section, frequently rented entire-home (FREH) 
 #' listings are likely to be operated commercially. They may be well-established 
@@ -326,7 +360,7 @@ ltr_unique_property_ID %>%
   filter(status != "B", date == "2020-03-01", FREH_3 > 0.5 | multi == T) %>% 
   nrow()
 
-#' Type of host ---------------------------------------------------
+#' Type of host -----------------------------------------------------------------
 
 #' In Montreal, 1149 [1] unique STR host IDs were linked to the 2,526 LTR matches. 
 #' 288 [2] of these hosts posted more than one of their STR units on the LTR platforms. 
@@ -377,6 +411,8 @@ ltr_unique_property_ID %>%
                          pull(host_ID)), 
          scraped >= "2020-01-01") %>% 
   nrow()
+
+#' Type of hosts: revenue
 
 #' The income distribution of the hosts that matched is greatly higher than the revenue 
 #' distribution of all Montreal hosts. Median revenue of all hosts was $4,300 in the 
@@ -491,7 +527,7 @@ property %>%
   
   
 
-# Listing exposure ---------------------------------------------------
+# Listing exposure ---------------------------------------------------------------
 
 #' Length of availability on long-term rental platforms
 
@@ -512,102 +548,152 @@ ltr_unique %>%
   summarize(mean(how_long_they_stay, na.rm = T))
 
 
+
 #' Remaining presence on STR platforms
 
+#' Are hosts planning on renting on a longer-term only for a few months, leaving the STR 
+#' listing up-and-running for future bookings? Looking at whether the listings that matched 
+#' remained on a STR platform is an indicator of the strategy of the hosts. As stated above, 
+#' we identified 1,264 STR listings that were still in operation in 2020, from which it is 
+#' possible to study recent activity. Out of this number, 638 [1] STR listings were still active 
+#' at least once in the month of July 2020. The number of active listings by July 31th, last 
+#' day of data, was already down to 421 [2]. It means that a very conservative minimum of 626 [3]
+#' of our matches (50.5% were removed from the STR platform.
 
-#' [2] number of matches that remained on STR platforms
+#' [1] number of matches that remained on STR platforms
 property %>%
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
-  filter(scraped >= "2020-07-01") %>% 
-  nrow() 
+  filter(active >= "2020-07-01") %>% 
+  nrow()
 
+#' [2] number of matches active on STR platform on last day of data
 property %>% 
   st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID),
-         scraped >= "2020-01-01") %>% 
-  nrow() -
+  filter(!is.na(ltr_ID), active == "2020-07-31") %>% 
+  nrow()
+
+#' [3] number of matches left for LTR market
+property %>%
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
+  nrow()
+
+#' Listings can still be appearing on the platforms, but be inactive. Indeed, hosts who 
+#' operate listings that are well established in the STR market do not necessarily want to 
+#' remove their listings. Instead, if their units are dedicated to other activities than 
+#' STRs during the previous and/or upcoming months, they can simply block their calendar 
+#' to make sure no reservations can occur, while keeping their perfectly good listings 
+#' intact for when activity in the STR market starts again. The units that matched and still 
+#' appear on the STR platforms, but have a blocked calendar on every day of the month of 
+#' July 2020, may have successfully made the move to the LTR market. These account for 325 [1]
+#' units out of the 626 units (51.9% [2]) which we conservatively consider that could have moved 
+#' to the LTR market. The rest are listings deactivated indefinitely. 
+
+#' [1] Number of units inactive in July, but still on the platform
+property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  filter(scraped >= max(scraped) - months(1), !active >= "2020-07-01") %>% 
+  nrow() 
+
+#' [2] Percentage of previous listings on all listings which we considered moved to LTR
+property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  filter(scraped >= max(scraped) - months(1), !active >= "2020-07-01") %>% 
+  nrow() /
   property %>%
   st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID),
-         scraped >= "2020-07-01") %>% 
-  nrow() 
-
-#' [3] remaining presence on LTR platforms
-ltr_unique %>%
-  unnest(property_ID) %>%
-  filter(property_ID %in% (property %>%
-                             st_drop_geometry() %>% 
-                             filter(!is.na(ltr_ID),
-                                    scraped >= "2020-07-01") %>% 
-                             pull(property_ID))) %>%
-  filter(scraped < max(scraped)) %>% 
-  distinct(property_ID) %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
   nrow()
 
-# Estimation of the number of matches that could potentially have returned to the LTR market ------------------------------
 
-#' [1] Matches that could potentially be looked as being rented on a LTR platform
-property_IDs_ltr_rented <- 
-  property %>% 
+#' More info on listings matching
+
+#' Of these 626 units, 369 [1] had at least three months of reservations and availability 
+#' which are consistent with a year-long full-time operation. These 626 housing units have 
+#' been available on a STR platform for the last 19.48 [2] months on average, while the average 
+#' for all listings active in 2020 on the STR platform is 26.2 [2] months. This indicates that 
+#' the matches most likely rented through an LTR platform were on average newer listings. As 
+#' for spatial distribution of these matches, 45.4% (284) [3] of the 626 housing units that were 
+#' rented on the LTR market are located in Ville-Marie, 23.8% (149) [3] in Le Plateau-Mont-Royal, 
+#' and 9.0% (56) [3] in le Sud-Ouest. The rest (137) [4] are distributed in 13 [4] other boroughs. The 
+#' total 626 STR listings were operated by 348 [5] hosts. These hosts had a median revenue of 
+#' $23,600 [6] in 2019, while the median revenue for the entire STR platforms in the City of 
+#' Montreal was $4,300. The average revenue of these hosts is $224,000 [7], while it was $16,900 
+#' for hosts active on STR platforms in Montreal in 2019. 
+
+#' [1] FREH? 
+property %>%
+  st_drop_geometry() %>%
+  filter(!is.na(ltr_ID)) %>%
+  filter(active >= "2020-01-01", !active >= "2020-07-01",
+         property_ID %in% (daily %>% 
+                             filter(FREH > 0.5))$property_ID) %>%
+  nrow()
+
+
+#' [2]  how old were these listings compared all listings on the STR platforms
+property %>%
+  st_drop_geometry() %>%
+  filter(!is.na(ltr_ID)) %>%
+  filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
+  mutate(how_old = scraped-created) %>% 
+  summarize(mean(how_old, na.rm = T) /30)
+
+property %>% 
   st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID),
-         scraped >= "2020-01-01",
-         scraped <= max(property$scraped) - months(1)) %>% 
-  rbind(property %>% 
-          st_drop_geometry() %>% 
-          filter(property_ID %in% (daily %>% 
-                                     filter(date >= "2020-06-01", date <= "2020-06-30",
-                                            status != "B",
-                                            property_ID %in% ltr_unique_property_ID$property_ID) %>% 
-                                     count(property_ID) %>% 
-                                     filter(n == 30) %>%
-                                     pull(property_ID)))) %>% 
-  pull(property_ID) %>% 
-  unique()
-
-#' [2] FREH? 
-daily %>% 
-  filter(property_ID %in% property_IDs_ltr_rented,
-         FREH_3 > 0.5) %>% 
-  distinct(property_ID) %>% 
-  nrow()
-
-#' [4]  how old were these listings compared all listings on the STR platforms
-property %>% 
-  filter(property_ID %in% property_IDs_ltr_rented) %>%
+  filter(active >= "2020-01-01") %>% 
   mutate(how_old = scraped-created) %>% 
   summarize(mean(how_old, na.rm = T) /30)
 
-property %>% 
-  filter(scraped >= "2020-01-01") %>% 
-  mutate(how_old = scraped-created) %>% 
-  summarize(mean(how_old, na.rm = T) /30)
 
-#' [5] breakdown by boroughs of the potential returning units
-property %>% 
-  filter(property_ID %in% property_IDs_ltr_rented) %>% 
+#' [3] breakdown by boroughs of the potential returning units
+property %>%
+  st_drop_geometry() %>%
+  filter(!is.na(ltr_ID)) %>%
+  filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
   count(borough) %>% 
-  st_drop_geometry() %>% 
   mutate(pct = n/sum(n)) %>% 
   arrange(desc(pct))
 
-property %>% 
-  filter(property_ID %in% property_IDs_ltr_rented) %>% 
-  count(borough) %>% 
-  st_drop_geometry() %>% 
-  mutate(pct = n/sum(n)) %>% 
-  arrange(desc(pct)) %>% 
-  filter(n < 60) %>% 
+#' [4] rest of boroughs
+(property %>%
+    st_drop_geometry() %>%
+    filter(!is.na(ltr_ID)) %>%
+    filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
+    count(borough) %>% 
+    mutate(pct = n/sum(n)) %>% 
+    arrange(desc(pct)))[4:16,] %>% 
   summarize(sum(n))
 
-#' [5] median STR host revenue of the potential returning units
+(property %>%
+    st_drop_geometry() %>%
+    filter(!is.na(ltr_ID)) %>%
+    filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
+    count(borough) %>% 
+    mutate(pct = n/sum(n)) %>% 
+    arrange(desc(pct)))[4:16,] %>% 
+  nrow()
+
+#' [5] number of hosts 
+property %>%
+    st_drop_geometry() %>%
+    filter(!is.na(ltr_ID)) %>%
+    filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
+  count(host_ID) %>% 
+  nrow()
+ 
+#' [6] median revenue of these hosts
 revenue_2019 %>% 
   st_drop_geometry() %>% 
   filter(host_ID %in% (property %>%
                          st_drop_geometry() %>%
-                         filter(property_ID %in% ltr_unique_property_ID$property_ID) %>%
-                         filter(scraped < "2020-06-01"))$host_ID) %>%
+                         filter(!is.na(ltr_ID)) %>%
+                         filter(active >= "2020-01-01", !active >= "2020-07-01"))$host_ID) %>%
   group_by(host_ID) %>% 
   summarize("host_rev" = sum(revenue_LTM)) %>% 
   pull(host_rev) %>%
@@ -625,135 +711,13 @@ revenue_2019 %>%
   ) %>%
   opt_row_striping() 
 
-#' [6] average host revenue of these listings
+#' [7] average host revenue of these listings
 revenue_2019 %>% 
   st_drop_geometry() %>% 
   filter(host_ID %in% (property %>%
                          st_drop_geometry() %>%
-                         filter(property_ID %in% ltr_unique_property_ID$property_ID) %>%
-                         filter(scraped < "2020-06-01"))$host_ID) %>%
+                         filter(!is.na(ltr_ID)) %>%
+                         filter(active >= "2020-01-01", !active >= "2020-07-01"))$host_ID) %>%
   group_by(host_ID) %>% 
   summarize("host_rev" = sum(revenue_LTM)) %>% 
   summarize(mean(host_rev))
-
-
-#' [7] how many hosts have returned part of their units to the longer-term rental market
-property %>% 
-  filter(property_ID %in% property_IDs_ltr_rented) %>% 
-  count(host_ID) %>% 
-  nrow()
-
-
-# Conclusion ---------------------------------------------------
-
-#' [1] percentage of commercial listings matched which are gone from the STR out of all commercial listings
-daily %>% 
-  filter(date >= "2020-01-01", 
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID, # listings that were commercial once in lifetime
-         property_ID %in% ltr_unique_property_ID$property_ID,
-         property_ID %in% filter(property, scraped <= max(scraped) - months(1))$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow() / 
-  daily %>% 
-  filter(date >= "2020-01-01", 
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow()
-
-#' [2] commercial listings turnover during ban and years before between same date
-daily %>% 
-  filter(date >= "2020-03-28", date <= "2020-06-25", 
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID,
-         property_ID %in% filter(st_drop_geometry(property), scraped <= "2020-06-25")$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow() / 
-  daily %>% 
-  filter(date >= "2020-03-28", date <= "2020-06-25",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow()
-
-daily %>% 
-  filter(date >= "2019-03-28", date <= "2019-06-25",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID,
-         property_ID %in% filter(st_drop_geometry(property), scraped <= "2019-06-25")$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow() / 
-  daily %>% 
-  filter(date >= "2019-03-28", date <= "2019-06-25", 
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow()
-
-daily %>% 
-  filter(date >= "2018-03-28", date <= "2018-06-25",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID,
-         property_ID %in% filter(st_drop_geometry(property), scraped <= "2018-06-25")$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow() / 
-  daily %>% 
-  filter(date >= "2018-03-28", date <= "2018-06-25", 
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow()
-
-daily %>% 
-  filter(date >= "2017-03-28", date <= "2017-06-25", 
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID,
-         property_ID %in% filter(st_drop_geometry(property), scraped <= "2017-06-25")$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow() / 
-  daily %>% 
-  filter(date >= "2017-03-28", date <= "2017-06-25",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow()
-
-#' [3] commercial listings blocked during ban and years before between same date
-daily %>% 
-  filter(date >= "2020-06-01", date <= "2020-06-30",
-         status != "B",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  filter(n == 30) %>% 
-  nrow() /
-  filter(daily, date >= "2020-06-01", date <= "2020-06-30",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  nrow()
-
-
-daily %>% 
-  filter(date >= "2019-06-01", date <= "2019-06-30",
-         status != "B",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  filter(n == 30) %>% 
-  nrow() /
-  filter(daily, date >= "2019-06-01", date <= "2019-06-30",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  nrow()
-
-
-daily %>% 
-  filter(date >= "2018-06-01", date <= "2018-06-30",
-         status != "B",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  filter(n == 30) %>% 
-  nrow() /
-  filter(daily, date >= "2018-06-01", date <= "2018-06-30",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  nrow()
-
-
-daily %>% 
-  filter(date >= "2017-06-01", date <= "2017-06-30",
-         status != "B",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  count(property_ID) %>% 
-  filter(n == 30) %>% 
-  nrow() /
-  filter(daily, date >= "2017-06-01", date <= "2017-06-30",
-         property_ID %in% filter(daily, FREH_3 > 0.5 | multi == T)$property_ID) %>% 
-  nrow()
