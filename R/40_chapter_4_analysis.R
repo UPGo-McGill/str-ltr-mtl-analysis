@@ -131,13 +131,13 @@ average_prices <-
 
 # Reservations and prices collapsed during COVID-19 -----------------------
 
-#' There were 12.3% [1] more nights reserved in Montreal STRs in 2019 than 
+#' There were 12.1% [1] more nights reserved in Montreal STRs in 2019 than 
 #' there were in 2018—peaking at nearly 9,500 [2] nightly STR reservations in 
 #' the summer of 2019.... In March 2020, however, when reserved nights should 
 #' have been steadily increasing en route to the summer peak, they instead 
 #' collapsed in the face of COVID-19. While total reserved nights from January 
-#' to February 2020 increased at a rapid 45.6% [3] compared to 2019, reserved 
-#' nights from March to August 2020 decreased 70.8% [4] compared to the previous 
+#' to February 2020 increased at a rapid 45.3% [3] compared to 2019, reserved 
+#' nights from March to August 2020 decreased 70.7% [4] compared to the previous 
 #' year.
 
 #' [1] YOY growth in reservations, 2018-2019
@@ -173,12 +173,12 @@ daily %>%
 #' the trajectory of STR activity established prior to the pandemic, combined 
 #' with the fact that bookings normally increase rapidly through the spring and 
 #' summer, suggests that, in the absence of the pandemic, Montreal would have 
-#' been expected to receive 8,720 [1] reservations instead. The COVID-19 
-#' pandemic, therefore, depressed STR activity by 78.3% [1], or 6,820 
+#' been expected to receive 8,700 [1] reservations instead. The COVID-19 
+#' pandemic, therefore, depressed STR activity by 78.3% [1], or 6,810 
 #' [1] reservations, on that date. In total, from March through July 2020, we 
-#' estimate that there have been 682,300 [2] fewer STR nights reserved than 
-#' would normally have been expected to occur. The 318,100 [2] total nights 
-#' reserved in this time period is only 31.8% [2] of the 1,000,000 [2] total 
+#' estimate that there have been 680,600 [2] fewer STR nights reserved than 
+#' would normally have been expected to occur. The 317,500 [2] total nights 
+#' reserved in this time period is only 31.8% [2] of the 1.0 million [2] total 
 #' that would represent the previous growth trend.
 
 #' [1] Actual and expected reservations on 2020-07-31
@@ -213,7 +213,7 @@ average_prices %>%
 
 #' When the lower prices on reservations which did occur is combined with the 
 #' reservations which did not occur, our estimate is that Montreal’s STR hosts 
-#' lost a total of $106.2 million [1] in revenue between March and August 2020 
+#' lost a total of $106.0 million [1] in revenue between March and August 2020 
 #' because of the COVID-19 pandemic.
 
 #' [1] Total lost revenue
@@ -374,7 +374,7 @@ daily %>%
 # COVID’s impact on frequently rented entire-home listings ----------------
 
 #' According to the model, the number of housing units in Montreal lost due to 
-#' commercial STRs reached its all-time peak (5,870 [1]) at the beginning of 
+#' commercial STRs reached its all-time peak (5,860 [1]) at the beginning of 
 #' 2020. Most of these (5,580 [1]) were FREH listings, with the remainder
 #' (290 [1]) being ghost hostels—clusters of private-room listings operated 
 #' out of a single housing unit. As of July 2020, the number of FREH listings 
@@ -561,7 +561,7 @@ daily %>%
           nrow())} %>% 
   round(3)
 
-#' For example, in the month of February 2020, 63.5% [1] of all reserved nights
+#' For example, in the month of February 2020, 63.7% [1] of all reserved nights
 #' were booked in these FREH properties. 
 
 #' [1] Percentage of reserved nights in FREH properties in Feb 2020

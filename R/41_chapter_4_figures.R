@@ -445,12 +445,17 @@ fig_labels <-
   group_by(group, year, variable) %>% 
   summarize(x = mean(x),
             y = mean(c(ymin, ymax)),
-            label = paste(mean(ymax) - mean(ymin), variable, sep = " ")) %>% 
+            label = mean(ymax) - mean(ymin)) %>% 
   ungroup() %>% 
-  mutate(label = if_else(variable == "total listings", 
-                         paste0(label, "\nin Jan/Feb"), label),
-         label = if_else(variable == "active", 
-                         paste0(label, "\nin July"), label))
+  group_by(group, year) %>% 
+  mutate(label = case_when(
+    variable == "total listings" ~ paste0(label, " ", variable, "\nin Jan/Feb"),
+    variable == "active" ~ paste0(label, " (", 
+                                  round(label/sum(label) * 100, 1), "%) ", 
+                                  variable, "\nin July"),
+    TRUE ~ paste0(label, " (", round(label/sum(label) * 100, 1), "%) ",
+                  variable))) %>% 
+  ungroup()
   
 figure_4_4 <- 
   fig_polys %>% 
@@ -478,7 +483,6 @@ ggsave("output/figures/figure_4_4.pdf", plot = figure_4_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_4_4.pdf")
 
 
-# Figure 4.5 Reservation trajectories of FREH and non-FREH listings -------
 
 FREH_in_jan_feb <- 
   daily %>% 
