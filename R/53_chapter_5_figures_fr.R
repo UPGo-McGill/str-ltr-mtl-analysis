@@ -347,7 +347,7 @@ figure_5_6 <-
   scale_x_continuous(name = "Revenu annuel des hôtes", limits = c(0, 100000),
                      labels = scales::dollar_format(scale = 0.001, 
                                                     suffix = "k")) +
-  scale_y_continuous(name = "Percentage d'hôtes", limits = c(NA, .25),
+  scale_y_continuous(name = "Pourcentage d'hôtes", limits = c(NA, .25),
                      labels = scales::percent_format(accuracy = 1)) +
   scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
   facet_wrap(vars(matched)) +
