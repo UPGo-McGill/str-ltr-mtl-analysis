@@ -8,6 +8,8 @@
 #' - `figure_5_3.pdf`
 #' - `figure_5_4.pdf`
 #' - `figure_5_5.pdf`
+#' - `figure_5_6.pdf`
+#' - `figure_5_7.pdf`
 #' 
 #' Script dependencies:
 #' - `02_geometry_import.R`
@@ -213,7 +215,7 @@ figure_5_3_right <-
                        limits = c(0, .5),
                        breaks = c(0, 0.1, .2, .3, .4, .5),
                        label = scales::label_percent(accuracy = 1))  +
-  guides(fill = guide_colourbar(title = "% de correspondances\npar LCT actives",
+  guides(fill = guide_colourbar(title = "% de correspondances\npar annonces LCT actives",
                                 title.vjust = 1)) + 
   gg_bbox(boroughs) +
   theme_void() +
@@ -283,36 +285,124 @@ ggsave("output/figures/figure_5_4F.pdf", plot = figure_5_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_4F.pdf")
 
 
-# Figure 5.5. Durée de la présence des correspondances et non-correspondances sur les plate-formes de LLT--------------------------------------------------
+# Figure 5.5. Années d'activités des LCT qui ont correspondu et ceux qui ne l'ont pas --------------------------------------------------
 
-figure_5_5 <- unique_ltr %>% 
-  mutate(how_long_they_stay = scraped-created) %>% 
-  arrange(desc(how_long_they_stay)) %>% 
-  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
-  count(how_long_they_stay, matched) %>% 
-  group_by(matched) %>% 
-  mutate(perc = n/sum(n)) %>% 
-  ggplot()+
-  # geom_line(aes(how_long_they_stay, perc, color = matched), alpha = 0.3)+
-  geom_smooth(aes(how_long_they_stay, perc, color = matched), se = F)+
-  xlab("Nombre de jours en ligne")+
-  ylab("Pourcentage de toutes les annonces dans le groupe")+
-  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
-  scale_color_manual(name = "Group",
-                     values = col_palette[c(1, 3)],
-                     labels = c("N'a pas correspondu", "A correspondu")) +
+first_listing <- 
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(active > "2020-01-01") %>% 
+  transmute(property_ID,
+            active_length = as.numeric(round((active - created) / 30) / 12),
+            matched = if_else(!is.na(ltr_ID), "Correspondance LCT-LLT", "Non-correspondance"))
+
+figure_5_5 <- 
+  first_listing %>% 
+  ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
+  geom_histogram(bins = 27) +
+  scale_x_continuous(name = "Années d'activité", limits = c(NA, 10),
+                     breaks = c(0:2 * 5)) +
+  scale_y_continuous(name = "Pourcentage d'annonces",
+                     labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+  facet_wrap(vars(matched)) +
   theme_minimal() +
-  theme(legend.position = "bottom",
+  theme(legend.position = "none",
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
-        #text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(#family = "Futura", face = "bold", 
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold", 
+                                    size = 10),
+        legend.text = element_text(family = "Futura", 
           size = 10),
-        legend.text = element_text(#family = "Futura", 
-          size = 10)
-  )
+        strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_5_5F.pdf", plot = figure_5_5, width = 8, 
-       height = 5, units = "in", useDingbats = FALSE)
+       height = 2.5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_5_5F.pdf")
+
+
+# Figure 5.6 Revenu annuel des LCT qui ont correspondu et ceux qui ne l'ont pas -----------------------------------------------
+
+annual_revenue <- 
+  daily %>%
+  filter(housing,
+         date <= LTM_end_date, date >= LTM_start_date,
+         status == "R") %>%
+  group_by(property_ID) %>%
+  summarize(revenue_LTM = sum(price)) %>% 
+  inner_join(property, .) %>%
+  st_drop_geometry() %>% 
+  mutate(matched = if_else(
+    host_ID %in% (filter(property, property_ID %in% 
+                           ltr_unique_property_ID$property_ID))$host_ID, 
+    "Correspondance LCT-LLT", "Non-correspondance")) %>%
+  group_by(host_ID, matched) %>% 
+  summarize(host_rev = sum(revenue_LTM))
+
+figure_5_6 <-
+  annual_revenue %>% 
+  ggplot(aes(host_rev, after_stat(width * density), fill = matched)) +
+  geom_histogram(bins = 30) +
+  scale_x_continuous(name = "Revenu annuel des hôtes", limits = c(0, 100000),
+                     labels = scales::dollar_format(scale = 0.001, 
+                                                    suffix = "k")) +
+  scale_y_continuous(name = "Pourcentage d'hôtes", limits = c(NA, .25),
+                     labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+  facet_wrap(vars(matched)) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold", 
+                                    size = 10),
+        legend.text = element_text(family = "Futura", size = 10),
+        strip.text = element_text(face = "bold", family = "Futura"))
+
+ggsave("output/figures/figure_5_6F.pdf", plot = figure_5_6, width = 8, 
+       height = 2.5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_6F.pdf")
+
+
+# Figure 5.7 Durée de la présence des correspondances LCT-LLT et des non-correspondances -----------------------------------------------
+
+length_of_stay <- 
+  ltr_unique %>% 
+  mutate(active_length = scraped - created) %>% 
+  mutate(matched = if_else(!is.na(property_ID), "Correspondance LCT-LLT", 
+                           "Non-correspondance"))
+
+figure_5_7 <-  
+  length_of_stay %>% 
+  ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
+  geom_histogram(bins = 27) +
+  scale_x_continuous(name = "Jours en ligne") +
+  scale_y_continuous(name = "Pourcentage d'annonces",
+                     labels = scales::percent_format(accuracy = 1)) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+  facet_wrap(vars(matched)) +
+  theme_minimal() +
+  theme(legend.position = "none",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold", 
+                                    size = 10),
+        legend.text = element_text(family = "Futura", size = 10),
+        strip.text = element_text(face = "bold", family = "Futura"))
+
+ggsave("output/figures/figure_5_7F.pdf", plot = figure_5_7, width = 8, 
+       height = 2.5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_7F.pdf")
+
+
+
+
+
+
+
+
