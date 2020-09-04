@@ -100,7 +100,7 @@ property %>%
 #' Among these listings, 50.3% [3] specified lease lengths of 1 year, 21.9% [3] 
 #' specified month-to-month, and 27.8% [3] did not specify.
 
-#' [1] Long-term or short-term
+#' [1] KJ or CL
 ltr_unique_property_ID %>% 
   group_by(kj) %>% 
   count() %>% 
@@ -523,8 +523,6 @@ property %>%
   filter(scraped >= "2020-01-01") %>% 
   count(host_ID) %>% 
   nrow()
-  
-  
   
 
 # Listing exposure ---------------------------------------------------------------
