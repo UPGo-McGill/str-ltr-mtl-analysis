@@ -456,20 +456,18 @@ figure_4_4 <-
   geom_segment(aes(x = x, xend = xend, y = y, yend = yend, group = variable,
                    colour = ramp), data = fig_segments, inherit.aes = FALSE) +
   geom_text(aes(x, y, group = variable, label = label), data = fig_labels,
-            colour = "white", #family = "Futura", 
-            size = 2) +
+            colour = "white", family = "Futura", size = 2) +
   scale_colour_gradientn(colours = col_palette[c(5, 3, 5, 2, 5, 1)]) +
   scale_fill_manual(values = c("nombre total d'annonces" = col_palette[5], 
                                "actives" = col_palette[1],
                                "bloquées" = col_palette[2],
                                "désactivées" = col_palette[3])) +
-  facet_wrap(vars(year, group), nrow = 2) +
+  facet_grid(rows = vars(group), cols = vars(year), switch = "y",
+             scales = "free_y", space = "free_y") +
   theme_void() +
   theme(legend.position = "none",
-        text = element_text(face = "plain", #family = "Futura"
-                            ), 
-        strip.text = element_text(face = "bold", #family = "Futura"
-                                  ))
+        text = element_text(face = "plain", family = "Futura"), 
+        strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_4_4F.pdf", plot = figure_4_4, width = 8, 
        height = 6, units = "in", useDingbats = FALSE)
