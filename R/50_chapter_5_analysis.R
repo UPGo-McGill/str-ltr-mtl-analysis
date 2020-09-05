@@ -21,6 +21,7 @@ source("R/01_startup.R")
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/ltr_processed.Rdata")
+load("output/cmhc.Rdata")
 
 
 # Prepare new objects -----------------------------------------------------
@@ -301,84 +302,135 @@ asking_rents %>%
          dif_pct = avg_price / min(avg_price) - 1)
 
 
+# Listing amenities -------------------------------------------------------
 
+#' Studios were overrepresented among LTR listings which matched to Airbnb 
+#' (17.7% [1]) compared with LTR listings which did not match (10.0% [2]), 
+#' STR listings (in 2019, 10.0% [3]) and Montreal’s rental stock (9.9% [4]). 
+#' Units with three bedrooms or more were overrepresented in LTR listings, 
+#' at 22.2% [1] for matches and 21.3% [2] for non-matches, compared to the 
+#' City (10.3% [4]) and  the STR market (12.2% [3]). One-bedrooms, which were 
+#' considerably overrepresented in STR listings (56.6% [3]) compared to the 
+#' overall rental housing stock (27.2% [4]), constituted 36.0% [1] of LTR 
+#' listings that matched with STR listings, and a similar proportion among 
+#' non-matched listings (35.7% [4]).
 
-# Detailed information on matches ------------------------------------------
+#' [1] Bedrooms in LTR matches
+ltr_unique_property_ID %>% 
+  count(bedrooms) %>% 
+  filter(!is.na(bedrooms)) %>% 
+  rowwise() %>% 
+  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
+  group_by(group) %>% 
+  summarize(n = sum(n)) %>% 
+  rename(bedrooms = group) %>% 
+  mutate(n = round(n / sum(n), 3))
 
-#'Unit size of the matches 
+#' [2] Bedrooms in LTR non-matches
+ltr %>% 
+  st_drop_geometry() %>% 
+  filter(is.na(property_ID)) %>% 
+  group_by(id) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  count(bedrooms) %>% 
+  filter(!is.na(bedrooms)) %>% 
+  rowwise() %>% 
+  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
+  group_by(group) %>% 
+  summarize(n = sum(n)) %>% 
+  rename(bedrooms = group) %>% 
+  mutate(n = round(n / sum(n), 3))
 
-#' Table 5.1 shows the distributions of units by number of bedrooms for 
-#' entire-home STRs, as well as all the units that were posted for rent on LTR 
-#' platforms (both the ones that matched with an STR listing and the ones 
-#' that did not match), and for the rental housing stock of the City of 
-#' Montreal. Studios were over-represented among LTR matches (17.0%) 
-#' compared with both STR listings (in 2019, 10.0%) and Montreal’s rental 
-#' stock (9.9%). Units with three-bedrooms or more were over-represented in 
-#' LTR listings, at 21.4% for matches and 19.9% for non-matches, compared to 
-#' that of the City (10.3%) and of the STR market (12.2%). One-bedrooms, which 
-#' were considerably over-represented in STR listings (56.5%) compared with the 
-#' overall rental housing stock (27.2%), constituted 34.6% of LTR listings 
-#' that matched with STR listings, and a similar proportion among non-matched 
-#' listings (32.9%).
+#' [3] Bedrooms in 2019 STRs
+property %>% 
+  st_drop_geometry() %>% 
+  filter(housing, active >= "2019-01-01", created <= "2019-12-31") %>% 
+  count(bedrooms) %>% 
+  filter(!is.na(bedrooms)) %>% 
+  rowwise() %>% 
+  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
+  group_by(group) %>% 
+  summarize(n = sum(n)) %>% 
+  rename(bedrooms = group) %>% 
+  mutate(n = round(n / sum(n), 3))
+
+#' [4] Bedrooms in City of Montreal rentals
+city_units %>% 
+  filter(date == 2019) %>% 
+  slice(1:4) %>% 
+  mutate(pct = round(units / sum(units), 3))
 
 #' Table 5.1 
-perc_size_units <- tibble(`Number of bedrooms` = numeric(length = 4), 
-                          `Island of Montreal` = numeric(length = 4),
-                          `STR market (2019)` = numeric(length = 4),
-                          `LTR matches` = numeric(length = 4),
-                          `LTR non-matches` = numeric(length = 4)
-)
+bedroom_match_table <-
+  city_units %>% 
+  filter(date == 2019) %>% 
+  slice(1:4) %>% 
+  mutate(pct = round(units / sum(units), 3)) %>% 
+  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
+  select(bedrooms, pct) %>% 
+  mutate(Category = "City of Montreal rental stock", .before = bedrooms)
 
-perc_size_units$`Number of bedrooms` <- 
-  c(0, 1, 2, 3)
+bedroom_match_table <-
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(housing, active >= "2019-01-01", created <= "2019-12-31") %>% 
+  count(bedrooms) %>% 
+  filter(!is.na(bedrooms)) %>% 
+  rowwise() %>% 
+  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
+  group_by(group) %>% 
+  summarize(pct = sum(n)) %>% 
+  rename(bedrooms = group) %>% 
+  mutate(pct = round(pct / sum(pct), 3)) %>% 
+  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
+  mutate(Category = "STR market (2019)", .before = bedrooms) %>% 
+  bind_rows(bedroom_match_table, .)
 
-perc_size_units$`Island of Montreal` <- 
-  c(0.099, 0.272, 0.525, 0.103)
+bedroom_match_table <-
+  ltr_unique_property_ID %>% 
+  count(bedrooms) %>% 
+  filter(!is.na(bedrooms)) %>% 
+  rowwise() %>% 
+  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
+  group_by(group) %>% 
+  summarize(pct = sum(n)) %>% 
+  rename(bedrooms = group) %>% 
+  mutate(pct = round(pct / sum(pct), 3)) %>% 
+  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
+  mutate(Category = "LTRs matched to STR", .before = bedrooms) %>% 
+  bind_rows(bedroom_match_table, .)
 
+bedroom_match_table <-
+  ltr %>% 
+  st_drop_geometry() %>% 
+  filter(is.na(property_ID)) %>% 
+  group_by(id) %>% 
+  slice(1) %>% 
+  ungroup() %>% 
+  count(bedrooms) %>% 
+  filter(!is.na(bedrooms)) %>% 
+  rowwise() %>% 
+  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
+  group_by(group) %>% 
+  summarize(pct = sum(n)) %>% 
+  rename(bedrooms = group) %>% 
+  mutate(pct = round(pct / sum(pct), 3)) %>% 
+  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
+  mutate(Category = "LTRs not matched", .before = bedrooms) %>% 
+  bind_rows(bedroom_match_table, .)
 
-for(i in 1:length(perc_size_units$`Number of bedrooms`)) {
-  
-  perc_size_units[i,3] <- 
-    (property %>% 
-       st_drop_geometry() %>% 
-       filter(property_ID %in% filter(daily, housing, status != "B", date >= "2019-01-01", date <= "2019-12-31")$property_ID) %>% 
-       mutate(bedrooms = ifelse(bedrooms >= 3, 3, bedrooms)) %>% 
-       count(bedrooms) %>% 
-       mutate(pct = n/sum(n)))[i,3] %>% 
-    pull()
-  
-  
-  perc_size_units[i, 4] <- ltr_unique_property_ID %>%
-    mutate(bedrooms = ifelse(bedrooms >= 3, 3, bedrooms)) %>% 
-    filter(bedrooms == perc_size_units$`Number of bedrooms`[[i]]) %>% 
-    nrow() / ltr_unique_property_ID %>% nrow()
-  
-  perc_size_units[i, 5] <- ltr %>%
-    st_drop_geometry() %>% 
-    distinct(id, .keep_all = T) %>% 
-    mutate(bedrooms = ifelse(bedrooms >= 3, 3, bedrooms)) %>% 
-    filter(bedrooms == perc_size_units$`Number of bedrooms`[[i]]) %>% 
-    nrow() / 
-    ltr %>%
-    st_drop_geometry() %>% 
-    distinct(id) %>% nrow()
-  
-}
+bedroom_match_table <- 
+  bedroom_match_table %>% 
+  pivot_wider(values_from = pct, names_from = bedrooms)
 
-perc_size_units$`Number of bedrooms`[4] <- c("3+")
-perc_size_units$`Number of bedrooms`[1] <- c("Studio")
-
-perc_size_units %>%
+bedroom_match_table %>% 
   gt() %>% 
-  tab_header(
-    title = "Market comparison",
-    subtitle = "Bedroom breakdown"
-  ) %>%
+  tab_header(title = "STR and LTR listings by bedroom count") %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(2:5), decimals = 1)
 
 
-#' Amenities (furnished or unfurnished status)
 
 #' To accommodate temporary guests, STR properties are overwhelmingly furnished. 
 #' Properties that have moved from the STR to LTR market during the pandemic are 
