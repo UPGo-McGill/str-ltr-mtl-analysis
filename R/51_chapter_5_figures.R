@@ -199,8 +199,8 @@ figure_5_3_right <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
-  left_join(count(filter(daily, status != "B", date == "2020-03-01"), borough),
-            by = "borough") %>% 
+  left_join(count(filter(daily, housing, status != "B", date == "2020-03-01"), 
+                  borough), by = "borough") %>% 
   mutate(pct = n.x / n.y) %>% 
   left_join(boroughs, .) %>% 
   ggplot() +

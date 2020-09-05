@@ -147,33 +147,57 @@ ltr %>%
 
 # Spatial distribution of matched listings --------------------------------
 
-#' Out of the 2,526 unique STR listings matched to LTR listings in the City 
-#' of Montreal, 44.5% were situated in the Ville-Marie borough (1143 matches) 
-#' and 28.5% in Le Plateau-Mont-Royal (733 matches). Le Sud-Ouest had 210 
-#' matches (8.2%), Côte-des-Neiges-Notre-Dame-de-Grâce had 128 matches 
-#' (5.0%),  and Rosemont-La-Petite-Patrie had 102 matches (4.0%). In general, 
-#' this is congruent with the distribution of all active STR listings in 
-#' the City of Montreal (see section 2), which are predominantly located 
-#' in Ville-Marie and Le Plateau-Mont-Royal boroughs. However, Ville-Marie 
-#' was overrepresented with over half of the STRs found on a LTR platform 
-#' originating from this borough, while STRs in Ville-Marie represented only
-#' 32.6% of all STRs in Montreal. However, the movement of STR listings to
-#' LTR platforms closely proportionality corresponds to the level of 
-#' commercial listings (listings representing housing loss and run by STR 
-#' operators with multiple listings), which are concentrated in these two 
-#' boroughs.
+#' Out of the 2,526 [1] unique STR listings matched to LTR listings in the City 
+#' of Montreal, nearly half (44.4% [2]) were located in the Ville-Marie borough 
+#' and 28.5% [2] in Le Plateau-Mont-Royal, with Le Sud-Ouest (8.2% [2]), 
+#' Côte-des-Neiges-Notre-Dame-de-Grâce (5.0% [2]) and Rosemont-La-Petite-Patrie 
+#' (4.0% [2]) accounting for most of the remaining matches.... In fact, 
+#' the number of STR listings matched to LTR listings in Ville-Marie is 
+#' equivalent to nearly half (41.4% [3]) of all the STR listings active in the 
+#' borough on March 1, 2020, and 24.7% [4] of all the listings active in the 
+#' borough in 2020.
 
-#' [1] Total number of unique matches by borough
+#' [1] Unique STR matches
+property %>% filter(!is.na(ltr_ID)) %>% nrow()
+
+#' [2] Total number of unique matches by borough
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   count(borough) %>% 
-  mutate(pct = n/sum(n)) %>% 
-  arrange(desc(pct))
+  mutate(pct = round(n / sum(n), 3)) %>% 
+  arrange(-pct) %>% 
+  slice(1:6)
 
-ltr %>% 
-  filter(kj == F, !is.na(property_ID)) %>% 
-  View()
+#' [3] Ville-Marie active March 1 percentage
+{property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  count(borough) %>% 
+  mutate(pct = n / sum(n)) %>% 
+  slice(18) %>% 
+  pull(n)} /
+  {daily %>% 
+      filter(housing, borough == "Ville-Marie", status != "B", 
+             date == "2020-03-01") %>% 
+      nrow}
+
+#' [3] Ville-Marie active 2020 percentage
+{{property %>% 
+    st_drop_geometry() %>% 
+    filter(!is.na(ltr_ID)) %>% 
+    count(borough) %>% 
+    mutate(pct = n / sum(n)) %>% 
+    slice(18) %>% 
+    pull(n)} /
+  {daily %>% 
+      filter(housing, borough == "Ville-Marie", status != "B", 
+             date >= "2020-01-01") %>% 
+      pull(property_ID) %>% 
+      unique() %>% 
+      length()}} %>% 
+  round(3)
+
 
 
 # Detailed information on matches ------------------------------------------
