@@ -46,6 +46,16 @@ ltr_unique_property_ID <-
   arrange(desc(scraped)) %>% 
   distinct(property_ID, .keep_all = T)
 
+# private rooms for rent in the LTR market scrape
+ltr_PR <- 
+  ltr_unique %>% 
+  mutate(title = tolower(title),
+         room_for_rent = str_detect(title, or("(^| |/)room( |$|/)", "(^| )chambre( |$|/)", "(^|/| )swap( |$|/)", 
+                                              "(^|/| )exchange( |$|/)", "(^| |/)1 bedroom for rent( |$|/)", "(^| )1 bdrm( |$|/)",
+                                              "(^| |/)1 fully furnished bedroom( |$|/)", "(^| |/)échange( |$|/)",
+                                              "(^| |/)lease transfer( |$|/)",
+                                              "(^| |/)spacious bedroom( |$|/)"))) %>% 
+  filter(room_for_rent == T)
 
 # How many STR listings have returned to the long-term market? ------------
 
@@ -312,18 +322,19 @@ asking_rents %>%
 # Listing amenities -------------------------------------------------------
 
 #' Studios were overrepresented among LTR listings which matched to Airbnb 
-#' (17.7% [1]) compared with LTR listings which did not match (10.0% [2]), 
+#' (17.4% [1]) compared with LTR listings which did not match (9.9% [2]), 
 #' STR listings (in 2019, 10.0% [3]) and Montreal’s rental stock (9.9% [4]). 
 #' Units with three bedrooms or more were overrepresented in LTR listings, 
-#' at 22.2% [1] for matches and 21.3% [2] for non-matches, compared to the 
+#' at 24.4% [1] for matches and 21.5% [2] for non-matches, compared to the 
 #' City (10.3% [4]) and  the STR market (12.2% [3]). One-bedrooms, which were 
 #' considerably overrepresented in STR listings (56.6% [3]) compared to the 
-#' overall rental housing stock (27.2% [4]), constituted 36.0% [1] of LTR 
+#' overall rental housing stock (27.2% [4]), constituted 35.4% [1] of LTR 
 #' listings that matched with STR listings, and a similar proportion among 
-#' non-matched listings (35.7% [4]).
+#' non-matched listings (35.1% [4]).
 
 #' [1] Bedrooms in LTR matches
 ltr_unique_property_ID %>% 
+  filter(!property_ID %in% ltr_PR$property_ID) %>% 
   count(bedrooms) %>% 
   filter(!is.na(bedrooms)) %>% 
   rowwise() %>% 
@@ -337,6 +348,7 @@ ltr_unique_property_ID %>%
 ltr %>% 
   st_drop_geometry() %>% 
   filter(is.na(property_ID)) %>% 
+  filter(!id %in% ltr_PR$id) %>% 
   group_by(id) %>% 
   slice(1) %>% 
   ungroup() %>% 
