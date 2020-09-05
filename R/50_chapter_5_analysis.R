@@ -430,31 +430,24 @@ bedroom_match_table %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(2:5), decimals = 1)
 
+#' Of the 82,016 [1] LTR listings we analyzed, 26.8% [2] were listed as 
+#' furnished, 55.8% [2] as unfurnished, and 17.4% [2] did not provide this 
+#' information. Listings which matched with STRs had a significantly higher 
+#' proportion classified as furnished: 76.7% [3] furnished and 22.7% [3] 
+#' unfurnished, with only 0.6% [3] not providing this information.
 
+#' [1] All scraped LTR listings
+ltr_unique %>% nrow()
 
-#' To accommodate temporary guests, STR properties are overwhelmingly furnished. 
-#' Properties that have moved from the STR to LTR market during the pandemic are 
-#' listed as furnished at much higher rates than other LTR properties on LTR platforms 
-#' like Kijiji and Craigslist. Of the 82,016 LTR listings scraped and analysed, 
-#' 26.8% [1] of the listings were listed as furnished, 55.8% [1] as unfurnished, and 17.4% [1]
-#' did not give this information. Listings which matched with STRs had a significantly 
-#' higher proportion classified as furnished: 76.7% [2] furnished and 22.7% [2] unfurnished, 
-#' while only 0.6% [2] of these listings did not offer this information). STR listings 
-#' clearly represent an influx of units with different amenities than is the norm of 
-#' LTR listings, suggesting that very little is being changed when STR hosts move 
-#' former STRs to the LTR market. The lack of change to the furnishings of these 
-#' units might suggest that STR hosts are prepared to return to the STR market as 
-#' soon as demand returns.
-
-#' [1] Proportion of ALL furnished and unfurnished longer-term rentals
+#' [2] Furnished proportion for all LTRs
 ltr_unique %>% 
   count(furnished) %>% 
-  mutate(pct = n/sum(n))
+  mutate(pct = round(n / sum(n), 3))
 
-#' [2] Proportion of MATCHES that are furnished and unfurnished
+#' [3] Furnished proportion for matches
 ltr_unique_property_ID %>% 
   count(furnished) %>% 
-  mutate(pct = n/sum(n))
+  mutate(pct = round(n / sum(n), 3))
 
 
 
