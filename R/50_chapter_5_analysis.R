@@ -116,7 +116,36 @@ ltr_unique_property_ID %>%
   mutate(perc = n / sum(n))
 
 
-# Spatial distribution of the matches --------------------------------------
+# When did STR listings move to the long-term market? ---------------------
+
+#' By the end of the March, more than 60 [1] listings were being transferred 
+#' each day. Daily numbers remained high through April, but even from May 
+#' through July an average of 5.5 [2] new Airbnb listings were transferred to 
+#' Craigslist or Kijiji each day.
+
+#' [1] Peak dailiy listings transfer
+ltr %>% 
+  st_drop_geometry() %>% 
+  unnest(property_ID) %>% 
+  filter(!is.na(property_ID)) %>% 
+  arrange(created) %>% 
+  distinct(property_ID, .keep_all = TRUE) %>% 
+  count(created, kj, sort = TRUE) %>% 
+  slice(1)
+
+#' [2] Average daily listings transfer, May - July
+ltr %>% 
+  st_drop_geometry() %>% 
+  unnest(property_ID) %>% 
+  filter(!is.na(property_ID)) %>% 
+  arrange(created) %>% 
+  distinct(property_ID, .keep_all = TRUE) %>% 
+  count(created, kj) %>% 
+  filter(created >= "2020-05-01", created <= "2020-07-31") %>% 
+  summarize(avg = mean(n))
+  
+
+# Spatial distribution of matched listings --------------------------------
 
 #' Out of the 2,526 unique STR listings matched to LTR listings in the City 
 #' of Montreal, 44.5% were situated in the Ville-Marie borough (1143 matches) 
