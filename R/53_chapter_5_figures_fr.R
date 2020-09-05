@@ -130,14 +130,9 @@ first_ltr_listing <-
   ltr %>% 
   st_drop_geometry() %>% 
   unnest(property_ID) %>% 
+  filter(!is.na(property_ID)) %>% 
   arrange(created) %>% 
-  distinct(property_ID, .keep_all = T) %>% 
-  # mutate(early = if_else(
-  #   property_ID %in% filter(property, scraped >= "2020-01-01")$property_ID, 
-  #   FALSE, TRUE)) %>%
-  filter(property_ID %in% filter(property, 
-                                 scraped >= "2020-01-01")$property_ID) %>%
-  # count(created, early)
+  distinct(property_ID, .keep_all = TRUE) %>% 
   count(created, kj)
 
 figure_5_2 <- 
@@ -145,7 +140,7 @@ figure_5_2 <-
   group_by(kj) %>% 
   mutate(n = slide_dbl(n, mean, .before = 2)) %>% 
   ungroup() %>% 
-  filter(created >= "2020-03-01") %>% 
+  filter(created >= "2020-03-01", created <= "2020-07-31") %>% 
   ggplot(aes(created, n, fill = kj)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
@@ -153,7 +148,7 @@ figure_5_2 <-
   annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
            y = 45, yend = 50, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-07-14"), y = 30,
+  annotate("text", x = as.Date("2020-07-14"), y = 45,
            label = "LCT interdits \npar la province", family = "Futura Condensed") +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, label = scales::comma) +
@@ -204,8 +199,8 @@ figure_5_3_right <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
-  left_join(count(filter(daily, status != "B", date == "2020-03-01"), borough),
-            by = "borough") %>% 
+  left_join(count(filter(daily, housing, status != "B", date == "2020-03-01"), borough), 
+            by = "borough") %>%  
   mutate(pct = n.x / n.y) %>% 
   left_join(boroughs, .) %>% 
   ggplot() +
@@ -259,6 +254,32 @@ asking_rents <-
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
   ungroup() %>% 
   mutate(status = "Toutes les annonces", .before = created) %>% 
+  bind_rows(asking_rents) %>% 
+  mutate(geography = "City of Montreal")
+
+asking_rents_vm <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(matched, created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup() %>% 
+  mutate(status = if_else(matched, "Correspondances", "Non-correspondances"), 
+         .before = created) %>% 
+  select(-matched)
+
+asking_rents <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup() %>% 
+  mutate(status = "Toutes les annonces", .before = created) %>% 
+  bind_rows(asking_rents_vm) %>% 
+  mutate(geography = "Ville-Marie") %>% 
   bind_rows(asking_rents)
 
 figure_5_4 <-
@@ -269,8 +290,10 @@ figure_5_4 <-
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL, limits = c(as.Date("2020-03-01"), NA)) +
-  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_y_continuous(name = NULL, limits = c(1000, 2500), 
+                     label = scales::dollar) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1, 3)]) +
+  facet_wrap(vars(geography)) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
@@ -278,7 +301,8 @@ figure_5_4 <-
         text = element_text(family = "Futura", face = "plain"),
         legend.title = element_text(family = "Futura", face = "bold", 
                                     size = 10),
-        legend.text = element_text(family = "Futura", size = 10))
+        legend.text = element_text(family = "Futura", size = 10),
+        strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_5_4F.pdf", plot = figure_5_4, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
