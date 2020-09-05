@@ -140,7 +140,7 @@ figure_5_2 <-
   group_by(kj) %>% 
   mutate(n = slide_dbl(n, mean, .before = 2)) %>% 
   ungroup() %>% 
-  filter(created >= "2020-03-01") %>% 
+  filter(created >= "2020-03-01", created <= "2020-07-31") %>% 
   ggplot(aes(created, n, fill = kj)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
          ymin = 0, ymax = Inf, alpha = .2) +

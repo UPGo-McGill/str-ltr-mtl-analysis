@@ -40,7 +40,8 @@ ltr_unique_property_ID <-
   unnest(property_ID) %>% 
   arrange(desc(scraped)) %>% 
   distinct(property_ID) %>% 
-  inner_join(unnest(filter(ltr, !is.na(property_ID)), property_ID), by = "property_ID") %>% 
+  inner_join(unnest(filter(ltr, !is.na(property_ID)), property_ID), 
+             by = "property_ID") %>% 
   arrange(desc(scraped)) %>% 
   distinct(property_ID, .keep_all = T)
 
@@ -50,9 +51,9 @@ ltr_unique_property_ID <-
 #' Our image matching algorithm recognized 2,526 [1] unique Airbnb listings 
 #' which matched with 4,842 [2] different LTR listings (as some units are posted 
 #' multiple times) in the City of Montreal. The matching LTR listings were 
-#' evenly split between Kijiji (2,596 [2] listings, or 53.6%) and Craigslist 
-#' (2,246 [2] listings, or 46.4%). Out of the 2,526 matching Airbnb listings,
-#' 49.7% (1,264 [3] listings) were active STRs in 2020, which establishes a 
+#' evenly split between Kijiji (2,596 [3] listings, or 53.6%) and Craigslist 
+#' (2,246 [3] listings, or 46.4%). Out of the 2,526 matching Airbnb listings,
+#' 51.2% (1,294 [3] listings) were active STRs in 2020, which establishes a 
 #' lower bound for the number of unique housing units that went from the STR 
 #' market to the LTR market due to the COVID-19 pandemic.
 
@@ -70,6 +71,7 @@ ltr %>%
   ungroup() %>% 
   nrow()
 
+#' [3] KJ/CL split
 ltr %>% 
   st_drop_geometry() %>% 
   filter(!is.na(property_ID)) %>% 
@@ -81,43 +83,38 @@ ltr %>%
   count(kj) %>% 
   mutate(pct = n/sum(n))
 
-#' [3] Unique STR matches active in 2020
+#' [4] Unique STR matches active in 2020
 property %>% 
-  filter(!is.na(ltr_ID), active >= "2020-01-01") %>% 
-  nrow()
-
-property %>% 
-  filter(!is.na(ltr_ID), active >= "2020-01-01") %>% 
-  nrow()/
-  property %>% 
+  st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
-  nrow()
+  count(active = active >= "2020-01-01" | created >= "2020-01-01") %>% 
+  mutate(pct = n / sum(n))
 
-
-#' Out of the 2,526 unique Airbnb listings which matched, 1,690 (66.9%) [1] were observed 
-#' on Kijiji. Of these listings, 74.0% [2] were identified by their hosts as 
-#' “long-term rentals” and 26.0% [2] were identified as “short-term rentals”. 
-#' Among these listings, 50.3% [3] specified lease lengths of 1 year, 21.9% [3] 
-#' specified month-to-month, and 27.8% [3] did not specify.
+#' Out of the 1,690 [1] Airbnb listings which we matched to Kijiji, 74.0% [2]
+#' were identified by their hosts as “long-term rentals” and 26.0% [2] were 
+#' identified as “short-term rentals”. Among these listings, 50.3% [3] specified 
+#' lease lengths of one year, 21.9% [3] specified month-to-month, and 27.8% [3]
+#' did not specify.
 
 #' [1] KJ or CL
 ltr_unique_property_ID %>% 
   group_by(kj) %>% 
   count() %>% 
   ungroup() %>% 
-  mutate(pct = n/sum(n))
+  mutate(pct = n / sum(n))
 
 #' [2] Long-term or short-term
 ltr_unique_property_ID %>% 
   filter(kj) %>% 
   count(short_long) %>% 
-  mutate(perc = n/sum(n))
+  mutate(perc = n / sum(n))
 
 #' [3] Agreement length
 ltr_unique_property_ID %>% 
   filter(kj) %>% 
   count(type) %>% 
-  mutate(perc = n/sum(n))
+  mutate(perc = n / sum(n))
+
 
 # Spatial distribution of the matches --------------------------------------
 
