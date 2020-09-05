@@ -288,10 +288,17 @@ asking_rents %>%
   summarize(avg_price = mean(avg_price)) %>% 
   summarize(max(avg_price) / min(avg_price) - 1)
 
-#' The daily average asking rent in March was $1,736 [1], while in July it was 
-#' $1,627 [1]—a $109 [1] or 6.7% [1] decline.
+#' The average city-wide asking rent on Craigslist and Kijiji has remained 
+#' between $1,326 [1] and $1,579 [1] throughout the March-July period we tracked 
+#' it.... The daily average asking rent in March was $1,736 [2], while in July 
+#' it was $1,627 [2]—a $109 [2] or 6.7% [2] decline.
 
-#' [1] Ville-Marie March/July rent differences
+asking_rents %>% 
+  filter(created >= "2020-03-13", created <= "2020-07-31", 
+         status == "All listings", geography == "City of Montreal") %>% 
+  summarize(min = min(avg_price), max = max(avg_price))
+
+#' [2] Ville-Marie March/July rent differences
 asking_rents %>% 
   filter(geography == "Ville-Marie", created >= "2020-03-13",
          created <= "2020-07-31", status == "All listings") %>% 
@@ -451,7 +458,26 @@ ltr_unique_property_ID %>%
 
 
 
-# Description of the typical STR unit that has returned to the LTR market --------
+# Are matched listings commercial operations? -----------------------------
+
+#' Of the 2,526 [1] unique STR listings that matched with the LTR market, 
+#' TKTK [2] (TKTK% [2]) are entire-home listings and TKTK [2] (TKTK% [2]) are 
+#' private-room listings. Examining the entire-home listings, 50.4% [3] of them 
+#' were identified as frequently rented entire-home (FREH) listings at some 
+#' point, which means they were almost certainly operated commercially. 
+#' Moreover, 75.3% [4] of entire-home STR listings which matched to LTR listings 
+#' were multilistings at some point, which means they were operated by hosts 
+#' controlling multiple listings simultaneously. In total, TKTK% [5] of 
+#' entire-home listings had one of these two strong indicators of commercial 
+#' activity.
+
+#' [1] Unique STR matches
+property %>% filter(!is.na(ltr_ID)) %>% nrow()
+
+#' [2] listing_type breakdown among matches
+
+
+
 
 #' As we have seen in a previous section, frequently rented entire-home (FREH) 
 #' listings are likely to be operated commercially. They may be well-established 
