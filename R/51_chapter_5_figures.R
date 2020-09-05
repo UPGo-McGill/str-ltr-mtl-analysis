@@ -254,6 +254,32 @@ asking_rents <-
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
   ungroup() %>% 
   mutate(status = "All listings", .before = created) %>% 
+  bind_rows(asking_rents) %>% 
+  mutate(geography = "City of Montreal")
+
+asking_rents_vm <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(matched, created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup() %>% 
+  mutate(status = if_else(matched, "Matched to STR", "Not matched"), 
+         .before = created) %>% 
+  select(-matched)
+
+asking_rents <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup() %>% 
+  mutate(status = "All listings", .before = created) %>% 
+  bind_rows(asking_rents_vm) %>% 
+  mutate(geography = "Ville-Marie") %>% 
   bind_rows(asking_rents)
 
 figure_5_4 <-
@@ -264,8 +290,10 @@ figure_5_4 <-
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL, limits = c(as.Date("2020-03-01"), NA)) +
-  scale_y_continuous(name = NULL, label = scales::dollar) +
+  scale_y_continuous(name = NULL, limits = c(1000, 2500), 
+                     label = scales::dollar) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1, 3)]) +
+  facet_wrap(vars(geography)) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
@@ -273,7 +301,8 @@ figure_5_4 <-
         text = element_text(family = "Futura", face = "plain"),
         legend.title = element_text(family = "Futura", face = "bold", 
           size = 10),
-        legend.text = element_text(family = "Futura", size = 10))
+        legend.text = element_text(family = "Futura", size = 10),
+        strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -383,9 +412,10 @@ extrafont::embed_fonts("output/figures/figure_5_5.pdf")
 
 # Clean up ----------------------------------------------------------------
 
-rm(ab_matches, annual_revenue, asking_rents, boroughs, boroughs_raw, city,
-   cl_matches, DA, figure_5_1, figure_5_2, figure_5_3, figure_5_3_left,
-   figure_5_3_right, figure_5_4, figure_5_5, figure_5_5_1, figure_5_5_2,
-   figure_5_5_3, first_listing, first_ltr_listing, first_photo_pair,
-   kj_matches, length_of_stay, ltr, ltr_unique, ltr_unique_property_ID, photos,
-   province, second_photo_pair, streets, streets_downtown, titles)
+rm(ab_matches, annual_revenue, asking_rents, asking_rents_vm, boroughs, 
+   boroughs_raw, city, cl_matches, DA, figure_5_1, figure_5_2, figure_5_3, 
+   figure_5_3_left, figure_5_3_right, figure_5_4, figure_5_5, figure_5_5_1, 
+   figure_5_5_2, figure_5_5_3, first_listing, first_ltr_listing, 
+   first_photo_pair, kj_matches, length_of_stay, ltr, ltr_unique, 
+   ltr_unique_property_ID, photos, province, second_photo_pair, streets, 
+   streets_downtown, titles)
