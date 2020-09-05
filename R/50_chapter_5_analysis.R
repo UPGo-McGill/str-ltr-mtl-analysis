@@ -199,6 +199,109 @@ property %>%
   round(3)
 
 
+# Asking rents ------------------------------------------------------------
+
+asking_rents <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000) %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(matched, created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  ungroup() %>% 
+  mutate(status = if_else(matched, "Matched to STR", "Not matched"), 
+         .before = created) %>% 
+  select(-matched)
+
+asking_rents <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000) %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  ungroup() %>% 
+  mutate(status = "All listings", .before = created) %>% 
+  bind_rows(asking_rents) %>% 
+  mutate(geography = "City of Montreal")
+
+asking_rents_vm <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(matched, created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  ungroup() %>% 
+  mutate(status = if_else(matched, "Matched to STR", "Not matched"), 
+         .before = created) %>% 
+  select(-matched)
+
+asking_rents <- 
+  ltr_unique %>% 
+  filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
+  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
+  group_by(created) %>%
+  summarize(avg_price = mean(price)) %>% 
+  ungroup() %>% 
+  mutate(status = "All listings", .before = created) %>% 
+  bind_rows(asking_rents_vm) %>% 
+  mutate(geography = "Ville-Marie") %>% 
+  bind_rows(asking_rents)
+
+#' On March 13 [1], when the average asking rent on LTR platforms in the City 
+#' of Montreal was $1,387 [1], the average asking rent among listings which we 
+#' matched to Airbnb was $2,641 [1]—90.4% [1] higher. Over the course of
+#' March, average asking rents for LTR listings matched to Airbnb declined 
+#' steadily, and since April they have been relatively stable, with a daily 
+#' average of $1,746 [2]. This remains a significantly higher (22.0% [2]) 
+#' average asking price than the non-matched listings, though, which from 
+#' April through July averaged $1,431 [2].
+
+#' [1] Peak difference between matched and city-wide
+asking_rents %>% 
+  filter(geography == "City of Montreal", created >= "2020-03-13") %>% 
+  group_by(created) %>% 
+  summarize(city = avg_price[status == "All listings"],
+            match = avg_price[status == "Matched to STR"],
+            dif = avg_price[status == "Matched to STR"] - 
+              avg_price[status == "All listings"],
+            dif_pct = match / city - 1) %>% 
+  filter(dif == max(dif))
+
+#' [2] April-July averages
+asking_rents %>% 
+  filter(geography == "City of Montreal", created >= "2020-04-01",
+         created <= "2020-07-31") %>% 
+  group_by(status) %>% 
+  summarize(avg_price = mean(avg_price)) %>% 
+  mutate(pct_higher = avg_price / min(avg_price) - 1)
+  
+#' Even in Ville-Marie, however, LTR listings matched to Airbnb have been on 
+#' average 11.4% [1] higher than listings not matched, and the same pattern of 
+#' initially extremely high asking rents in March yielding to lower (although 
+#' still high) rents from April through July is visible.
+
+#' [1] Ville-Marie overall average rent differences
+asking_rents %>% 
+  filter(geography == "Ville-Marie", created >= "2020-03-13",
+         status != "All listings") %>% 
+  group_by(status) %>% 
+  summarize(avg_price = mean(avg_price)) %>% 
+  summarize(max(avg_price) / min(avg_price) - 1)
+
+#' The daily average asking rent in March was $1,736 [1], while in July it was 
+#' $1,627 [1]—a $109 [1] or 6.7% [1] decline.
+
+#' [1] Ville-Marie March/July rent differences
+asking_rents %>% 
+  filter(geography == "Ville-Marie", created >= "2020-03-13",
+         created <= "2020-07-31", status == "All listings") %>% 
+  filter(created <= "2020-03-31" | created >= "2020-07-01") %>% 
+  group_by(created <= "2020-03-31") %>% 
+  summarize(avg_price = mean(avg_price)) %>% 
+  mutate(dif = avg_price - min(avg_price),
+         dif_pct = avg_price / min(avg_price) - 1)
+
+
+
 
 # Detailed information on matches ------------------------------------------
 
@@ -301,40 +404,6 @@ ltr_unique_property_ID %>%
   count(furnished) %>% 
   mutate(pct = n/sum(n))
 
-
-#' Asking rents on the LTR platform
-
-#' The LTR listings which matched with STR listings had higher average prices than 
-#' other LTR listings, as depicted in Figure 5.2. While the increase in housing 
-#' supply could have lowered asking rents, the addition of these STRs in the LTR 
-#' market did not have a great impact on the overall average asking rents 
-#' (represented by the grey line), potentially due to their fairly low 
-#' representation in the entire dataset (matches make up only 5.9% [1] of the dataset). 
-#' If anything, they contributed to a slight increase in the overall average due to 
-#' their significantly higher asking rents. The asking rent of STRs which moved to 
-#' the LTR market was on average 19.3% [2] higher than the rest of the dataset. Factors 
-#' involved in the consistently higher average prices of the matches could be 
-#' explained by their overrepresentation in furnished listings and their more 
-#' central location, among others. The decrease in asking prices for STR matches 
-#' over time suggests a market correction potentially reflecting a lack of demand. 
-#' Due to data limitations, we have not been able to calculate the trend in average 
-#' asking rents compared to previous years. Indeed, the scrapes have not been 
-#' conducted long enough to provide for year-over-year comparisons. 
-
-
-#' [1] representation of matched LTR listings
-ltr_unique %>% 
-  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
-  count(matched) %>% 
-  mutate(pct = n/sum(n))
-
-#' [2] Average asking rent of the matches
-ltr_unique %>% 
-  filter(price >425, price <8000) %>% 
-  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
-  group_by(matched) %>%
-  summarize(avg_price = mean(price)) %>% 
-  summarize(pct_diff = (avg_price[2] - avg_price[1]) / avg_price[2])
 
 
 # Description of the typical STR unit that has returned to the LTR market --------
