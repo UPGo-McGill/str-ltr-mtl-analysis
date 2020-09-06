@@ -614,84 +614,63 @@ property %>%
 
 # Which STR hosts transferred their listings to Craigslist and Kij --------
 
-
-
-
-
-#' In Montreal, 1149 [1] unique STR host IDs were linked to the 2,526 LTR matches. 
-#' 288 [2] of these hosts posted more than one of their STR units on the LTR platforms. 
-#' For example, the top (mentioned in section 2) host posted 239 [2] of its STR units on 
-#' the LTR market. Half [3] of the active properties of these 1149 hosts were found on either 
-#' Kijiji, Craigslist or both. The fact that only a portion of the hosts’ listings were 
-#' found on LTR platforms indicates that these matches are likely to be an underestimation
-#'  of the STRs that were posted on LTR platforms. Indeed, it would be intuitive to 
-#'  assume that a host that decides to post its listings on a LTR platform would post 
-#'  all of them. This could mean that the remainder of the listings were posted and 
-#'  rented before the team conducted the weekly scrapes, that only the hosts’ less 
-#'  performing STRs were put onto the LTR rental market, hosts limited themselves to 
-#'  other LTR listings websites (such as various Facebook housing groups), sold housing 
-#'  formerly used as STRs or simply that the hosts used updated pictures for its 
-#'  listings, making it impossible to detect these matches through our image matching 
-#'  algorithm. This minority of each host’s listings found is thus an example of how 
-#'  the matches found are likely substantially lower than the reality.
+#' In Montreal, 1,149 [1] unique Airbnb host IDs were linked to the 2,526 [2] 
+#' LTR matches. 288 [3] of these hosts posted more than one of their STR units 
+#' on Craigslist or Kijiji. For example, the top host network in Montreal 
+#' (discussed in section 2) posted 239 [3] of its STR units on the LTR market. 
+#' Half (49.7% [4]) of the active properties of these 1,149 [1] hosts were found
+#'  on either Kijiji, Craigslist, or both. 
 
 #' [1] number of hosts found on a LTR platform
 property %>%
-  filter(!is.na(ltr_ID)) %>% 
-  count(host_ID) %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID), !is.na(host_ID)) %>% 
+  count(host_ID, sort = TRUE) %>% 
   nrow() 
 
-#' [2] number of hosts having more than one properties on LTR market
+#' [2] Unique STR matches
+property %>% filter(!is.na(ltr_ID)) %>% nrow()
+
+#' [3] Number of hosts with > 1 property on LTR market
 property %>%
   st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID)) %>% 
-  count(host_ID) %>% 
-  filter(n > 1) %>% 
-  nrow()
+  filter(!is.na(ltr_ID), !is.na(host_ID)) %>% 
+  count(host_ID, sort = TRUE) %>% 
+  filter(n > 1) %>%
+  summarize(total = n(), top = max(n))
 
-(property %>%
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID)) %>% 
-  count(host_ID) %>% 
-  filter(n > 1) %>% 
-  arrange(desc(n)))[1,]
+#' [4] Percentage of hosts' properties which made the switch from STR to LTR
+{nrow(ltr_unique_property_ID) / 
+    property %>% 
+    st_drop_geometry() %>% 
+    filter(host_ID %in% (filter(property, !is.na(ltr_ID)))$host_ID, 
+           scraped >= "2020-01-01") %>% 
+    nrow()} %>% 
+  round(3)
 
-#' [3] percentage of the hosts' properties which made the switch from STR to LTR
-ltr_unique_property_ID %>%
-  nrow() /
-  property %>% 
-  st_drop_geometry() %>% 
-  filter(host_ID %in% (property %>%
-                         st_drop_geometry() %>% 
-                         filter(!is.na(ltr_ID)) %>% 
-                         pull(host_ID)), 
-         scraped >= "2020-01-01") %>% 
-  nrow()
+#' The median STR host revenue was $4,300 [1] in the entire City of Montreal in 
+#' 2019. The annual median revenue of hosts who transferred listings to the LTR 
+#' market was $14,300 [2], while the median revenue of hosts who did not 
+#' transfer listings was only $TKTK [2]. Moreover, many of Montreal’s highest 
+#' earning STR hosts turned to LTR platforms during the COVID-19 pandemic. For 
+#' example, 27 [3] of the 38 [3] hosts that made more than $500,000 in the past 
+#' year listed at least one of their STR units on an LTR platform. On average 
+#' these top earning hosts listed 28.9 [4] units on LTR platforms, compared to 
+#' 2.2 units [4] for all other hosts). 
 
-#' Type of hosts: revenue
-
-#' The income distribution of the hosts that matched is greatly higher than the revenue 
-#' distribution of all Montreal hosts. Median revenue of all hosts was $4,300 in the 
-#' entire City of Montreal in 2019. For the hosts that matched, their yearly median 
-#' revenue was $14,300 [1]. Many of the top-earning hosts turned to LTR platforms in light 
-#' of the COVID-19 pandemic. For example, 27 [2] of the 37 hosts that made more than $500,000 
-#' in the past year moved at least one STR unit to the LTR market (28.9 [3] units in average 
-#' for these top earning hosts, versus 2.2 [3] units in average for the totality of hosts). 
-#' The hosts which moved one or more units from the STR market to the LTR have higher 
-#' revenue in general, and more than the majority of the big players of Montreal’s STR 
-#' market also shifted part of their units to the longer-term rental market. Needless 
-#' to say, they carry a very heavy weight in this analysis. Figure 5.4 displays the 
-#' revenue distribution of hosts that matched, compared to the ones that did not.
-
-#' [1] revenue distribution of hosts that matched on a LTR platform 
 revenue_2019 <- 
   daily %>%
   filter(housing,
          date <= LTM_end_date, date >= LTM_start_date,
          status == "R") %>%
   group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price) ) %>% 
-  inner_join(property, .)
+  summarize(revenue_LTM = sum(price)) %>% 
+  inner_join(property, .) %>% 
+  st_drop_geometry()
+
+
+
+#' [1] revenue distribution of hosts that matched on a LTR platform 
 
 revenue_2019 %>% 
   st_drop_geometry() %>%
@@ -718,7 +697,8 @@ revenue_2019 %>%
   opt_row_striping()
 
 #' [2] host that matched and made more than 500k
-half_mil_ltr <- revenue_2019 %>% 
+half_mil_ltr <- 
+  revenue_2019 %>% 
   st_drop_geometry() %>%
   filter(revenue_LTM > 0) %>%
   filter(host_ID %in% (property %>%
