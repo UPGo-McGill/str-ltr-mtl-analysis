@@ -738,7 +738,8 @@ ltr_unique %>%
 #' other 559 [2] (37.9% [2]) had been deactivated. Extrapolating this proportion 
 #' across the entire set of matched listings we identified, we estimate that 
 #' 957 [2] matched listings have been deactivated from Airbnb during the
-#' pandemic, while 1,569 [2] remain on the platform.
+#' pandemic, while 1,569 [2] remain on the platform.... However, 75.6% [3] of 
+#' these listings were rented as furnished rentals on Craigslist or Kijiji. 
 
 #' [1] Unique STR matches
 property %>% filter(!is.na(ltr_ID)) %>% nrow()
@@ -756,6 +757,15 @@ property %>%
             pct_not_scraped = 1 - pct_scraped,
             n_gone = pct_not_scraped * nrow(filter(property, !is.na(ltr_ID))),
             n_active = pct_scraped * nrow(filter(property, !is.na(ltr_ID))))
+
+#' [3] Furnished rentals with deactivated Airbnb listings
+property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  filter(scraped >= "2020-01-01", scraped < "2020-07-31") %>% 
+  left_join(select(ltr_unique_property_ID, property_ID, furnished)) %>% 
+  filter(!is.na(furnished)) %>% 
+  summarize(furnished = round(mean(furnished), 3))
 
 #'  Of the 916 [1] matched listings which were present on Airbnb at the 
 #'  beginning of 2020 and still present by the end of July, 393 [1] (42.9% [1]) 
