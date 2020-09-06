@@ -818,3 +818,12 @@ property %>%
   mutate(across(where(is.numeric), round, 0)) %>% 
   pivot_longer(-total) %>% 
   mutate(pct = round(value / sum(value), 3))
+
+
+# Clean up ----------------------------------------------------------------
+
+rm(annual_avg_rent, annual_units, annual_vacancy, asking_rents, asking_rents_vm,
+   bedroom_match_table, boroughs, boroughs_raw, city, city_avg_rent, city_units,
+   city_vacancy, cmhc, DA, half_mil_ltr, ltr, ltr_PR, ltr_unique,
+   ltr_unique_property_ID, province, revenue_2019, streets, streets_downtown,
+   blocked_pct, deactivated_pct)
