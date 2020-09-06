@@ -651,12 +651,12 @@ property %>%
 #' The median STR host revenue was $4,300 [1] in the entire City of Montreal in 
 #' 2019. The annual median revenue of hosts who transferred listings to the LTR 
 #' market was $14,300 [2], while the median revenue of hosts who did not 
-#' transfer listings was only $TKTK [2]. Moreover, many of Montreal’s highest 
+#' transfer listings was only $4,000 [2]. Moreover, many of Montreal’s highest 
 #' earning STR hosts turned to LTR platforms during the COVID-19 pandemic. For 
 #' example, 27 [3] of the 38 [3] hosts that made more than $500,000 in the past 
 #' year listed at least one of their STR units on an LTR platform. On average 
 #' these top earning hosts listed 28.9 [4] units on LTR platforms, compared to 
-#' 2.2 units [4] for all other hosts). 
+#' 1.6 units [4] for all other hosts). 
 
 revenue_2019 <- 
   daily %>%
@@ -666,102 +666,63 @@ revenue_2019 <-
   group_by(property_ID) %>%
   summarize(revenue_LTM = sum(price)) %>% 
   inner_join(property, .) %>% 
-  st_drop_geometry()
+  st_drop_geometry() %>% 
+  select(property_ID, host_ID, listing_type:active, revenue_LTM)
 
-
-
-#' [1] revenue distribution of hosts that matched on a LTR platform 
-
-revenue_2019 %>% 
-  st_drop_geometry() %>%
-  filter(revenue_LTM > 0) %>%
-  filter(host_ID %in% (property %>%
-                         st_drop_geometry() %>%
-                         filter(!is.na(ltr_ID)) %>%
-                         pull(host_ID))) %>%
-  group_by(host_ID) %>% 
-  summarize("host_rev" = sum(revenue_LTM)) %>% 
-  pull(host_rev) %>%
-  quantile() %>% 
-  as.list() %>% 
-  as_tibble() %>% 
-  select(-`0%`) %>% 
-  set_names(c("25th percentile", "Median", "75th percentile", 
-              "100th percentile")) %>% 
-  mutate_all(round, -2) %>% 
-  drop_na() %>% 
-  gt() %>% 
-  tab_header(
-    title = "Host income",
-  ) %>%
-  opt_row_striping()
-
-#' [2] host that matched and made more than 500k
 half_mil_ltr <- 
   revenue_2019 %>% 
-  st_drop_geometry() %>%
-  filter(revenue_LTM > 0) %>%
-  filter(host_ID %in% (property %>%
-                         st_drop_geometry() %>%
-                         filter(property_ID %in% ltr_unique_property_ID$property_ID) %>%
-                         pull(host_ID))) %>%
   group_by(host_ID) %>% 
-  summarize("host_rev" = sum(revenue_LTM)) %>% 
-  filter(host_rev > 500000) %>% 
-  pull(host_ID) 
+  summarize(host_rev = sum(revenue_LTM)) %>% 
+  filter(host_rev > 500000)
 
-half_mil_ltr %>% length()
+#' [1] Median host revenue
+round(median(revenue_2019$revenue_LTM), -2)
 
-#' [3] how many listings matched for the top earning hosts that matched
-property %>% 
-  st_drop_geometry() %>% 
-  filter(host_ID %in% half_mil_ltr, 
-         !is.na(ltr_ID)) %>%
-  count(host_ID) %>% 
-  summarize(mean(n))
+#' [2] Median host revenue by host match status
+revenue_2019 %>% 
+  group_by(host_match = host_ID %in% (filter(property, 
+                                             !is.na(ltr_ID)))$host_ID,
+           host_ID) %>%
+  summarize(host_rev = sum(revenue_LTM)) %>% 
+  summarize("median_rev" = round(median(host_rev), -2))
 
+#' [3] Hosts that matched and made more than 500k
+half_mil_ltr %>% 
+  summarize(
+    total = n(),
+    host_match = sum(
+      host_ID %in% (filter(property, property_ID %in% 
+                             ltr_unique_property_ID$property_ID)$host_ID)))
+
+#' [4] Average number of listings by host match status
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>%
   count(host_ID) %>% 
-  summarize(mean(n))
+  group_by(host_match = host_ID %in% half_mil_ltr$host_ID) %>% 
+  summarize(round(mean(n), 1))
 
+#' Out of all hosts with active STR listings in 2020 that shifted their listings 
+#' to the LTR market in Montreal, 22.9% [1] had Superhost status. This is almost 
+#' twice [1] as high as the general 12.8% [1] prevalence of Superhost status 
+#' among Montreal hosts, which is consistent with the idea that the listings 
+#' moving from STR to LTR platforms in Montreal are dominated by commercial 
+#' operations. 
 
-#' Type of host: Superhost
-
-#' Another method of analyzing the type of host is the Superhost status. Hosts can earn S
-#' uperhost status through their performance on the site, such as their ratings and 
-#' reviews. Superhosts get more exposure in search results and are usually more 
-#' trusted by guests based on their standing. Out of all hosts that matched, 18.0% [1] had 
-#' Superhost status. This is significantly higher than the general distribution of hosts 
-#' in Montreal with superhost status (13.0% [2] of all hosts were Superhosts in 2020). 
-
-#' [1] Superhost status for host that matched
+#' [1] Superhost status
 property %>%
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID), superhost == T) %>% 
+  st_drop_geometry() %>%
+  filter(!is.na(host_ID), !is.na(superhost), scraped >= "2020-01-01") %>% 
+  group_by(match = !is.na(ltr_ID), superhost) %>% 
   count(host_ID) %>% 
-  nrow() / 
-  property %>%
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID)) %>% 
-  count(host_ID) %>% 
-  nrow()
+  group_by(match, host_ID) %>% 
+  summarize(superhost = as.logical(sum(superhost))) %>% 
+  summarize(pct = sum(superhost) / n()) %>% 
+  mutate(dif = pct[2] / pct[1])
 
-#' [2] Superhost status for ALL hosts 
-property %>%
-  st_drop_geometry() %>% 
-  filter(scraped >= "2020-01-01", superhost == T) %>% 
-  count(host_ID) %>% 
-  nrow() / 
-  property %>%
-  st_drop_geometry() %>% 
-  filter(scraped >= "2020-01-01") %>% 
-  count(host_ID) %>% 
-  nrow()
-  
 
-# Listing exposure ---------------------------------------------------------------
+# Are matched listings successfully rented, or still active on Air --------
+
 
 #' Length of availability on long-term rental platforms
 
