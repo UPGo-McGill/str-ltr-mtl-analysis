@@ -7,8 +7,10 @@
 #' 
 #' Script dependencies:
 #' - `02_geometry_import.R`
+#' - `05_cmhc_data_import.R`
 #' - `07_ltr_listing_match.R`
 #' - `09_str_processing.R`
+#' - `11_FREH_model.R`
 #' 
 #' External dependencies:
 #' - None
@@ -46,16 +48,15 @@ ltr_unique_property_ID <-
   arrange(desc(scraped)) %>% 
   distinct(property_ID, .keep_all = T)
 
-# private rooms for rent in the LTR market scrape
+# Private rooms in the LTR market scrape
 ltr_PR <- 
   ltr_unique %>% 
-  mutate(title = tolower(title),
-         room_for_rent = str_detect(title, or("(^| |/)room( |$|/)", "(^| )chambre( |$|/)", "(^|/| )swap( |$|/)", 
-                                              "(^|/| )exchange( |$|/)", "(^| |/)1 bedroom for rent( |$|/)", "(^| )1 bdrm( |$|/)",
-                                              "(^| |/)1 fully furnished bedroom( |$|/)", "(^| |/)échange( |$|/)",
-                                              "(^| |/)lease transfer( |$|/)",
-                                              "(^| |/)spacious bedroom( |$|/)"))) %>% 
-  filter(room_for_rent == T)
+  mutate(title = tolower(title)) %>% 
+  filter(str_detect(title, paste0("(^| |/)(room|chambre|swap|exchange|1 ",
+                                  "bedroom for rent|1 bdrm|1 fully furnished ",
+                                  "bedroom|échange|lease transfer|spacious ","
+                                  bedroom)( |$|/)")))
+
 
 # How many STR listings have returned to the long-term market? ------------
 
@@ -469,17 +470,16 @@ ltr_unique_property_ID %>%
   mutate(pct = round(n / sum(n), 3))
 
 
-
 # Are matched listings commercial operations? -----------------------------
 
 #' Of the 2,526 [1] unique STR listings that matched with the LTR market, 
-#' TKTK [2] (TKTK% [2]) are entire-home listings and TKTK [2] (TKTK% [2]) are 
-#' private-room listings. Examining the entire-home listings, 50.4% [3] of them 
+#' 2,177 [2] (86.2% [2]) are entire-home listings and 315 [2] (12.5% [2]) are 
+#' private-room listings. Examining the entire-home listings, 58.4% [3] of them 
 #' were identified as frequently rented entire-home (FREH) listings at some 
 #' point, which means they were almost certainly operated commercially. 
-#' Moreover, 75.3% [4] of entire-home STR listings which matched to LTR listings 
+#' Moreover, 78.6% [3] of entire-home STR listings which matched to LTR listings 
 #' were multilistings at some point, which means they were operated by hosts 
-#' controlling multiple listings simultaneously. In total, TKTK% [5] of 
+#' controlling multiple listings simultaneously. In total, 88.9% [3] of 
 #' entire-home listings had one of these two strong indicators of commercial 
 #' activity.
 
@@ -487,80 +487,141 @@ ltr_unique_property_ID %>%
 property %>% filter(!is.na(ltr_ID)) %>% nrow()
 
 #' [2] listing_type breakdown among matches
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+  count(listing_type) %>% 
+  mutate(pct = n / sum(n))
 
+#' [3] Commercial status among EH matches
+daily %>% 
+  filter(property_ID %in% ltr_unique_property_ID$property_ID,
+         listing_type == "Entire home/apt") %>% 
+  group_by(property_ID) %>% 
+  summarize(FREH = as.logical(sum(FREH_3 > 0.5)),
+            ML = as.logical(sum(multi))) %>% 
+  summarize(total = 
+              property %>% 
+              st_drop_geometry() %>% 
+              filter(property_ID %in% ltr_unique_property_ID$property_ID, 
+                     listing_type == "Entire home/apt") %>% 
+              nrow(),
+            FREH_pct = sum(FREH) / total,
+            ML_pct = sum(ML) / total,
+            either_pct = sum(ceiling((FREH + ML) / 2)) / total)
 
+#' The 315 [1] private-room listings require some further analysis, because each 
+#' of these listings matched to a Craigslist or Kijiji listing advertised as an 
+#' entire housing unit. Our analysis suggests that these listings break down 
+#' into three categories. The first is miscategorizations. 69 [2] (21.9% [2]) of 
+#' the LTR listings that matched to STR private-room listings had titles such as 
+#' “1 fully furnished bedroom” or “swap”.
 
+#' [1] PR matches
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+  count(listing_type) %>% 
+  mutate(pct = n / sum(n)) %>% 
+  filter(listing_type == "Private room")
 
-#' As we have seen in a previous section, frequently rented entire-home (FREH) 
-#' listings are likely to be operated commercially. They may be well-established 
-#' due to frequent reservations and consequently have more reviews. Of the 2,569 
-#' unique STR listings that matched with the LTR market, 50.4% [1] had at least three 
-#' months of reservations and availability which are consistent with a year-long 
-#' full-time operation.
+#' [2] Miscategorizations
+property %>% 
+  filter(listing_type == "Private room",
+         property_ID %in% unlist(ltr_PR$property_ID)) %>% 
+  nrow() %>% 
+  {c(., . / {property %>% 
+      st_drop_geometry() %>% 
+      filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+      count(listing_type) %>% 
+      mutate(pct = n / sum(n)) %>% 
+      filter(listing_type == "Private room") %>% 
+      pull(n)})} %>% 
+  round(3)
 
-#' [1] Type of STR - FREH 
-ltr_unique_property_ID %>% 
-  filter(property_ID %in% filter(daily, FREH_3 > 0.5)$property_ID) %>% 
-  nrow() /
-  ltr_unique_property_ID %>% 
-  nrow()
+#' 124 [1] (39.4%) [1] of the 315 [2] private-room listings which matched to 
+#' Craiglist or Kijiji were listings identified as belonging to ghost hostels in 
+#' Montreal. 
 
-#' As mentioned above, one indication that a listing might be operated for commercial 
-#' purposes is when a host operates more than one listing on a given date, as it is 
-#' unlikely that both listings could be operated out of their principal residence. 
-#' Out of all the STR listings that matched LTR listings, 1,903 (75.3%) [1] were found as 
-#' multilisting at least once in their lifetime.
+#' [1] GH matches
+property %>% 
+  filter(listing_type == "Private room") %>% 
+  filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+  filter(property_ID %in% unlist(GH$property_IDs)) %>% 
+  nrow() %>% 
+  {c(., . / {property %>% 
+      st_drop_geometry() %>% 
+      filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+      count(listing_type) %>% 
+      filter(listing_type == "Private room") %>% 
+      pull(n)})} %>% 
+  round(3)
 
-#' [1] Type of STR - Multilistings 
-ltr_unique_property_ID %>% 
-  filter(property_ID %in% filter(daily, multi == T)$property_ID) %>% 
-  nrow()
+#' [2] PR matches
+property %>% 
+  st_drop_geometry() %>% 
+  filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+  count(listing_type) %>% 
+  filter(listing_type == "Private room") %>% 
+  pull(n)
 
-ltr_unique_property_ID %>% 
-  filter(property_ID %in% filter(daily, multi == T)$property_ID) %>% 
-  nrow() /
-  ltr_unique_property_ID %>% 
-  nrow()
+#' The remaining 122 [1] private-room Airbnb listings which matched to 
+#' Craigslist or Kijiji are likely to be ghost hostels which our algorithms 
+#' failed to identify, or smaller housing units similarly subdivided into 
+#' private rooms.
 
-#' If we aggregate the characteristics that can be used to determine whether a STR is 
-#' operated commercially (multilisting, FREH), there were 2,127 [1] matches that can be 
-#' categorized as being commercial operations, making up 84.2% [1] of all unique STR units 
-#' that matched to a LTR listing and were active in 2020. (Ghost hostels are not 
-#' included in this analysis since only postings for entire units on LTR platforms 
-#' were scraped.) However, only 8.4% of all STR listings in Montreal that could be 
-#' considered commercial operations in their lifetime were matched on longer-term 
-#' rental platforms during the pandemic. While commercial listings make up a 
-#' great majority of the matches, the low preponderance of commercial listings 
-#' resorting to listing their units on LTR platforms could mean that many commercial 
-#' operators decided to remain on STR platforms instead of finding longer-term tenants. 
-#' The commercial listings that have a good standing with numerous previous reservations 
-#' and reviews might have chosen to remain in the STR market, while mostly newer 
-#' commercial listings are popping up on Kijiji and Craigslist.
+#' [1] Leftover PR matches
+{property %>% 
+    st_drop_geometry() %>% 
+    filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+    count(listing_type) %>% 
+    filter(listing_type == "Private room") %>% 
+    pull(n)} - {property %>% 
+  filter(listing_type == "Private room",
+         property_ID %in% unlist(ltr_PR$property_ID)) %>% 
+  nrow()} - {property %>% 
+      filter(listing_type == "Private room") %>% 
+      filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
+      filter(property_ID %in% unlist(GH$property_IDs)) %>% 
+      nrow()}
 
-#' [1] Combination of FREH, GH and ML to get the listings with commercial characteristics
-rbind(
-  ltr_unique_property_ID %>% 
-    filter(property_ID %in% filter(daily, multi == T)$property_ID),
-  ltr_unique_property_ID %>% 
-    filter(property_ID %in% filter(daily, FREH_3 > 0.5)$property_ID)) %>% 
-  distinct(property_ID) %>% 
-  nrow()
+#' Focusing on the unambiguous case of the entire-home listings which matched 
+#' between STR and LTR platforms, 24.2% [1] of the commercial listings active 
+#' in 2020 have been transferred to Craiglist or Kijiji since March.... 
+#' Expressed as a percentage of the commercial listings active on March 1, 2020, 
+#' at the onset of the pandemic, the matches represent 40.6% [2] of these 
+#' listings.
 
-(rbind(
-  ltr_unique_property_ID %>% 
-    filter(property_ID %in% filter(daily, multi == T)$property_ID),
-  ltr_unique_property_ID %>% 
-    filter(property_ID %in% filter(daily, FREH_3 > 0.5)$property_ID)) %>% 
-    distinct(property_ID)) %>%
-  nrow() /
-  ltr_unique_property_ID %>% 
-  nrow()
+#' [1] EH matches as % of commercial operations on March 1
+{property %>% 
+    filter(property_ID %in% ltr_unique_property_ID$property_ID, 
+           listing_type == "Entire home/apt") %>% 
+    nrow() /
+    daily %>% 
+    filter(listing_type == "Entire home/apt", status != "B", 
+           date >= "2020-01-01", (FREH_3 > 0.5 | multi == TRUE)) %>% 
+    count(property_ID) %>% 
+    nrow()} %>% 
+  round(3)
 
-ltr_unique_property_ID %>% 
+#' [2] EH matches as % of commercial operations on March 1
+{property %>% 
+  filter(property_ID %in% ltr_unique_property_ID$property_ID, 
+         listing_type == "Entire home/apt") %>% 
   nrow() /
   daily %>% 
-  filter(status != "B", date == "2020-03-01", FREH_3 > 0.5 | multi == T) %>% 
-  nrow()
+  filter(listing_type == "Entire home/apt", status != "B", date == "2020-03-01", 
+         (FREH_3 > 0.5 | multi == TRUE)) %>% 
+  nrow()} %>% 
+  round(3)
+
+
+
+
+
+
+
+
 
 #' Type of host -----------------------------------------------------------------
 

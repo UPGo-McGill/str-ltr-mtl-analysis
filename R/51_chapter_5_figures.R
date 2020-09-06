@@ -310,7 +310,7 @@ ggsave("output/figures/figure_5_4.pdf", plot = figure_5_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_4.pdf")
 
 
-# Figure 5.5 Match comparisons --------------------------------------------
+# Figure 5.5 STR listing age distributions --------------------------------
 
 first_listing <- 
   property %>% 
@@ -318,9 +318,9 @@ first_listing <-
   filter(active > "2020-01-01") %>% 
   transmute(property_ID,
             active_length = as.numeric(round((active - created) / 30) / 12),
-            matched = if_else(!is.na(ltr_ID), "Matched to STR", "Not matched"))
+            matched = if_else(!is.na(ltr_ID), "Matched to LTR", "Not matched"))
 
-figure_5_5_1 <- 
+figure_5_5 <- 
   first_listing %>% 
   ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 27) +
@@ -340,6 +340,14 @@ figure_5_5_1 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
+ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
+       height = 2.5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_5.pdf")
+
+
+# Figure 5.6 Host revenue distributions -----------------------------------
+
 annual_revenue <- 
   daily %>%
   filter(housing,
@@ -352,11 +360,11 @@ annual_revenue <-
   mutate(matched = if_else(
     host_ID %in% (filter(property, property_ID %in% 
                            ltr_unique_property_ID$property_ID))$host_ID, 
-    "Matched to STR", "Not matched")) %>%
+    "Matched to LTR", "Not matched")) %>%
   group_by(host_ID, matched) %>% 
   summarize(host_rev = sum(revenue_LTM))
 
-figure_5_5_2 <-
+figure_5_6 <-
   annual_revenue %>% 
   ggplot(aes(host_rev, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 30) +
@@ -377,13 +385,21 @@ figure_5_5_2 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
+ggsave("output/figures/figure_5_6.pdf", plot = figure_5_6, width = 8, 
+       height = 2.5, units = "in", useDingbats = FALSE)
+
+extrafont::embed_fonts("output/figures/figure_5_6.pdf")
+
+
+# Figure 5.7 LTR listing age distribution ---------------------------------
+
 length_of_stay <- 
   ltr_unique %>% 
   mutate(active_length = scraped - created) %>% 
   mutate(matched = if_else(!is.na(property_ID), "Matched to STR", 
                            "Not matched"))
 
-figure_5_5_3 <-  
+figure_5_7 <-  
   length_of_stay %>% 
   ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 27) +
@@ -402,20 +418,17 @@ figure_5_5_3 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
-figure_5_5 <- figure_5_5_1 + figure_5_5_2 + figure_5_5_3 + plot_layout(nrow = 3)
+ggsave("output/figures/figure_5_7.pdf", plot = figure_5_7, width = 8, 
+       height = 2.5, units = "in", useDingbats = FALSE)
 
-ggsave("output/figures/figure_5_5.pdf", plot = figure_5_5, width = 8, 
-       height = 7.5, units = "in", useDingbats = FALSE)
-
-extrafont::embed_fonts("output/figures/figure_5_5.pdf")
+extrafont::embed_fonts("output/figures/figure_5_7.pdf")
 
 
 # Clean up ----------------------------------------------------------------
 
 rm(ab_matches, annual_revenue, asking_rents, asking_rents_vm, boroughs, 
    boroughs_raw, city, cl_matches, DA, figure_5_1, figure_5_2, figure_5_3, 
-   figure_5_3_left, figure_5_3_right, figure_5_4, figure_5_5, figure_5_5_1, 
-   figure_5_5_2, figure_5_5_3, first_listing, first_ltr_listing, 
-   first_photo_pair, kj_matches, length_of_stay, ltr, ltr_unique, 
-   ltr_unique_property_ID, photos, province, second_photo_pair, streets, 
-   streets_downtown, titles)
+   figure_5_3_left, figure_5_3_right, figure_5_4, figure_5_5, figure_5_6, 
+   figure_5_7, first_listing, first_ltr_listing, first_photo_pair, kj_matches, 
+   length_of_stay, ltr, ltr_unique, ltr_unique_property_ID, photos, province, 
+   second_photo_pair, streets, streets_downtown, titles)
