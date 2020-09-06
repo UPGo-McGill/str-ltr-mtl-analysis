@@ -616,14 +616,11 @@ property %>%
   round(3)
 
 
+# Which STR hosts transferred their listings to Craigslist and Kij --------
 
 
 
 
-
-
-
-#' Type of host -----------------------------------------------------------------
 
 #' In Montreal, 1149 [1] unique STR host IDs were linked to the 2,526 LTR matches. 
 #' 288 [2] of these hosts posted more than one of their STR units on the LTR platforms. 
