@@ -723,87 +723,96 @@ property %>%
 
 # Are matched listings successfully rented, or still active on Air --------
 
-
-#' Length of availability on long-term rental platforms
-
-#' On average, STR matches found on LTR platforms stayed longer than the non-matches. 
-#' STR matches were listed on average 22.0 [1] days on LTR platforms, whereas the non-matches 
-#' stayed only 11.3 [1] days on average. The increased length of presence on LTR platforms 
-#' could be due to many factors, one of them being the higher median price (as mentioned 
-#' above) or less suitable features for the long-term rental market (i.e furnished units 
-#' or bedrooms set up like hotel rooms with multiple beds). Figure 5.5 shows the 
-#' distribution of the length of stay for both matches and non-matches.
+#' STR matches were listed an average of 22.0 [1] days on LTR platforms, while 
+#' non-matches were listed only half as long—11.3 [1] days on average.
 
 #' [1] length of availability on LTR platforms
 ltr_unique %>% 
-  mutate(how_long_they_stay = scraped-created) %>% 
-  arrange(desc(how_long_they_stay)) %>% 
-  mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
-  group_by(matched) %>% 
-  summarize(mean(how_long_they_stay, na.rm = T))
+  group_by(matched = !is.na(property_ID)) %>% 
+  summarize(round(mean(scraped - created, na.rm = TRUE), 1))
 
+#' Out of the total 2,526 [1] Airbnb listings which we identified on LTR 
+#' platforms, 1,475 [2] (58.4% [2]) were still present on Airbnb at the
+#' beginning of 2020. Out of this number, 916 [2] (62.1% [2]) were still present
+#' by the end of July 2020 (the last day for which we have data), while the 
+#' other 559 [2] (37.9% [2]) had been deactivated. Extrapolating this proportion 
+#' across the entire set of matched listings we identified, we estimate that 
+#' 957 [2] matched listings have been deactivated from Airbnb during the
+#' pandemic, while 1,569 [2] remain on the platform.
 
+#' [1] Unique STR matches
+property %>% filter(!is.na(ltr_ID)) %>% nrow()
 
-#' Remaining presence on STR platforms
-
-#' Are hosts planning on renting on a longer-term only for a few months, leaving the STR 
-#' listing up-and-running for future bookings? Looking at whether the listings that matched 
-#' remained on a STR platform is an indicator of the strategy of the hosts. As stated above, 
-#' we identified 1,264 STR listings that were still in operation in 2020, from which it is 
-#' possible to study recent activity. Out of this number, 635 [1] STR listings were still active 
-#' at least once in the month of July 2020. The number of active listings by July 31th, last 
-#' day of data, was already down to 420 [2]. It means that a very conservative minimum of 621 [3]
-#' of our matches (50.5% were removed from the STR platform.
-
-#' [1] number of matches that remained on STR platforms
-property %>%
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID)) %>% 
-  filter(active >= "2020-07-01") %>% 
-  nrow()
-
-#' [2] number of matches active on STR platform on last day of data
-property %>% 
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID), active == "2020-07-31") %>% 
-  nrow()
-
-#' [3] number of matches left for LTR market
-property %>%
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID)) %>% 
-  filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
-  nrow()
-
-#' Listings can still be appearing on the platforms, but be inactive. Indeed, hosts who 
-#' operate listings that are well established in the STR market do not necessarily want to 
-#' remove their listings. Instead, if their units are dedicated to other activities than 
-#' STRs during the previous and/or upcoming months, they can simply block their calendar 
-#' to make sure no reservations can occur, while keeping their perfectly good listings 
-#' intact for when activity in the STR market starts again. The units that matched and still 
-#' appear on the STR platforms, but have a blocked calendar on every day of the month of 
-#' July 2020, may have successfully made the move to the LTR market. These account for 327 [1]
-#' units out of the 621 units (51.9% [2]) which we conservatively consider that could have moved 
-#' to the LTR market. The rest are listings deactivated indefinitely. 
-
-#' [1] Number of units inactive in July, but still on the platform
+#' [2] Number of matches still listed on Airbnb
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
-  filter(scraped >= max(scraped) - months(1), !active >= "2020-07-01") %>% 
-  nrow() 
+  filter(scraped >= "2020-01-01") %>% 
+  summarize(total = n(),
+            total_pct = total / nrow(filter(property, !is.na(ltr_ID))),
+            n_scraped = sum(scraped >= "2020-07-31"),
+            pct_scraped = mean(scraped >= "2020-07-31"),
+            not_scraped = total - n_scraped,
+            pct_not_scraped = 1 - pct_scraped,
+            n_gone = pct_not_scraped * nrow(filter(property, !is.na(ltr_ID))),
+            n_active = pct_scraped * nrow(filter(property, !is.na(ltr_ID))))
 
-#' [2] Percentage of previous listings on all listings which we considered moved to LTR
+#'  Of the 916 [1] matched listings which were present on Airbnb at the 
+#'  beginning of 2020 and still present by the end of July, 393 [1] (42.9% [1]) 
+#'  were blocked for the entirety of the month of July.
+
+#' [1] Inactive in July
+property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID), scraped >= "2020-07-31") %>% 
+  summarize(total = n(),
+            n_inactive = total - sum(active >= "2020-07-01", na.rm = TRUE) +
+              sum(is.na(active)),
+            pct_inactive = n_inactive / total)
+  
+#' In total, taking into account the matched listings which have continued to 
+#' see activity on Airbnb, we estimate that, of the total 2,526 [1] STR listings 
+#' which were advertised on Craigslist or Kijiji, 957 [1] (37.9% [1]) have been 
+#' permanently deactivated from Airbnb and have likely transitioned back to 
+#' long-term housing, 615 [1] (24.3% [1]) have been temporarily blocked on 
+#' Airbnb and have likely been rented in the long-term market but may return to 
+#' being STRs in the future, and 954 [1] (37.8% [1]) failed to be rented on 
+#' LTR platforms and instead remain active on Airbnb.
+
+#' [1] Total active/deactivated/inactive estimates
+deactivated_pct <- 
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  filter(scraped >= "2020-01-01") %>% 
+  summarize(pct_not_scraped = 1 - mean(scraped >= "2020-07-31")) %>% 
+  pull(pct_not_scraped)
+
+blocked_pct <-
+  property %>% 
+  st_drop_geometry() %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  filter(scraped >= "2020-01-01") %>% 
+  summarize(pct_blocked = (sum(active < "2020-07-01" & scraped >= "2020-07-31", 
+                               na.rm = TRUE) + sum(is.na(active) & scraped >= 
+                                                     "2020-07-31")) / n()) %>% 
+  pull(pct_blocked)
+
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
-  filter(scraped >= max(scraped) - months(1), !active >= "2020-07-01") %>% 
-  nrow() /
-  property %>%
-  st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID)) %>% 
-  filter(active >= "2020-01-01", !active >= "2020-07-01") %>% 
-  nrow()
+  summarize(total = n(),
+            deactivated = total * deactivated_pct,
+            blocked = total * blocked_pct,
+            active = total - deactivated - blocked) %>% 
+  mutate(across(where(is.numeric), round, 0)) %>% 
+  pivot_longer(-total) %>% 
+  mutate(pct = round(value / sum(value), 3))
+
+
+# Listings at risk of returning to the STR market -------------------------
+
+
 
 
 #' More info on listings matching
