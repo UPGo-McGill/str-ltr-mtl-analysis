@@ -1,4 +1,4 @@
-#### 50 CHAPTER 5 ANALYSIS ####################################################0
+#### 50 CHAPTER 5 ANALYSIS #####################################################
 
 #' This script produces the tables and facts for chapter 5. It runs quickly.
 #' 
@@ -16,9 +16,6 @@
 #' - None
 
 source("R/01_startup.R")
-
-
-# Load previous data ------------------------------------------------------
 
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
@@ -48,7 +45,7 @@ ltr_unique_property_ID <-
   arrange(desc(scraped)) %>% 
   distinct(property_ID, .keep_all = T)
 
-# Private rooms in the LTR market scrape
+# Possible private rooms or housing swaps in the LTR market scrape
 ltr_PR <- 
   ltr_unique %>% 
   mutate(title = tolower(title)) %>% 
@@ -154,7 +151,7 @@ ltr %>%
   distinct(property_ID, .keep_all = TRUE) %>% 
   count(created, kj) %>% 
   filter(created >= "2020-05-01", created <= "2020-07-31") %>% 
-  summarize(avg = mean(n))
+  summarize(avg = round(mean(n), 1))
   
 
 # Spatial distribution of matched listings --------------------------------
@@ -182,7 +179,7 @@ property %>%
   slice(1:6)
 
 #' [3] Ville-Marie active March 1 percentage
-{property %>% 
+{{property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   count(borough) %>% 
@@ -192,9 +189,10 @@ property %>%
   {daily %>% 
       filter(housing, borough == "Ville-Marie", status != "B", 
              date == "2020-03-01") %>% 
-      nrow}
+      nrow}} %>% 
+  round(3)
 
-#' [3] Ville-Marie active 2020 percentage
+#' [4] Ville-Marie active 2020 percentage
 {{property %>% 
     st_drop_geometry() %>% 
     filter(!is.na(ltr_ID)) %>% 
@@ -317,25 +315,24 @@ asking_rents %>%
   group_by(created <= "2020-03-31") %>% 
   summarize(avg_price = mean(avg_price)) %>% 
   mutate(dif = avg_price - min(avg_price),
-         dif_pct = avg_price / min(avg_price) - 1)
+         dif_pct = round(avg_price / min(avg_price) - 1, 3))
 
 
 # Listing amenities -------------------------------------------------------
 
 #' Studios were overrepresented among LTR listings which matched to Airbnb 
-#' (17.4% [1]) compared with LTR listings which did not match (9.9% [2]), 
+#' (17.7% [1]) compared with LTR listings which did not match (9.9% [2]), 
 #' STR listings (in 2019, 10.0% [3]) and Montreal’s rental stock (9.9% [4]). 
 #' Units with three bedrooms or more were overrepresented in LTR listings, 
-#' at 24.4% [1] for matches and 21.5% [2] for non-matches, compared to the 
-#' City (10.3% [4]) and  the STR market (12.2% [3]). One-bedrooms, which were 
+#' at 24.1% [1] for matches and 21.3% [2] for non-matches, compared to the 
+#' City (10.3% [4]) and the STR market (12.2% [3]). One-bedrooms, which were 
 #' considerably overrepresented in STR listings (56.6% [3]) compared to the 
-#' overall rental housing stock (27.2% [4]), constituted 35.4% [1] of LTR 
+#' overall rental housing stock (27.2% [4]), constituted 36.0% [1] of LTR 
 #' listings that matched with STR listings, and a similar proportion among 
-#' non-matched listings (35.1% [4]).
+#' non-matched listings (35.7% [2]).
 
 #' [1] Bedrooms in LTR matches
 ltr_unique_property_ID %>% 
-  filter(!property_ID %in% ltr_PR$property_ID) %>% 
   count(bedrooms) %>% 
   filter(!is.na(bedrooms)) %>% 
   rowwise() %>% 
@@ -349,7 +346,6 @@ ltr_unique_property_ID %>%
 ltr %>% 
   st_drop_geometry() %>% 
   filter(is.na(property_ID)) %>% 
-  filter(!id %in% ltr_PR$id) %>% 
   group_by(id) %>% 
   slice(1) %>% 
   ungroup() %>% 
@@ -491,7 +487,7 @@ property %>%
   st_drop_geometry() %>% 
   filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
   count(listing_type) %>% 
-  mutate(pct = n / sum(n))
+  mutate(pct = round(n / sum(n), 3))
 
 #' [3] Commercial status among EH matches
 daily %>% 

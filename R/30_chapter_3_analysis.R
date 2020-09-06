@@ -1,4 +1,4 @@
-#### 30 CHAPTER 3 ANALYSIS ####################################################
+#### 30 CHAPTER 3 ANALYSIS #####################################################
 
 #' This script produces the tables and facts for chapter 3. It runs quickly.
 #' 
