@@ -1,17 +1,36 @@
-#### Information about matched properties #################################################
+#### 60 MATCHED PROPRETY EXPORT ################################################
+
+#' This script produces and exports the CSV with information about STR/LTR
+#' matches. It runs quickly.
+#' 
+#' Output:
+#' - `listing_matches.csv`
+#' 
+#' Script dependencies:
+#' - `02_geometry_import.R`
+#' - `05_cmhc_data_import.R`
+#' - `07_ltr_listing_match.R`
+#' - `09_str_processing.R`
+#' - `11_FREH_model.R`
+#' 
+#' External dependencies:
+#' - `kj_with_landlord.rds`: A file matching Kijiji listings with role numbers
+#'   from the UEF.
 
 source("R/01_startup.R")
 library(rebus)
 
-# load data ------------------------------------------------------------------------------
 load("output/str_processed.Rdata")
-load("output/ltr_processed.Rdata")
 load("output/geometry.Rdata")
+load("output/ltr_processed.Rdata")
 
-kj_landlord <- readRDS("output/kj_with_landlord.Rds") %>% 
+
+# Import landlord data ----------------------------------------------------
+
+kj_landlord <- 
+  readRDS("output/kj_with_landlord.rds") %>% 
   select(kj_id, Numero_de_matricule) %>%
-  rename(id = kj_id,
-         roll_number = Numero_de_matricule)
+  rename(id = kj_id, roll_number = Numero_de_matricule)
 
 # Clean ltr locations ---------------------------------------------------------------------
 
