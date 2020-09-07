@@ -14,7 +14,7 @@
 #' - `11_FREH_model.R`
 #' 
 #' External dependencies:
-#' - `kj_with_landlord.rds`: A file matching Kijiji listings with role numbers
+#' - `kj_with_landlord.rds`: A file matching Kijiji listings with roll numbers
 #'   from the UEF.
 
 source("R/01_startup.R")
@@ -194,22 +194,21 @@ listings_info <-
 
 listings_info <- 
   listings_info %>% 
-  rename(`AirBNB ID` = property_ID, 
-         `Kijiji | Craiglist ID` = ltr_ID,
-         `In housing unit` = housing,
-         `Listing type` = listing_type,
-         `Host ID` = host_ID,
-         `Other listings from the host` = host_other_listings,
-         `Date created` = created,
-         `Still listed` = still_listed,
-         `Still active` = still_active,
-         `Borough` = borough,
-         `Street adress` = location,
-         `Roll Number` = roll_number,
-         `Frequently rented entire home` = FREH,
-         `Ghost hostel` = GH)
+  rename(`ID de l'annonce Airbnb` = property_ID, 
+         `ID de l'annonce Kijiji | Craiglist` = ltr_ID,
+         `Dans une unité de logement` = housing,
+         `Type d'annonce` = listing_type,
+         `ID de l'hôte` = host_ID,
+         `Autres annonces de l'hôte` = host_other_listings,
+         `Date de création` = created,
+         `Toujours affichée` = still_listed,
+         `Toujours active` = still_active,
+         `Arrondissement` = borough,
+         `Adresse postale` = location,
+         `Numéro de matricule` = roll_number,
+         `Logement entier fréquemment loué` = FREH,
+         `Auberge fantôme` = GH)
 
 write.csv(listings_info, "output/listings_info.csv")
 
-
-
+listings_info %>% View()
