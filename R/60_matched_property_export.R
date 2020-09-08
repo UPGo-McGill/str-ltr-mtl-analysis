@@ -242,4 +242,12 @@ listings_info <-
          `Auberge fantôme` = GH,
          URL = url)
 
+
+# Save output -------------------------------------------------------------
+
 write.csv(listings_info, "output/listings_info.csv")
+
+rm(boroughs, boroughs_raw, city, DA, FREH, GH_properties, host_properties,
+   kj_landlord, listings_info, locations_roll_number, ltr, ltr_id, province,
+   still_active_properties, streets, streets_downtown, postal_code_pat,
+   street_no_pat, street_pat)
