@@ -1,4 +1,4 @@
-#### 51 CHAPTER 5 FIGURES FRANCAIS ######################################################
+#### 51 CHAPTER 5 FIGURES ######################################################
 
 #' This script produces the graphs and maps for chapter 5. It runs quickly.
 #' 
@@ -22,8 +22,8 @@
 source("R/01_startup.R")
 library(imager)
 
-load("output/geometry.Rdata")
 load("output/str_processed.Rdata")
+load("output/geometry.Rdata")
 load("output/ltr_processed.Rdata")
 load("output/matches_raw.Rdata")
 
@@ -50,7 +50,7 @@ ltr_unique_property_ID <-
   distinct(property_ID, .keep_all = TRUE)
 
 
-# Figure 5.1 Airbnb/Kijiji comparaison d'images -------------------------------
+# Figure 5.1 Airbnb/Kijiji image comparison -------------------------------
 
 first_photo_pair <- 
   kj_matches %>% 
@@ -118,13 +118,13 @@ photos <-
 
 figure_5_1 <- wrap_plots(photos)
 
-ggsave("output/figures/figure_5_1.pdf", plot = figure_5_1, width = 8, 
+ggsave("output/figures/figure_5_1F.pdf", plot = figure_5_1, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_1.pdf")
+extrafont::embed_fonts("output/figures/figure_5_1F.pdf")
 
 
-# Figure 5.2 Date de la premiere annonce LLT------------------------------------
+# Figure 5.2 Date of first LTR listing ------------------------------------
 
 first_ltr_listing <-
   ltr %>% 
@@ -149,11 +149,18 @@ figure_5_2 <-
            y = 45, yend = 50, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2020-07-14"), y = 45,
-           label = "LCT interdits \npar la province", family = "Futura Condensed") +
-  scale_x_date(name = NULL) +
+           label = "LCT interdites\npar la province", 
+           family = "Futura Condensed") +
+  scale_x_date(name = NULL, breaks = c(as.Date("2020-03-01"), 
+                                       as.Date("2020-04-01"),
+                                       as.Date("2020-05-01"), 
+                                       as.Date("2020-06-01"),
+                                       as.Date("2020-07-01"), 
+                                       as.Date("2020-08-01")),
+               labels = c("mars", "avr.", "mai", "juin", "juill.", "août")) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_fill_manual(name = NULL, labels = c("Craigslist", "Kijiji"), 
-                    values = col_palette[c(1, 3)]) +
+                    values = col_palette[c(1, 5)]) +
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
@@ -169,7 +176,7 @@ ggsave("output/figures/figure_5_2F.pdf", plot = figure_5_2, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_2F.pdf")
 
 
-# Figure 5.3 Distribution spatiale des correspondances ----------------------
+# Figure 5.3 Spatial distribution of listing matches ----------------------
 
 figure_5_3_left <-
   ltr_unique_property_ID %>% 
@@ -182,9 +189,10 @@ figure_5_3_left <-
   scale_fill_gradientn(colors = col_palette[c(3, 4)],
                        limits = c(0, 1500),
                        breaks = c(0, 300, 600, 900, 1200, 1500),
+                       labels = scales::label_number(big.mark = " "),
                        na.value = "grey80")  +
-  guides(fill = guide_colourbar(title = "Nombre total de\ncorrespondances LCT-LLT",
-                                title.vjust = 1)) + 
+  guides(fill = guide_colourbar(
+    title = "Nombre total de\ncorrespondances LCT-LLT", title.vjust = 1)) + 
   gg_bbox(boroughs) +
   theme_void() +
   theme(legend.position = "bottom",
@@ -199,8 +207,8 @@ figure_5_3_right <-
   ltr_unique_property_ID %>% 
   select(-geometry) %>% 
   count(borough) %>% 
-  left_join(count(filter(daily, housing, status != "B", date == "2020-03-01"), borough), 
-            by = "borough") %>%  
+  left_join(count(filter(daily, housing, status != "B", date == "2020-03-01"), 
+                  borough), by = "borough") %>%  
   mutate(pct = n.x / n.y) %>% 
   left_join(boroughs, .) %>% 
   ggplot() +
@@ -210,9 +218,11 @@ figure_5_3_right <-
                        na.value = "grey80",
                        limits = c(0, .5),
                        breaks = c(0, 0.1, .2, .3, .4, .5),
-                       label = scales::label_percent(accuracy = 1))  +
-  guides(fill = guide_colourbar(title = "% de correspondances\npar annonces LCT actives",
-                                title.vjust = 1)) + 
+                       label = scales::label_percent(accuracy = 1, 
+                                                     suffix = " %"))  +
+  guides(fill = guide_colourbar(
+    title = "% de correspondances\npar annonces LCT actives", 
+    title.vjust = 1)) + 
   gg_bbox(boroughs) +
   theme_void() +
   theme(legend.position = "bottom",
@@ -253,9 +263,9 @@ asking_rents <-
   summarize(avg_price = mean(price)) %>% 
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
   ungroup() %>% 
-  mutate(status = "Toutes les annonces", .before = created) %>% 
+  mutate(status = "Annonces au total", .before = created) %>% 
   bind_rows(asking_rents) %>% 
-  mutate(geography = "City of Montreal")
+  mutate(geography = "Ville de Montreal")
 
 asking_rents_vm <- 
   ltr_unique %>% 
@@ -277,7 +287,7 @@ asking_rents <-
   summarize(avg_price = mean(price)) %>% 
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
   ungroup() %>% 
-  mutate(status = "Toutes les annonces", .before = created) %>% 
+  mutate(status = "Annonces au total", .before = created) %>% 
   bind_rows(asking_rents_vm) %>% 
   mutate(geography = "Ville-Marie") %>% 
   bind_rows(asking_rents)
@@ -289,9 +299,18 @@ figure_5_4 <-
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
-  scale_x_date(name = NULL, limits = c(as.Date("2020-03-01"), NA)) +
+  scale_x_date(name = NULL, breaks = c(as.Date("2020-03-01"), 
+                                       as.Date("2020-04-01"),
+                                       as.Date("2020-05-01"), 
+                                       as.Date("2020-06-01"),
+                                       as.Date("2020-07-01"), 
+                                       as.Date("2020-08-01")),
+               labels = c("mars", "avr.", "mai", "juin", "juill.", "août"),
+               limits = c(as.Date("2020-03-01"), NA)) +
+  
   scale_y_continuous(name = NULL, limits = c(1000, 2500), 
-                     label = scales::dollar) +
+                     label = scales::label_dollar(big.mark = " ", prefix = "",
+                                            suffix = " $")) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1, 3)]) +
   facet_wrap(vars(geography)) +
   theme_minimal() +
@@ -310,7 +329,7 @@ ggsave("output/figures/figure_5_4F.pdf", plot = figure_5_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_4F.pdf")
 
 
-# Figure 5.5. Années d'activités des LCT qui ont correspondu et ceux qui ne l'ont pas --------------------------------------------------
+# Figure 5.5 STR listing age distributions --------------------------------
 
 first_listing <- 
   property %>% 
@@ -318,7 +337,8 @@ first_listing <-
   filter(active > "2020-01-01") %>% 
   transmute(property_ID,
             active_length = as.numeric(round((active - created) / 30) / 12),
-            matched = if_else(!is.na(ltr_ID), "Correspondance LCT-LLT", "Non-correspondance"))
+            matched = if_else(!is.na(ltr_ID), "Correspondance LCT-LLT", 
+                              "Non-correspondance"))
 
 figure_5_5 <- 
   first_listing %>% 
@@ -327,8 +347,9 @@ figure_5_5 <-
   scale_x_continuous(name = "Années d'activité", limits = c(NA, 10),
                      breaks = c(0:2 * 5)) +
   scale_y_continuous(name = "Pourcentage d'annonces",
-                     labels = scales::percent_format(accuracy = 1)) +
-  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+                     labels = scales::percent_format(accuracy = 1,
+                                                     suffix = " %")) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 5)]) +
   facet_wrap(vars(matched)) +
   theme_minimal() +
   theme(legend.position = "none",
@@ -345,7 +366,8 @@ ggsave("output/figures/figure_5_5F.pdf", plot = figure_5_5, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_5_5F.pdf")
 
-# Figure 5.6 Distribution du revenu des hôtes -----------------------------------
+
+# Figure 5.6 Host revenue distributions -----------------------------------
 
 annual_revenue <- 
   daily %>%
@@ -368,11 +390,12 @@ figure_5_6 <-
   ggplot(aes(host_rev, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 30) +
   scale_x_continuous(name = "Revenu annuel des hôtes", limits = c(0, 100000),
-                     labels = scales::dollar_format(scale = 0.001, 
-                                                    suffix = "k")) +
+                     labels = scales::dollar_format(scale = 0.001, prefix = "", 
+                                                    suffix = "k $")) +
   scale_y_continuous(name = "Pourcentage d'hôtes", limits = c(NA, .25),
-                     labels = scales::percent_format(accuracy = 1)) +
-  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+                     labels = scales::percent_format(accuracy = 1,
+                                                     suffix = " %")) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 5)]) +
   facet_wrap(vars(matched)) +
   theme_minimal() +
   theme(legend.position = "none",
@@ -389,7 +412,8 @@ ggsave("output/figures/figure_5_6F.pdf", plot = figure_5_6, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_5_6F.pdf")
 
-# Figure 5.7 Distribution de l'âge des annonces ---------------------------------
+
+# Figure 5.7 LTR listing age distribution ---------------------------------
 
 length_of_stay <- 
   ltr_unique %>% 
@@ -403,8 +427,9 @@ figure_5_7 <-
   geom_histogram(bins = 27) +
   scale_x_continuous(name = "Jours en ligne") +
   scale_y_continuous(name = "Pourcentage d'annonces",
-                     labels = scales::percent_format(accuracy = 1)) +
-  scale_fill_manual(name = NULL, values = col_palette[c(1, 3)]) +
+                     labels = scales::percent_format(accuracy = 1,
+                                                     suffix = " %")) +
+  scale_fill_manual(name = NULL, values = col_palette[c(1, 5)]) +
   facet_wrap(vars(matched)) +
   theme_minimal() +
   theme(legend.position = "none",
@@ -416,8 +441,8 @@ figure_5_7 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_7F.pdf", plot = figure_5_5, width = 8, 
-       height = 7.5, units = "in", useDingbats = FALSE)
+ggsave("output/figures/figure_5_7F.pdf", plot = figure_5_7, width = 8, 
+       height = 2.5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_5_7F.pdf")
 
@@ -430,11 +455,3 @@ rm(ab_matches, annual_revenue, asking_rents, asking_rents_vm, boroughs,
    figure_5_7, first_listing, first_ltr_listing, first_photo_pair, kj_matches, 
    length_of_stay, ltr, ltr_unique, ltr_unique_property_ID, photos, province, 
    second_photo_pair, streets, streets_downtown, titles)
-
-
-
-
-
-
-
-

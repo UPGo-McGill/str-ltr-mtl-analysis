@@ -143,7 +143,7 @@ figure_5_2 <-
   filter(created >= "2020-03-01", created <= "2020-07-31") %>% 
   ggplot(aes(created, n, fill = kj)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
-         ymin = 0, ymax = Inf, alpha = .2) +
+           ymin = 0, ymax = Inf, alpha = .2) +
   geom_col(lwd = 0) +
   annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
            y = 45, yend = 50, curvature = .2, lwd = 0.25,
