@@ -422,26 +422,25 @@ listing_type_breakdown %>%
 
 # STRs and housing tenure -------------------------------------------------
 
-load("output/raffle_condo.Rdata")
-
 active_tenure_2017 <- 
   daily %>% 
   filter(housing, date >= "2017-01-01", date <= "2017-12-31", status != "B") %>% 
   left_join(listing_probabilities_2017) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings_2017 = n(),
-            n_condo_2017 = sum(p_condo, na.rm = TRUE),
+            n_condo_2017 = as.numeric(sum(condo, na.rm = TRUE)),
             n_renter_2017 = sum(p_renter, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
   summarize(across(where(is.numeric), mean))
 
 active_tenure_2019 <- 
   daily %>% 
-  filter(housing, date >= "2019-01-01", date <= "2019-12-31", status != "B") %>% 
+  filter(housing, date >= LTM_start_date, 
+         date <= LTM_end_date, status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings_2019 = n(),
-            n_condo_2019 = sum(p_condo, na.rm = TRUE),
+            n_condo_2019 = as.numeric(sum(condo, na.rm = TRUE)),
             n_renter_2019 = sum(p_renter, na.rm = TRUE)) %>% 
   group_by(borough) %>% 
   summarize(across(where(is.numeric), mean))
@@ -527,7 +526,7 @@ tenure_breakdown %>%
   mutate(listings_2017 = n_condo_2017 / condo_pct_2017,
          listings_2019 = n_condo_2019 / condo_pct_2019) %>% 
   summarize(
-    borough = "City of Montreal",
+    borough = "Ville de Montréal",
     n_condo_2017 = sum(n_condo_2017),
     n_renter_2017 = sum(n_renter_2017),
     n_condo_2019 = sum(n_condo_2019),
@@ -537,25 +536,25 @@ tenure_breakdown %>%
     renter_pct_2017 = n_renter_2017 / sum(listings_2017),
     renter_pct_2019 = n_renter_2019 / sum(listings_2019)) %>% 
   bind_rows(st_drop_geometry(tenure_breakdown)) %>% 
-  mutate(`Number of STRs in condos` = round(n_condo_2019, digits = 1),
-         `% of STRs in condos (2019)` = condo_pct_2019,
-         `% change in % of STRs in condos (2017 to 2019)` =
+  mutate(`Nombre de LCT dans des copropriétés` = round(n_condo_2019, digits = 1),
+         `% de LCT dans des copropriétés (2019)` = condo_pct_2019,
+         `% de différence en % de LCT dans des copropriétés (2017 à 2019)` =
            (condo_pct_2019 - condo_pct_2017) / condo_pct_2017,
-         `Number of STRs in rental units` = round(n_renter_2019, digits = 1),
-         `% of STRs in rental units (2019)` = renter_pct_2019,
-         `% change in % of STRs in rental units (2017 to 2019)` =
+         `Nombre de LCT dans des unités locatives` = round(n_renter_2019, digits = 1),
+         `% de LCT dans des unités locatives (2019)` = renter_pct_2019,
+         `% de différence en % de LCT dans des unités locatives (2017 à 2019)` =
            (renter_pct_2019 - renter_pct_2017) / renter_pct_2017) %>% 
   select(-c(n_condo_2017:renter_pct_2019)) %>% 
-  rename(Borough = borough) %>% 
-  arrange(desc(`Number of STRs in condos`)) %>%
+  rename(Arrondissement = borough) %>% 
+  arrange(desc(`Nombre de LCT dans des copropriétés`)) %>%
   slice(1:12) %>% 
-  mutate(`Number of STRs in condos` = round(`Number of STRs in condos`, 
+  mutate(`Nombre de LCT dans des copropriétés` = round(`Nombre de LCT dans des copropriétés`, 
                                             digit = -1),
-         `Number of STRs in rental units` = 
-           round(`Number of STRs in rental units`, digit = -1)) %>%
+         `Nombre de LCT dans des unités locatives` = 
+           round(`Nombre de LCT dans des unités locatives`, digit = -1)) %>%
   gt() %>% 
-  tab_header(title = "Tenure breakdown",
-             subtitle = "STRs in condominiums and rental units by borough") %>%
+  tab_header(title = "Répartition du mode d'occupation",
+             subtitle = "LCT dans des copropriétés et des unités locatives par arrondissement") %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(3:4, 6:7), decimals = 1) %>% 
   fmt_number(columns = c(2, 5), decimals = 0)
