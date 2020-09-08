@@ -260,15 +260,11 @@ ggsave("output/figures/figure_2_4F.pdf", plot = figure_2_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_4F.pdf")
 
 
-# Figure 2.5 condo scatterplot --------------------------------------------
+# Figure 2.5 Condo scatterplot --------------------------------------------
 
 condo_scatter <-
-  listing_probabilities_2019 %>%
-  left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>%
-  count(GeoUID) %>% 
-  left_join(select(DA_probabilities_2019, GeoUID, dwellings, p_condo, geometry), 
-            .) %>% 
-  mutate(str_pct = n / dwellings) %>% 
+  DA_probabilities_2019 %>% 
+  mutate(str_pct = n_listings / dwellings) %>% 
   select(GeoUID, dwellings, p_condo, str_pct, geometry) %>% 
   left_join(select(st_drop_geometry(st_join(st_centroid(DA), boroughs)), 
                    -dwellings.x, -dwellings.y)) %>% 
@@ -295,8 +291,8 @@ figure_2_5 <-
   scale_x_continuous(name = "% de copropriétés",
                      labels = scales::percent) +
   scale_y_continuous(name = "% de LCT", 
-                     labels = scales::percent_format(accuracy = 1), 
-                     limits = c(NA, 0.5)) +
+                     labels = scales::percent_format(accuracy = 1)) +
+  coord_cartesian(ylim = c(0, 0.5)) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),

@@ -258,7 +258,7 @@ ggsave("output/figures/figure_2_4.pdf", plot = figure_2_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_4.pdf")
 
 
-# Figure 2.5 condo scatterplot --------------------------------------------
+# Figure 2.5 Condo scatterplot --------------------------------------------
 
 condo_scatter <-
   DA_probabilities_2019 %>% 
