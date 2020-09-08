@@ -350,8 +350,8 @@ vacancy_for_map <-
          new_vacant = vacant_units + units_returning,
          new_vacancy = new_vacant / units) %>% 
   select(zone:vacancy, new_vacancy) %>% 
-  rename(`Taux d'innoccupation actuel` = vacancy, 
-         `LCT dédiés de retour sur le marché` = new_vacancy) %>% 
+  rename(`Taux d'inoccupation actuel` = vacancy, 
+         `LCT dédiées de retour sur le marché` = new_vacancy) %>% 
   pivot_longer(-c(zone, zone_name), names_to = "status",
                values_to = "vacancy") %>% 
   left_join(cmhc) %>% 
