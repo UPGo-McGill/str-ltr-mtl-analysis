@@ -174,7 +174,8 @@ borough_housing_table %>%
          `Variation annuelle (%)` = yoy_change,
          `% de logement perdu (2019)` = housing_loss_pct_2019) %>% 
   gt() %>% 
-  tab_header(title = "Perte de logement induite par les LCT par arrondissement") %>%
+  tab_header(title = 
+               "Perte de logement induite par les LCT par arrondissement") %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(4, 5), decimals = 1) %>% 
   fmt_number(columns = 2:3, decimals = 0)
