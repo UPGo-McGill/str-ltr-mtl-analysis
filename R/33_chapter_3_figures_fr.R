@@ -147,7 +147,7 @@ FREH_DA <-
 
 GH_borough <- 
   GH %>% 
-  filter(date == "2019-12-31") %>% 
+  filter(date == LTM_end_date) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(boroughs) %>% 
   st_drop_geometry() %>% 
@@ -157,7 +157,7 @@ GH_borough <-
 
 GH_DA <- 
   GH %>% 
-  filter(date == "2019-12-31") %>% 
+  filter(date == LTM_end_date) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(DA) %>% 
   st_drop_geometry() %>% 
@@ -187,9 +187,10 @@ make_housing_map <- function(df) {
     scale_fill_gradientn(colors = col_palette[c(3, 4, 1, 2)], 
                          na.value = "grey80",
                          limits = c(0, 0.10), oob = scales::squish, 
-                         labels = scales::percent)  +
-    guides(fill = guide_colourbar(title = "% logements perdus\nen raison des LCT",
-                                  title.vjust = 1)) + 
+                         labels = scales::percent_format(suffix = " %",
+                                                         decimal.mark = ","))  +
+    guides(fill = guide_colourbar(
+      title = "% logements perdus\nen raison des LCT", title.vjust = 1)) + 
     gg_bbox(df) +
     theme_void() +
     theme(text = element_text(family = "Futura", face = "plain"),
@@ -231,7 +232,7 @@ ggsave("output/figures/figure_3_3F.pdf", plot = figure_3_3, width = 8,
 extrafont::embed_fonts("output/figures/figure_3_3F.pdf")
 
 
-# Figure 3.4 Changement dans le parc d'habitation ------------------------------------
+# Figure 3.4 Changes in housing supply ------------------------------------
 
 renter_zone <- 
   DA_probabilities_2019 %>% 
@@ -307,9 +308,9 @@ figure_3_4 <-
                size = 1.2,
                arrow = arrow(length = unit(0.3, "cm")),
                position = position_nudge(x = -0.125)) +
-  scale_fill_manual(name = NULL, values = col_palette[c(3, 1)],
-                    labels = c("Changement du nombre\nd'unités locatives", 
-                               "Changement du nombre\nd'unités locatives incluant les LCT")) +
+  scale_fill_manual(name = NULL, values = col_palette[c(3, 1)], labels = c(
+    "Changement du nombre d'unités locatives", 
+    "Changement du nombre d'unités locatives incluant les LCT")) +
   scale_y_continuous(name = NULL, breaks = c(-200, 0, 200, 400, 600)) +
   scale_x_discrete(name = NULL,
                    labels = 
@@ -330,7 +331,7 @@ ggsave("output/figures/figure_3_4F.pdf", plot = figure_3_4,  width = 8,
 extrafont::embed_fonts("output/figures/figure_3_4F.pdf")
 
 
-# Figure 3.5 Taux d'innoccupation ------------------------------------------------
+# Figure 3.5 Vacancy rates ------------------------------------------------
 
 vacancy_for_map <- 
   annual_vacancy %>% 
@@ -345,7 +346,7 @@ vacancy_for_map <-
   left_join(renter_zone) %>% 
   filter(housing_loss >= 50) %>% 
   arrange(zone) %>% 
-  mutate(units_returning = housing_loss * .675,
+  mutate(units_returning = housing_loss * p_renter,
          new_vacant = vacant_units + units_returning,
          new_vacancy = new_vacant / units) %>% 
   select(zone:vacancy, new_vacancy) %>% 
@@ -354,16 +355,20 @@ vacancy_for_map <-
   pivot_longer(-c(zone, zone_name), names_to = "status",
                values_to = "vacancy") %>% 
   left_join(cmhc) %>% 
-  st_as_sf()
+  st_as_sf() %>% 
+  mutate(status = factor(status, 
+                         levels = c("Taux d'innoccupation actuel",
+                                    "LCT dédiés de retour sur le marché")))
 
 figure_3_5 <- 
   vacancy_for_map %>% 
-  mutate(label = scales::percent(vacancy, accuracy = 0.1)) %>% 
+  mutate(label = scales::percent(vacancy, accuracy = 0.1, suffix = " %", 
+                                 decimal.mark = ",")) %>% 
   ggplot() +
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = vacancy), colour = "white", alpha = 0.7) +
-  geom_sf_label(aes(label = label), size = 1.5, family = "Futura") +
+  geom_sf_label(aes(label = label), size = 2, family = "Futura") +
   scale_fill_gradientn(colors = col_palette[c(2, 4, 6)], 
                        na.value = "grey80",
                        limits = c(0, 0.05), oob = scales::squish,
@@ -387,7 +392,8 @@ ggsave("output/figures/figure_3_5F.pdf", plot = figure_3_5, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_3_5F.pdf")
 
-# Figure 3.6 Augmentation du prix des loyers induits par les LCT -----------------------------------
+
+# Figure 3.6 STR-induced rent increases -----------------------------------
 
 rent_increase_for_map <- 
   rent_increase_zone %>% 
@@ -401,13 +407,14 @@ rent_increase_for_map <-
 
 figure_3_6 <- 
   rent_increase_for_map %>% 
-  mutate(label = scales::percent(total_rent_increase, accuracy = 0.1)) %>% 
+  mutate(label = scales::percent(total_rent_increase, accuracy = 0.1,
+                                 suffix = " %", decimal.mark = ",")) %>% 
   ggplot() +
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(data = streets, size = 0.2, colour = "white") +
   geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
   geom_sf_label(aes(label = label), size = 2, family = "Futura") +
-  scale_fill_gradientn(name = "Augmentation du prix des loyers 2015-2019",
+  scale_fill_gradientn(name = "2015-2019 rent increase",
                        colors = col_palette[c(3, 2)], 
                        na.value = "grey80",
                        limits = c(0.02, 0.04),
@@ -427,7 +434,8 @@ ggsave("output/figures/figure_3_6F.pdf", plot = figure_3_6, width = 3.0,
 
 extrafont::embed_fonts("output/figures/figure_3_6F.pdf")
 
-# Nettoyage ----------------------------------------------------------------
+
+# Nettoyage ---------------------------------------------------------------
 
 rm(annual_avg_rent, annual_units, annual_vacancy, boroughs, boroughs_raw,
    city, city_avg_rent, city_units, city_vacancy, cmhc, DA,
