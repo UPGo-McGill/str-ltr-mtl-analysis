@@ -434,7 +434,7 @@ ggsave("output/figures/figure_2_7F.pdf", plot = figure_2_7, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_7F.pdf")
 
 
-# Figure 2.8 Commercialization of STR listings ----------------------------
+# Figure 2.8 Commercialisation des annonces actives quotidiennement ----------------------------
 
 commercial_listings <- 
   daily %>% 
@@ -455,7 +455,7 @@ figure_2_8 <-
   scale_y_continuous(name = NULL) +
   scale_colour_manual(name = "Type d'annonce",
                       values = col_palette[c(5, 1)],
-                      labels = c("Non-commercial", "Commercial")) +
+                      labels = c("Non-commerciale", "Commerciale")) +
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
