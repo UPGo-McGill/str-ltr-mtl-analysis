@@ -58,7 +58,8 @@ figure_2_1 <-
            label = "Interdiction des LCT \npar la province", 
            family = "Futura Condensed") +
   geom_line() +
-  scale_y_continuous(name = NULL, label = scales::comma) +
+  scale_y_continuous(name = NULL, 
+                     label = scales::comma_format(big.mark = " ")) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
                       labels = c("Toutes les annonces", "Logement entier", 
@@ -76,6 +77,7 @@ ggsave("output/figures/figure_2_1F.pdf", plot = figure_2_1, width = 8,
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_1F.pdf")
+
 
 # Figure 2.2 YOY listing and revenue growth rates -------------------------
 
@@ -102,7 +104,7 @@ figure_2_2 <-
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(-1, NA), 
-                     labels = scales::percent) +
+                     labels = scales::percent_format(suffix = " %")) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
@@ -147,7 +149,8 @@ make_listing_map <- function(df) {
             colour = if (nrow(df) == 19) "white" else "transparent") +
     scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
                          limits = c(0, 0.05), oob = scales::squish, 
-                         labels = scales::percent)  +
+                         labels = scales::percent_format(decimal.mark = ",",
+                                                         suffix = " %"))  +
     guides(fill = guide_colourbar(title = "LCT/\nlogements",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
@@ -215,7 +218,8 @@ make_condo_map <- function(df) {
             colour = if (nrow(df) == 19) "white" else "transparent") +
     scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
                          limits = c(0, 1), oob = scales::squish, 
-                         labels = scales::percent)  +
+                         labels = scales::percent_format(decimal.mark = ",",
+                                                         suffix = " %")) +
     guides(fill = guide_colourbar(title = "% de LCT\nétant des copropriétés",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
@@ -289,9 +293,10 @@ figure_2_5 <-
   scale_colour_manual(name = "Arrondissement", 
                       values = c("grey", col_palette[c(5, 1)])) +
   scale_x_continuous(name = "% de copropriétés",
-                     labels = scales::percent) +
+                     labels = scales::percent_format(suffix = " %")) +
   scale_y_continuous(name = "% de LCT", 
-                     labels = scales::percent_format(accuracy = 1)) +
+                     labels = scales::percent_format(accuracy = 1,
+                                                     suffix = " %")) +
   coord_cartesian(ylim = c(0, 0.5)) +
   theme_minimal() +
   theme(legend.position = "bottom",
@@ -354,8 +359,8 @@ host_deciles <-
   mutate(
     display_val = paste0("a gagné ", display_val, "\ndu revenu"),
     display_percentile = case_when(
-      percentile == "top_10" ~ "Top 10% des hôtes...",
-      percentile == "top_20" ~ "Prochain 10% des hôtes...",
+      percentile == "top_10" ~ "Top 10 % des hôtes...",
+      percentile == "top_20" ~ "Prochain 10 %...",
       TRUE ~ NA_character_))
 
 figure_2_6 <- 
@@ -368,7 +373,8 @@ figure_2_6 <-
   geom_text(aes(x = 0.98, y = absolute_val, label = display_val),
             data = filter(host_deciles, position == 1, decile <= 2),
             family = "Futura", hjust = 1) +
-  scale_y_continuous(name = "Décile d'hôtes", label = scales::label_percent(1),
+  scale_y_continuous(name = "Décile d'hôtes", 
+                     label = scales::label_percent(1, suffix = " %"),
                      breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
                      sec.axis = sec_axis(~., 
                                          name = "% du revenu total",
@@ -414,7 +420,8 @@ figure_2_7 <-
            ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2017-06-01"), NA)) +
   scale_y_continuous(name = NULL, 
-                     label = scales::percent_format(accuracy = 1)) +
+                     label = scales::percent_format(accuracy = 1, 
+                                                    suffix = " %")) +
   scale_colour_manual(values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom",
@@ -447,7 +454,8 @@ figure_2_8 <-
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
-  scale_y_continuous(name = NULL) +
+  scale_y_continuous(name = NULL,
+                     labels = scales::comma_format(big.mark = " ")) +
   scale_colour_manual(name = "Type d'annonce",
                       values = col_palette[c(5, 1)],
                       labels = c("Non-commerciale", "Commerciale")) +
