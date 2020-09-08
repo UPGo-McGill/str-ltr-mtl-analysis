@@ -373,7 +373,7 @@ figure_2_6 <-
   geom_text(aes(x = 0.98, y = absolute_val, label = display_val),
             data = filter(host_deciles, position == 1, decile <= 2),
             family = "Futura", hjust = 1) +
-  scale_y_continuous(name = "Décile d'hôtes", 
+  scale_y_continuous(name = "Décile d'hôte", 
                      label = scales::label_percent(1, suffix = " %"),
                      breaks = seq(0, 1, by = 0.1), limits = c(0, 1),
                      sec.axis = sec_axis(~., 

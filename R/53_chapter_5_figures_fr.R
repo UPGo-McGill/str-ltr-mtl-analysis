@@ -263,7 +263,7 @@ asking_rents <-
   summarize(avg_price = mean(price)) %>% 
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
   ungroup() %>% 
-  mutate(status = "Annonces au total", .before = created) %>% 
+  mutate(status = "Toutes les annonces", .before = created) %>% 
   bind_rows(asking_rents) %>% 
   mutate(geography = "Ville de Montreal")
 
@@ -287,7 +287,7 @@ asking_rents <-
   summarize(avg_price = mean(price)) %>% 
   mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
   ungroup() %>% 
-  mutate(status = "Annonces au total", .before = created) %>% 
+  mutate(status = "Toutes les annonces", .before = created) %>% 
   bind_rows(asking_rents_vm) %>% 
   mutate(geography = "Ville-Marie") %>% 
   bind_rows(asking_rents)
@@ -311,7 +311,7 @@ figure_5_4 <-
   scale_y_continuous(name = NULL, limits = c(1000, 2500), 
                      label = scales::label_dollar(big.mark = " ", prefix = "",
                                             suffix = " $")) +
-  scale_color_manual(name = NULL, values = col_palette[c(5, 1, 3)]) +
+  scale_color_manual(name = NULL, values = col_palette[c(1, 3, 5)]) +
   facet_wrap(vars(geography)) +
   theme_minimal() +
   theme(legend.position = "bottom",
