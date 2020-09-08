@@ -402,14 +402,15 @@ ML <-
             Revenu = sum(price[status == "R" & multi], na.rm = TRUE) / 
               sum(price[status == "R"], na.rm = TRUE)) %>% 
   mutate(across(where(is.numeric), slide_dbl, mean, .before = 13)) %>% 
-  pivot_longer(c(Annonces, Revenu), names_to = "Pourcentage d'annonces multiples",
+  pivot_longer(c(Annonces, Revenu), 
+               names_to = "Pourcentage d'annonces multiples",
                values_to = "value")
 
 figure_2_7 <- 
   ML %>% 
-  ggplot() +
-  geom_line(aes(date, value, colour = `Pourcentage d'annonces multiples`), lwd = 1) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"), 
+  ggplot(aes(date, value, colour = `Pourcentage d'annonces multiples`)) +
+  geom_line(lwd = 1) +
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = .2) +
   scale_x_date(name = NULL, limits = c(as.Date("2017-06-01"), NA)) +
   scale_y_continuous(name = NULL, 
@@ -428,7 +429,7 @@ ggsave("output/figures/figure_2_7F.pdf", plot = figure_2_7, width = 8,
 extrafont::embed_fonts("output/figures/figure_2_7F.pdf")
 
 
-# Figure 2.8 Commercialisation des annonces actives quotidiennement ----------------------------
+# Figure 2.8 Commercialization of STR listings ----------------------------
 
 commercial_listings <- 
   daily %>% 

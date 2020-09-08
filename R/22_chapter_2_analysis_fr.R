@@ -404,8 +404,8 @@ listing_type_breakdown %>%
          `Revenu annuel (CAD)` = revenue,
          `% d'annonces actives quotidiennement` = pct_of_listings,
          `% du revenu annuel` = pct_of_revenue,
-         `% de la variation annuelle d'annonces actives quotidennement (2018-2019)` = pct_listing_growth
-         ) %>% 
+         `% de la variation annuelle d'annonces actives quotidennement (2018-2019)` = 
+           pct_listing_growth) %>% 
   gt() %>% 
   tab_header(
     title = "Répartition par type d'annonces",
@@ -550,8 +550,7 @@ tenure_breakdown %>%
          `Nombre de LCT dans des unités locatives` = 
            round(`Nombre de LCT dans des unités locatives`, digit = -1)) %>%
   gt() %>% 
-  tab_header(title = "Répartition du mode d'occupation",
-             subtitle = "LCT dans des copropriétés et des unités locatives par arrondissement") %>%
+  tab_header(title = "Répartition du mode d'occupation") %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(3:4, 6:7), decimals = 1) %>% 
   fmt_number(columns = c(2, 5), decimals = 0)
