@@ -458,13 +458,13 @@ fig_labels <-
   group_by(group, year) %>% 
   mutate(label = case_when(
     variable == "annonces au total" ~ paste0(
-      prettyNum(label, " "), " ", variable, "\nen jan/fev"),
+      prettyNum(label, " "), " ", variable, "\nen janv./févr."),
     variable == "actives" ~ paste0(
       prettyNum(label, " "), " (", scales::percent(label/sum(label),
                                                    accuracy = 0.1,
                                                    suffix = " %",
                                                    decimal.mark = ","), ") ", 
-      variable, "\nen juillet"),
+      variable, "\nen juill."),
     TRUE ~ paste0(
       prettyNum(label, " "), " (", scales::percent(label/sum(label),
                                                    accuracy = 0.1,
