@@ -21,6 +21,7 @@ source("R/01_startup.R")
 library(rebus)
 
 load("output/str_processed.Rdata")
+load("output/geometry.Rdata")
 load("output/ltr_processed.Rdata")
 
 
@@ -188,6 +189,17 @@ ltr_id <-
 listings_info <- 
   listings_info %>% 
   left_join(ltr_id)
+
+
+# Translate listing_type --------------------------------------------------
+
+listings_info <- 
+  listings_info %>%
+  mutate(listing_type = case_when(
+    listing_type == "Entire home/apt" ~ "Logement entier",
+    listing_type == "Private room" ~ "Chambre privée",
+    listing_type == "Shared room" ~ "Chambre partagée",
+    listing_type == "Hotel room" ~ "Chambre d'hôtel"))
 
 
 # Airbnb URL --------------------------------------------------------------
