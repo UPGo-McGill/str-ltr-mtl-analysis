@@ -103,8 +103,7 @@ figure_2_2 <-
                      labels = scales::percent) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1)]) +
   theme_minimal() +
-  theme(legend.position = "bottom",
-        panel.grid.minor.x = element_blank(),
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
         text = element_text(family = "Futura"))
 
 ggsave("output/figures/figure_2_2.pdf", plot = figure_2_2, width = 8, 

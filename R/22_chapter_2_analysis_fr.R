@@ -330,10 +330,7 @@ boroughs_breakdown %>%
            paste0("$", str_sub(`Revenu annuel (CAD)`, 1, -7), ".",
                   str_sub(`Revenu annuel (CAD)`, -6, -6), " million")) %>%
   gt() %>% 
-  tab_header(
-    title = "Répartition par arrondissement",
-    subtitle = "Arrondissements avec plus de 100 annonces actives quotidiennement en moyenne, 2019"
-  ) %>%
+  tab_header(title = "Répartition par arrondissement") %>%
   opt_row_striping() %>% 
   fmt_percent(columns = c(3:4, 6), decimals = 1) %>% 
   fmt_number(columns = 2,
