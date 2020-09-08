@@ -1,4 +1,4 @@
-#### 41 CHAPTER 4 FIGURES FRANCAIS ######################################################
+#### 41 CHAPTER 4 FIGURES ######################################################
 
 #' This script produces the graphs and maps for chapter 4. It runs quickly.
 #' 
@@ -21,7 +21,7 @@ library(fabletools)
 load("output/str_processed.Rdata")
 
 
-### FIGURE 4.1. Annonces disponibles et réservés depuis 2018 ####################################################
+# Figure 4.1 - Active and reserved listings since 2018 --------------------
 
 active_by_status <- 
   daily %>% 
@@ -37,14 +37,16 @@ figure_4_1 <-
   ggplot(aes(date, n, color = status)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
            ymin = -Inf, ymax = Inf, alpha = 0.2) +
-  annotate("curve", x = as.Date("2019-02-01"), xend = as.Date("2020-05-01"),
+  annotate("curve", x = as.Date("2019-02-20"), xend = as.Date("2020-05-01"),
            y = 7500, yend = 7500, curvature = -.3, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2018-12-11"), y = 7500,
-           label = "Interdiction des LCT \npar la province", family = "Futura Condensed") +
+           label = "Interdiction des LCT \npar la province", 
+           family = "Futura Condensed") +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
-  scale_y_continuous(name = NULL, limits = c(0, NA), label = scales::comma) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma_format(big.mark = " ")) +
   scale_color_manual(name = "Status", labels = c("Disponible", "Réservé"), 
                      values = col_palette[c(5, 1)]) +
   theme_minimal() +
@@ -60,7 +62,7 @@ ggsave("output/figures/figure_4_1F.pdf", plot = figure_4_1, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_4_1F.pdf")
 
-# Figure 4.2 Réservations actuelles et prédites pour 2020 ------------------------
+# Figure 4.2 Actual and trend reservations in 2020 ------------------------
 
 # Create and decompose reservations time series
 reservations <- 
@@ -129,7 +131,7 @@ figure_4_2 <-
                 y = mean(value[date == as.Date("2020-07-31")]),
                 label = paste(
                   prettyNum(round(abs(diff(
-                    value[date == as.Date("2020-07-31")])), -1), ","),
+                    value[date == as.Date("2020-07-31")])), -1), " "),
                   "réservations", "de moins", "que", "prévu", sep = "\n")), 
             family = "Futura Condensed", inherit.aes = FALSE, hjust = 1,
             nudge_x = -4) +
@@ -140,9 +142,11 @@ figure_4_2 <-
                arrow = arrow(length = unit(0.1, "cm"), ends = "both",
                              type = "open")) +
   scale_x_date(name = NULL) +
-  scale_y_continuous(name = NULL, limits = c(0, NA), label = scales::comma) +
+  scale_y_continuous(name = NULL, limits = c(0, NA), 
+                     label = scales::comma_format(big.mark = " ")) +
   scale_color_manual(name = NULL, 
-                     labels = c("Réservations actuelles", "Réservations prévues"), 
+                     labels = c("Réservations actuelles", 
+                                "Réservations prévues"), 
                      values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom", 
@@ -157,7 +161,8 @@ ggsave("output/figures/figure_4_2F.pdf", plot = figure_4_2, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_4_2F.pdf")
 
-# Figure 4.3 Prix par nuit moyen ----------------------------------------
+
+# Figure 4.3 Average nightly price ----------------------------------------
 
 # Get average nightly prices
 average_prices <- 
@@ -222,7 +227,8 @@ figure_4_3 <-
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
   scale_y_continuous(name = NULL, limits = c(50, NA),
-                     label = scales::label_dollar(accuracy = 1)) +
+                     label = scales::label_dollar(accuracy = 1, prefix = "",
+                                                  suffix = " $")) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1)],
                      labels = c("Prix par nuit actuel", 
                                 "Prix par nuit prévu")) +
@@ -239,7 +245,8 @@ ggsave("output/figures/figure_4_3F.pdf", plot = figure_4_3, width = 8,
 
 extrafont::embed_fonts("output/figures/figure_4_3F.pdf")
 
-# Figure 4.4 Annonces désactivées et bloquées -----------------------------
+
+# Figure 4.4 Deactivated and blocked listings -----------------------------
 
 FREH_2020 <- 
   daily %>% 
@@ -277,25 +284,25 @@ non_FREH_2019 <-
 
 total_2020 <- 
   tibble(
-    group = c("LEFL", "non-LEFL"),
+    group = c("FREH", "non-FREH"),
     year = 2020,
-    variable = "nombre total d'annonces",
+    variable = "total listings",
     value = c(nrow(FREH_2020), nrow(non_FREH_2020))
   )
 
 total_2019 <- 
   tibble(
-    group = c("LEFL", "non-LEFL"),
+    group = c("FREH", "non-FREH"),
     year = 2019,
-    variable = "nombre total d'annonces",
+    variable = "total listings",
     value = c(nrow(FREH_2019), nrow(non_FREH_2019))
   )
 
 deactivated_2020 <- 
   tibble(
-    group = c("LEFL", "non-LEFL"),
+    group = c("FREH", "non-FREH"),
     year = 2020,
-    variable = "désactivées",
+    variable = "deactivated",
     value = c({
       FREH_2020 %>% 
         summarize(total = sum(scraped <= "2020-07-31")) %>% 
@@ -307,9 +314,9 @@ deactivated_2020 <-
 
 deactivated_2019 <- 
   tibble(
-    group = c("LEFL", "non-LEFL"),
+    group = c("FREH", "non-FREH"),
     year = 2019,
-    variable = "désactivées",
+    variable = "deactivated",
     value = c({
       FREH_2019 %>% 
         summarize(total = sum(scraped <= "2019-07-31")) %>% 
@@ -337,27 +344,27 @@ blocked_PIDs_2019 <-
 
 blocked_2020 <-
   tibble(
-    group = c("LEFL", "non-LEFL"),
+    group = c("FREH", "non-FREH"),
     year = 2020,
-    variable = "bloquées",
+    variable = "blocked",
     value = c(nrow(filter(FREH_2020, property_ID %in% blocked_PIDs_2020)),
               nrow(filter(non_FREH_2020, property_ID %in% blocked_PIDs_2020)))
   )
 
 blocked_2019 <-
   tibble(
-    group = c("LEFL", "non-LEFL"),
+    group = c("FREH", "non-FREH"),
     year = 2019,
-    variable = "bloquées",
+    variable = "blocked",
     value = c(nrow(filter(FREH_2019, property_ID %in% blocked_PIDs_2019)),
               nrow(filter(non_FREH_2019, property_ID %in% blocked_PIDs_2019)))
   )
 
 active_2020 <- 
   tibble(
-    group = c("LEFL", "non-LEFL"),
+    group = c("FREH", "non-FREH"),
     year = 2020,
-    variable = "actives",
+    variable = "active",
     value = c(
       nrow(FREH_2020) - deactivated_2020[1,]$value - blocked_2020[1,]$value,
       nrow(non_FREH_2020) - deactivated_2020[2,]$value - blocked_2020[2,]$value)
@@ -365,9 +372,9 @@ active_2020 <-
 
 active_2019 <- 
   tibble(
-    group = c("LEFL", "non-LEFL"),
+    group = c("FREH", "non-FREH"),
     year = 2019,
-    variable = "actives",
+    variable = "active",
     value = c(
       nrow(FREH_2019) - deactivated_2019[1,]$value - blocked_2019[1,]$value,
       nrow(non_FREH_2019) - deactivated_2019[2,]$value - blocked_2019[2,]$value)
@@ -385,37 +392,41 @@ max_y <- comparison_df %>% filter(value == max(value)) %>%
 
 fig_polys <- 
   comparison_df %>% 
-  # filter(group == "FREH", year == 2020) %>% 
   group_by(group, year, variable) %>%
   summarize(
-    x = c(3, 5) - (variable == "nombre total d'annonces") * 3,
-    ymax = rep(value, 2)
-  ) %>% 
+    x = c(3, 5) - (variable == "total listings") * 3,
+    ymax = rep(value, 2)) %>% 
   ungroup() %>% 
   arrange(desc(variable)) %>% 
   group_by(group, year) %>% 
   mutate(
     ymin = case_when(
-      variable == "nombre total d'annonces" ~ offset,
-      variable == "actives"         ~ 0,
-      variable == "bloquées"        ~ ymax[variable == "actives"][1] + offset,
-      variable == "désactivées"    ~ ymax[variable == "bloquées"][1] + 
-        ymax[variable == "actives"][1] + offset * 2
+      variable == "total listings" ~ offset,
+      variable == "active"         ~ 0,
+      variable == "blocked"        ~ ymax[variable == "active"][1] + offset,
+      variable == "deactivated"    ~ ymax[variable == "blocked"][1] + 
+        ymax[variable == "active"][1] + offset * 2
     ),
     ymax = ymax + ymin, .before = ymax) %>% 
-  mutate(adjustment = max_y / 2 - mean(c(ymax[variable == "nombre total d'annonces"], 
-                                         ymin[variable == "nombre total d'annonces"])),
+  mutate(adjustment = max_y / 2 - mean(c(ymax[variable == "total listings"], 
+                                         ymin[variable == "total listings"])),
          ymin = ymin + adjustment,
          ymax = ymax + adjustment) %>% 
-  ungroup()
+  ungroup() %>% 
+  mutate(group = if_else(group == "FREH", "LEFL", "non-LEFL"),
+         variable = case_when(
+           variable == "total listings" ~ "annonces au total",
+           variable == "deactivated"    ~ "désactivées",
+           variable == "blocked"        ~ "bloquées",
+           variable == "active"         ~ "actives"))
 
 fig_segments <-
   fig_polys %>% 
-  filter(variable != "nombre total d'annonces") %>% 
+  filter(variable != "annonces au total") %>% 
   mutate(orientation = case_when(
     variable == "désactivées" ~ -1,
-    variable == "bloquées"     ~ 0,
-    variable == "actives"      ~ 1)) %>% 
+    variable == "bloquées"    ~ 0,
+    variable == "actives"     ~ 1)) %>% 
   group_by(group, year, variable) %>% 
   mutate(across(c(ymin, ymax), ~{.x + c(offset, 0) * orientation})) %>% 
   ungroup() %>% 
@@ -442,12 +453,25 @@ fig_labels <-
   group_by(group, year, variable) %>% 
   summarize(x = mean(x),
             y = mean(c(ymin, ymax)),
-            label = paste(mean(ymax) - mean(ymin), variable, sep = " ")) %>% 
+            label = mean(ymax) - mean(ymin)) %>% 
   ungroup() %>% 
-  mutate(label = if_else(variable == "annonces au total", 
-                         paste0(label, "\nen Jan/Fev"), label),
-         label = if_else(variable == "actives", 
-                         paste0(label, "\nen Juillet"), label))
+  group_by(group, year) %>% 
+  mutate(label = case_when(
+    variable == "annonces au total" ~ paste0(
+      prettyNum(label, " "), " ", variable, "\nen jan/fev"),
+    variable == "actives" ~ paste0(
+      prettyNum(label, " "), " (", scales::percent(label/sum(label),
+                                                   accuracy = 0.1,
+                                                   suffix = " %",
+                                                   decimal.mark = ","), ") ", 
+      variable, "\nen juillet"),
+    TRUE ~ paste0(
+      prettyNum(label, " "), " (", scales::percent(label/sum(label),
+                                                   accuracy = 0.1,
+                                                   suffix = " %",
+                                                   decimal.mark = ","), ") ",
+      variable))) %>% 
+  ungroup()
 
 figure_4_4 <- 
   fig_polys %>% 
@@ -458,7 +482,7 @@ figure_4_4 <-
   geom_text(aes(x, y, group = variable, label = label), data = fig_labels,
             colour = "white", family = "Futura", size = 2) +
   scale_colour_gradientn(colours = col_palette[c(5, 3, 5, 2, 5, 1)]) +
-  scale_fill_manual(values = c("nombre total d'annonces" = col_palette[5], 
+  scale_fill_manual(values = c("annonces au total" = col_palette[5], 
                                "actives" = col_palette[1],
                                "bloquées" = col_palette[2],
                                "désactivées" = col_palette[3])) +
@@ -470,11 +494,12 @@ figure_4_4 <-
         strip.text = element_text(face = "bold", family = "Futura"))
 
 ggsave("output/figures/figure_4_4F.pdf", plot = figure_4_4, width = 8, 
-       height = 6, units = "in", useDingbats = FALSE)
+       height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_4_4F.pdf")
 
-# Figure 4.5 Trajectoire des réservations d'annonces de LEFL et non-LEFL -------
+
+# Figure 4.5 Reservation trajectories of FREH and non-FREH listings -------
 
 FREH_in_jan_feb <- 
   daily %>% 
@@ -514,8 +539,9 @@ figure_4_5_left <-
            ymin = 0, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
-  scale_y_continuous(name = "Réservations quotidiennes totales", limits = c(0, NA), 
-                     label = scales::comma) +
+  scale_y_continuous(name = "Réservations quotidiennes totales", 
+                     limits = c(0, NA), 
+                     label = scales::comma_format(big.mark = " ")) +
   scale_color_manual(name = "Status LEFL en janvier-février 2020", 
                      labels = c("FAUX", 
                                 "VRAI"),
@@ -536,7 +562,8 @@ figure_4_5_right <-
            ymin = 0, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
-  scale_y_continuous(name = "Réservations mensuelles moyennes", limits = c(0, NA), 
+  scale_y_continuous(name = "Réservations mensuelles moyennes", 
+                     limits = c(0, NA), 
                      label = scales::label_number(accuracy = 1)) +
   scale_color_manual(name = "Status LEFL en janvier-février 2020", 
                      labels = c("FAUX", 

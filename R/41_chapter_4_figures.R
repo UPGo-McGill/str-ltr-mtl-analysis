@@ -378,7 +378,7 @@ active_2019 <-
 
 comparison_df <- 
   bind_rows(total_2020, total_2019, deactivated_2020, deactivated_2019,
-          blocked_2020, blocked_2019, active_2020, active_2019)
+            blocked_2020, blocked_2019, active_2020, active_2019)
 
 # Figure parameters
 n_segs <- 1000
@@ -388,12 +388,10 @@ max_y <- comparison_df %>% filter(value == max(value)) %>%
 
 fig_polys <- 
   comparison_df %>% 
-  # filter(group == "FREH", year == 2020) %>% 
   group_by(group, year, variable) %>%
   summarize(
     x = c(3, 5) - (variable == "total listings") * 3,
-    ymax = rep(value, 2)
-  ) %>% 
+    ymax = rep(value, 2)) %>% 
   ungroup() %>% 
   arrange(desc(variable)) %>% 
   group_by(group, year) %>% 
