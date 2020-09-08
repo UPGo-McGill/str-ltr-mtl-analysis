@@ -1,4 +1,4 @@
-#### 21 CHAPTER 2 FIGURES ######################################################
+#### 23 CHAPTER 2 FIGURES ######################################################
 
 #' This script produces the graphs and maps for chapter 2. It runs quickly.
 #' 
@@ -14,7 +14,7 @@
 #' 
 #' Script dependencies:
 #' - `09_str_processing.R`
-#' - `13_raffle_condo.R`
+#' - `13_condo_analysis.R`
 #' 
 #' External dependencies:
 #' - The Futura and Futura Condensed fonts, which can be imported in 
@@ -27,7 +27,7 @@ load("output/geometry.Rdata")
 load("output/condo_analysis.Rdata")
 
 
-# Figure 2.1 - Active daily listings --------------------------------------
+# Figure 2.1 Active daily listings ----------------------------------------
 
 active_listings <- 
   daily %>% 
@@ -49,31 +49,28 @@ active_listings <-
 figure_2_1 <- 
   active_listings %>% 
   ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
-  annotate("curve", x = as.Date("2019-11-01"), xend = as.Date("2020-05-01"),
+  annotate("curve", x = as.Date("2019-08-01"), xend = as.Date("2020-05-01"),
            y = 12000, yend = 10500, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2019-05-01"), y = 11700,
+  annotate("text", x = as.Date("2019-04-01"), y = 11700,
            label = "Interdiction des LCT \npar la province", 
-           #family = "Futura Condensed"
-           ) +
+           family = "Futura Condensed") +
   geom_line() +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
-                      labels = c("Toutes les annonces", "Logement entier", "Chambre privée", "Chambre partagée"),
+                      labels = c("Toutes les annonces", "Logement entier", 
+                                 "Chambre privée", "Chambre partagée"),
                       guide = guide_legend(
-                        override.aes = list(size = c(1.5, 0.75, 0.75, 0.75)))
-  ) +
+                        override.aes = list(size = c(1.5, 0.75, 0.75, 0.75)))) +
   scale_size_manual(values = c("All listings" = 1.5, "Entire home/apt" = 0.75,
                                "Private room" = 0.75, "Shared room" = 0.75),
                     guide = "none") +
   theme_minimal() +
-  theme(legend.position = "bottom",
-        panel.grid.minor.x = element_blank(),
-        #text = element_text(family = "Futura")
-        )
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
+        text = element_text(family = "Futura"))
 
 ggsave("output/figures/figure_2_1F.pdf", plot = figure_2_1, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)

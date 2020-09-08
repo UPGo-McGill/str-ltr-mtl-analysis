@@ -48,7 +48,7 @@ active_listings <-
 
 figure_2_1 <- 
   active_listings %>% 
-  ggplot(aes(date, n , colour = listing_type, size = listing_type)) +
+  ggplot(aes(date, n, colour = listing_type, size = listing_type)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
   annotate("curve", x = as.Date("2019-08-01"), xend = as.Date("2020-05-01"),
@@ -61,14 +61,12 @@ figure_2_1 <-
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
   scale_colour_manual(name = NULL, values = col_palette[c(5, 1:3)],
                       guide = guide_legend(
-                        override.aes = list(size = c(1.5, 0.75, 0.75, 0.75)))
-                      ) +
+                        override.aes = list(size = c(1.5, 0.75, 0.75, 0.75)))) +
   scale_size_manual(values = c("All listings" = 1.5, "Entire home/apt" = 0.75,
                                "Private room" = 0.75, "Shared room" = 0.75),
                     guide = "none") +
   theme_minimal() +
-  theme(legend.position = "bottom",
-        panel.grid.minor.x = element_blank(),
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
         text = element_text(family = "Futura"))
 
 ggsave("output/figures/figure_2_1.pdf", plot = figure_2_1, width = 8, 
