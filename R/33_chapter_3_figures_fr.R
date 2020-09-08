@@ -357,8 +357,8 @@ vacancy_for_map <-
   left_join(cmhc) %>% 
   st_as_sf() %>% 
   mutate(status = factor(status, 
-                         levels = c("Taux d'innoccupation actuel",
-                                    "LCT dédiés de retour sur le marché")))
+                         levels = c("Taux d'inoccupation actuel",
+                                    "LCT dédiées de retour sur le marché")))
 
 figure_3_5 <- 
   vacancy_for_map %>% 
