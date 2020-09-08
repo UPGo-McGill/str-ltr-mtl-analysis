@@ -879,7 +879,8 @@ revenue_2019 %>%
   filter(host_ID %in% (property %>%
                          st_drop_geometry() %>%
                          filter(!is.na(ltr_ID)) %>%
-                         filter(active >= "2020-01-01", !active >= "2020-07-01"))$host_ID) %>%
+                         filter(active >= "2020-01-01", 
+                                !active >= "2020-07-01"))$host_ID) %>%
   group_by(host_ID) %>% 
   summarize("host_rev" = sum(revenue_LTM)) %>% 
   summarize(mean(host_rev))
