@@ -21,7 +21,6 @@ source("R/01_startup.R")
 library(rebus)
 
 load("output/str_processed.Rdata")
-load("output/geometry.Rdata")
 load("output/ltr_processed.Rdata")
 
 
@@ -79,7 +78,7 @@ ltr <-
 listings_info <- 
   property %>% 
   st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID), scraped >= "2020-01-01") %>% 
+  filter(!is.na(ltr_ID)) %>% 
   select(property_ID, host_ID, created, scraped, housing, listing_type, borough)
 
 
