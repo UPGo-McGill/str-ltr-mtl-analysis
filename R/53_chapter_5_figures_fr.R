@@ -148,7 +148,7 @@ figure_5_2 <-
   annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
            y = 45, yend = 50, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-07-14"), y = 45,
+  annotate("text", x = as.Date("2020-07-18"), y = 45,
            label = "Interdiction des LCT \npar la province", 
            family = "Futura Condensed") +
   scale_x_date(name = NULL, breaks = c(as.Date("2020-03-01"), 
