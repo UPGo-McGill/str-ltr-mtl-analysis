@@ -290,7 +290,10 @@ unit_change <-
   arrange(-active_strs) %>% 
   slice(1:10) %>% 
   left_join(st_drop_geometry(cmhc)) %>% 
-  select(zone, zone_name, unit_change:net_unit_change)
+  select(zone, zone_name, unit_change:net_unit_change) %>% 
+  mutate(zone_name = if_else(
+    str_detect(zone_name, "Downtown"), "Centre-ville Montréal/Îles-des-Soeurs",
+    zone_name))
 
 figure_3_4 <- 
   unit_change %>%
