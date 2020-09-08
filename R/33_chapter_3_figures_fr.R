@@ -30,7 +30,7 @@ load("output/rent_increases.Rdata")
 load("output/condo_analysis.Rdata")
 
 
-# Prepare objects for graphs -------------------------------------------------------------
+# Figure 3.1 Housing loss -------------------------------------------------
 
 FREH_total <- 
   daily %>% 
@@ -58,22 +58,24 @@ housing_loss <-
   mutate(`Listing type` = factor(`Listing type`, 
                                  levels = c("Private room", "Entire home/apt")))  
 
-# Figure 3.1 Unités de logement converties en logements dédiés à la location à court terme dans la ville de Montréal (moyenne mensuelle) -------------------------------------------------
+# Housing loss graph
 figure_3_1 <- 
   housing_loss %>% 
   ggplot(aes(date, `Housing units`, fill = `Listing type`)) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
   geom_col(lwd = 0) +
-  annotate("curve", x = as.Date("2019-03-20"), xend = as.Date("2020-05-01"),
+  annotate("curve", x = as.Date("2019-04-20"), xend = as.Date("2020-05-01"),
            y = 5500, yend = 5800, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2019-01-01"), y = 5500,
-           label = "LCTs bannis \npar la province", family = "Futura Condensed") +
-  scale_fill_manual(values = col_palette[c(1, 3, 2)],
-                    labels = c("Type d'annonce", "Chambre privée", "Logement entier")) +
+           label = "Interdiction des LCT \npar la province", 
+           family = "Futura Condensed") +
+  scale_fill_manual(name = "Type d'annonce", values = col_palette[c(1, 5)],
+                    labels = c("Chambre privée", "Logement entier")) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-10-01"), NA)) +
-  scale_y_continuous(name = NULL, label = scales::comma) +
+  scale_y_continuous(name = NULL, 
+                     label = scales::comma_format(big.mark = " ")) +
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
@@ -88,7 +90,7 @@ ggsave("output/figures/figure_3_1F.pdf", plot = figure_3_1, width = 8,
 extrafont::embed_fonts("output/figures/figure_3_1F.pdf")
 
 
-# Figure 3.2 Le pourcentage d'annonces actives de LCT contribuant à la perte de logement chaque jour à Montréal (moyenne de 14 jours) -------------------------------
+# Figure 3.2 Housing loss share of listings -------------------------------
 
 housing_loss_share <- 
   daily %>% 
@@ -106,12 +108,13 @@ housing_loss_share <-
 
 figure_3_2 <- 
   housing_loss_share %>% 
-  rename(`Type d'annonce`=`Listing type`) %>% 
+  rename(`Type d'annonce` = `Listing type`) %>% 
   ggplot(aes(date, housing_loss_pct, colour = `Type d'annonce`)) +
   geom_line(lwd = 1) +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
-  scale_y_continuous(name = NULL, labels = scales::percent) +
+  scale_y_continuous(name = NULL, 
+                     labels = scales::percent_format(suffix = " %")) +
   scale_colour_manual(values = col_palette[c(5, 1)],
                       labels = c("Logement entier", "Chambre privée")) +
   theme_minimal() +
@@ -127,7 +130,7 @@ ggsave("output/figures/figure_3_2F.pdf", plot = figure_3_2, width = 8,
 extrafont::embed_fonts("output/figures/figure_3_2F.pdf")
 
 
-# Figure 3.3 Le pourcentage d'unités de logement converties en LCT dédiées dans la ville de Montréal, par arrondissement (G) et aire de diffusion (D)  --------------------------------------
+# Figure 3.3 Housing loss by borough --------------------------------------
 
 FREH_borough <- 
   daily %>% 
