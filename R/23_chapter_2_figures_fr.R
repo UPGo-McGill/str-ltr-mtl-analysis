@@ -97,7 +97,7 @@ figure_2_2 <-
   daily_variation %>% 
   ggplot(aes(date, value, colour = var)) +
   geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-  annotate("rect", xmin = as.Date("2020-03-14"), xmax = as.Date("2020-06-25"),
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
@@ -105,16 +105,13 @@ figure_2_2 <-
                      labels = scales::percent) +
   scale_color_manual(name = NULL, values = col_palette[c(5, 1)]) +
   theme_minimal() +
-  theme(legend.position = "bottom",
-        panel.grid.minor.x = element_blank(),
-        #text = element_text(family = "Futura")
-        )
+  theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
+        text = element_text(family = "Futura"))
 
 ggsave("output/figures/figure_2_2F.pdf", plot = figure_2_2, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
 
 extrafont::embed_fonts("output/figures/figure_2_2F.pdf")
-
 
 
 # Figure 2.3 Active listings as a share of dwellings ----------------------
