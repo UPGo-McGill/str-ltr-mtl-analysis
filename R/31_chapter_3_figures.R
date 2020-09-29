@@ -70,7 +70,7 @@ figure_3_1 <-
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date(LTM_start_date), y = 5500,
            label = "STRs banned \nby Province", family = "Futura Condensed") +
-  scale_fill_manual(values = col_palette[c(1, 3, 2)]) +
+  scale_fill_manual(values = col_palette[c(1, 5)]) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-10-01"), NA)) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   theme_minimal() +
@@ -248,8 +248,8 @@ daily_cmhc <-
   st_drop_geometry() %>% 
   select(property_ID, zone) %>% 
   left_join(daily, .) %>% 
-  filter(housing, date %in% as.Date(c("2019-12-01", LTM_end_date, "2018-12-01",
-                                      LTM_end_date - years(1)))) %>% 
+  filter(housing, date %in% as.Date(c("2019-12-01", "2019-12-31", "2018-12-01",
+                                      "2018-12-31"))) %>% 
   mutate(FREH_3 = if_else(substr(date, 9, 9) == 0, FREH_3, 0),
          GH     = if_else(substr(date, 9, 9) == 3, GH, FALSE)) %>% 
   mutate(date = as.integer(substr(date, 1, 4))) %>% 
@@ -301,9 +301,9 @@ figure_3_4 <-
                size = 1.2,
                arrow = arrow(length = unit(0.3, "cm")),
                position = position_nudge(x = -0.125)) +
-  scale_fill_manual(name = NULL, values = col_palette[c(3, 1)],
-                    labels = c("Rental unit change", 
-                               "Rental unit change with STRs")) +
+  scale_fill_manual(name = NULL, values = col_palette[c(3, 1)], labels = c(
+    "Rental unit change", 
+    "Rental unit change with STRs")) +
   scale_y_continuous(name = NULL, breaks = c(-200, 0, 200, 400, 600)) +
   scale_x_discrete(name = NULL,
                    labels = 
@@ -326,28 +326,26 @@ extrafont::embed_fonts("output/figures/figure_3_4.pdf")
 
 # Figure 3.5 Vacancy rates ------------------------------------------------
 
-vacancy_for_map <- 
+vacancy_for_map <-
   annual_vacancy %>% 
   filter(dwelling_type == "Total", bedroom == "Total", !is.na(vacancy)) %>% 
   group_by(zone) %>% 
   filter(date == max(date)) %>% 
   ungroup() %>% 
-  left_join(annual_units) %>% 
-  select(-dwelling_type, -bedroom, -quality) %>% 
-  mutate(vacant_units = vacancy * units) %>% 
+  left_join(cmhc) %>% 
+  mutate(vacant_units = vacancy * renter_households) %>% 
   left_join(select(filter(daily_cmhc, date == 2019), zone, housing_loss)) %>% 
   left_join(renter_zone) %>% 
   filter(housing_loss >= 50) %>% 
   arrange(zone) %>% 
   mutate(units_returning = housing_loss * p_renter,
          new_vacant = vacant_units + units_returning,
-         new_vacancy = new_vacant / units) %>% 
-  select(zone:vacancy, new_vacancy) %>% 
+         new_vacancy = new_vacant / renter_households) %>% 
+  select(zone, zone_name, vacancy, new_vacancy, geometry) %>% 
   rename(`Current vacancy rate` = vacancy, 
          `Dedicated STRs back to market` = new_vacancy) %>% 
-  pivot_longer(-c(zone, zone_name), names_to = "status",
+  pivot_longer(-c(zone, zone_name, geometry), names_to = "status",
                values_to = "vacancy") %>% 
-  left_join(cmhc) %>% 
   st_as_sf()
 
 figure_3_5 <- 

@@ -405,10 +405,31 @@ cmhc <-
   select(zone, zone_name, geometry) %>% 
   st_transform(32618)
 
+DA_CMA <-
+  cancensus::get_census(
+    dataset = "CA16", regions = list(CMA = "24462"), level = "DA",
+    geo_format = "sf", vectors = c("v_CA16_4836", "v_CA16_4838")) %>% 
+  st_transform(32618) %>% 
+  select(5, 4, 13:15) %>% 
+  set_names(c("GeoUID", "dwellings", "total_households", "renter_households", 
+              "geometry")) %>% 
+  st_set_agr("constant")
+
+cmhc <- 
+  DA_CMA %>% 
+  filter(!is.na(renter_households), !is.na(total_households)) %>% 
+  select(renter_households, total_households) %>% 
+  st_interpolate_aw(cmhc, extensive = TRUE) %>% 
+  st_drop_geometry() %>% 
+  select(renter_households, total_households) %>% 
+  cbind(cmhc, .) %>% 
+  as_tibble() %>% 
+  st_as_sf()
+
 
 # Save output -------------------------------------------------------------
 
-rm(import_annual_avg_rent, import_annual_units, import_annual_vacancy,
+rm(DA_CMA, import_annual_avg_rent, import_annual_units, import_annual_vacancy,
    import_web_table, zones)
 
 save(annual_avg_rent, annual_units, annual_vacancy, 

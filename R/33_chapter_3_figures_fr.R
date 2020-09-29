@@ -342,20 +342,19 @@ vacancy_for_map <-
   group_by(zone) %>% 
   filter(date == max(date)) %>% 
   ungroup() %>% 
-  left_join(annual_units) %>% 
-  select(-dwelling_type, -bedroom, -quality) %>% 
-  mutate(vacant_units = vacancy * units) %>% 
+  left_join(cmhc) %>% 
+  mutate(vacant_units = vacancy * renter_households) %>% 
   left_join(select(filter(daily_cmhc, date == 2019), zone, housing_loss)) %>% 
   left_join(renter_zone) %>% 
   filter(housing_loss >= 50) %>% 
   arrange(zone) %>% 
   mutate(units_returning = housing_loss * p_renter,
          new_vacant = vacant_units + units_returning,
-         new_vacancy = new_vacant / units) %>% 
-  select(zone:vacancy, new_vacancy) %>% 
+         new_vacancy = new_vacant / renter_households) %>% 
+  select(zone, zone_name, vacancy, new_vacancy, geometry) %>% 
   rename(`Taux d'inoccupation actuel` = vacancy, 
          `LCT dédiées de retour sur le marché` = new_vacancy) %>% 
-  pivot_longer(-c(zone, zone_name), names_to = "status",
+  pivot_longer(-c(zone, zone_name, geometry), names_to = "status",
                values_to = "vacancy") %>% 
   left_join(cmhc) %>% 
   st_as_sf() %>% 
