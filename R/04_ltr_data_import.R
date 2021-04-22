@@ -20,13 +20,22 @@ source("R/01_startup.R")
 
 # Load and filter data ----------------------------------------------------
 
-kj <- readRDS("data/ltr/kj.rds") %>% filter(city == "Montreal")
-cl <- readRDS("data/ltr/cl.rds") %>% filter(city == "montreal")
+kj <- qread("data/ltr/kj.qs", nthreads = availableCores()) %>% 
+  filter(city == "Montreal", scraped <= "2020-12-31")
+cl <- qread("data/ltr/cl.qs", nthreads = availableCores()) %>% 
+  filter(city == "montreal", scraped <= "2020-12-31")
 
 rclalq <- 
   readxl::read_xlsx("data/ltr/rclalq.xlsx") %>% 
   filter(location == "VilledeMontréal") %>% 
   select(-location)
+
+
+# Clean location field ----------------------------------------------------
+
+kj <-
+  kj %>%
+  mutate(location = str_remove(location, "^([:punct:]|[:space:])*"))
 
 
 # Get geometry from KJ listings -------------------------------------------
@@ -59,9 +68,11 @@ kj_new_geography <-
 
 if (nrow(kj_new_geography) > 0) {
   
+  library(ggmap)
+  
   to_geocode <- kj_new_geography$location %>% unique()
   
-  output <- ggmap::geocode(to_geocode)
+  output <- geocode(to_geocode)
   
   output <- tibble(location = to_geocode,
                    lon = output$lon,
@@ -84,9 +95,13 @@ rclalq_new_geography <-
          !is.na(address))
 
 if (nrow(rclalq_new_geography) > 0) {
+  
+  library(ggmap)
+  
   rclalq_new_geography <- 
     rclalq_new_geography %>% 
-    ggmap::mutate_geocode(address)
+    mutate_geocode(address)
+  
 } else rclalq_new_geography <- mutate(rclalq_new_geography, lon = numeric(), 
                                       lat = numeric())
 
@@ -100,9 +115,7 @@ locations_new <-
   distinct(entity, .keep_all = TRUE)
   
 # Upload new geocoding results to server (ONLY WORKS WITH ADMIN PRIVILEGES)
-upgo_connect(geolocation = TRUE)
-RPostgres::dbWriteTable(upgo:::.upgo_env$con, "geolocation", locations_new, 
-                        append = TRUE)
+RPostgres::dbWriteTable(.con, "geolocation", locations_new, append = TRUE)
 
 upgo_disconnect()
 
@@ -137,24 +150,11 @@ kj <-
   select(id, short_long:furnished, type, lat, lon, title, text, photos) %>% 
   mutate(kj = TRUE)
 
-kj_with_geom <- 
+kj <- 
   kj %>% 
   filter(!is.na(lon), !is.na(lat)) %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326)
-
-kj_without_geom <-
-  kj %>%
-  filter(is.na(lon) | is.na(lat)) %>% 
-  mutate(geometry = st_sfc(st_point())) %>% 
-  st_as_sf(crs = 4326) %>% 
-  select(-lon, -lat)
-
-kj <-
-  rbind(kj_with_geom, kj_without_geom) %>% 
-  st_as_sf() %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>% 
   arrange(scraped, id)
-
-rm(kj_with_geom, kj_without_geom)
 
 
 # Clean up CL file --------------------------------------------------------
@@ -175,21 +175,10 @@ cl <-
          type = NA,
          kj = FALSE)
 
-cl_with_geom <- 
+cl <- 
   cl %>% 
   filter(!is.na(lon), !is.na(lat)) %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326)
-
-cl_without_geom <-
-  cl %>%
-  filter(is.na(lon) | is.na(lat)) %>% 
-  mutate(geometry = st_sfc(st_point())) %>% 
-  st_as_sf(crs = 4326) %>% 
-  select(-lon, -lat)
-
-cl <-
-  rbind(cl_with_geom, cl_without_geom) %>% 
-  st_as_sf() %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>% 
   arrange(scraped, id)
 
 rm(cl_with_geom, cl_without_geom)
@@ -225,24 +214,11 @@ rclalq <-
   select(id, short_long, created, scraped, price, city, location, bedrooms, 
          bathrooms, furnished, type, lat, lon, title, kj, text, photos)
 
-rclalq_with_geom <- 
+rclalq <- 
   rclalq %>% 
   filter(!is.na(lon), !is.na(lat)) %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326)
-
-rclalq_without_geom <-
-  rclalq %>%
-  filter(is.na(lon) | is.na(lat)) %>% 
-  mutate(geometry = st_sfc(st_point())) %>% 
-  st_as_sf(crs = 4326) %>% 
-  select(-lon, -lat)
-
-rclalq <-
-  rbind(rclalq_with_geom, rclalq_without_geom) %>% 
-  st_as_sf() %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>% 
   arrange(scraped, id)
-
-rm(rclalq_with_geom, rclalq_without_geom)
 
 
 # Merge KJ with RCLALQ ----------------------------------------------------
@@ -266,32 +242,30 @@ rm(rclalq)
 
 # Rbind into one table ----------------------------------------------------
 
-ltr <- rbind(kj, cl)
+ltr <- bind_rows(kj, cl)
 
 rm(kj, cl)
 
 
 # Add geometry ------------------------------------------------------------
 
-load("output/geometry.Rdata")
+qload("output/geometry.qsm", nthreads = availableCores())
 
 ltr <- st_transform(ltr, 32618)
 
 ltr <- 
   ltr %>% 
-  st_join(boroughs_raw) %>% 
-  select(-dwellings)
+  st_join(boroughs_raw)
 
 ltr <-
   ltr %>% 
   st_join(DA) %>% 
-  as_tibble() %>% 
-  st_as_sf() %>% 
-  select(-CMA_UID, -population)
+  select(-dwellings) %>% 
+  relocate(geometry, .after = GeoUID)
 
-rm(boroughs, boroughs_raw, city, DA, province)
+rm(boroughs, boroughs_raw, city, DA, province, streets, streets_downtown)
 
 
 # Save output -------------------------------------------------------------
 
-save(ltr, file = "output/ltr_raw.Rdata")
+qsave(ltr, file = "output/ltr_raw.qs", nthreads = availableCores())

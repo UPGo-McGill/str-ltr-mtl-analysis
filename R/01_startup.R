@@ -25,10 +25,12 @@ library(data.table)
 library(gt)
 library(extrafont)
 library(patchwork)
+library(qs)
+
 
 # Set global variables ----------------------------------------------------
 
-if (Sys.info()["sysname"] != "Windows") {plan(multiprocess)}
+if (Sys.info()["sysname"] != "Windows") {plan(multisession)}
 key_date <- as.Date("2020-03-14")
 LTM_start_date <- as.Date("2019-01-01")
 LTM_end_date <- as.Date("2019-12-31")

@@ -112,5 +112,5 @@ streets_downtown <-
 
 # Save output -------------------------------------------------------------
 
-save(province, DA, boroughs, boroughs_raw, city, streets, streets_downtown, 
-     file = "output/geometry.Rdata")
+qsavem(province, DA, boroughs, boroughs_raw, city, streets, streets_downtown, 
+       file = "output/geometry.qsm", nthreads = availableCores())
