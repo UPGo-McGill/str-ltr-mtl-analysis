@@ -19,72 +19,57 @@ doParallel::registerDoParallel()
 
 # Load previous data ------------------------------------------------------
 
-load("output/str_processed.Rdata")
+qload("output/str_processed.qsm", nthreads = availableCores())
 
 
 # Recalculate active date -------------------------------------------------
 
-daily_active <- 
-  daily %>% 
-  filter(status != "B") %>% 
-  group_by(property_ID) %>% 
-  filter(date == max(date)) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
+daily_active <-
+  daily %>%
+  filter(status != "B") %>%
+  group_by(property_ID) %>%
+  filter(date == max(date)) %>%
+  slice(1) %>%
+  ungroup() %>%
   select(property_ID, active_new = date)
 
-property <- 
-  property %>% 
-  left_join(daily_active) %>% 
-  mutate(active = active_new) %>% 
+property <-
+  property %>%
+  left_join(daily_active) %>%
+  mutate(active = active_new) %>%
   select(-active_new)
 
-daily <- 
-  daily %>% 
-  group_by(property_ID, date, status) %>% 
-  slice(1) %>% 
-  ungroup() %>% 
-  group_by(property_ID, date) %>% 
-  filter(n() == 1 | (n() == 2 & status != "B")) %>% 
+daily <-
+  daily %>%
+  group_by(property_ID, date, status) %>%
+  slice(1) %>%
+  ungroup() %>%
+  group_by(property_ID, date) %>%
+  filter(n() == 1 | (n() == 2 & status != "B")) %>%
   ungroup()
+
+rm(daily_active)
 
 
 # Calculate multilistings -------------------------------------------------
 
-host <- 
-  host %>% 
-  filter(host_ID %in% property$host_ID)
-
-host_new <- 
-  strr_host(daily)
-
-host <- 
-  host_new %>% 
-  left_join(host, by = c("host_ID", "date", "listing_type", "housing")) %>% 
-  rowwise() %>% 
-  mutate(count = max(count.x, count.y, na.rm = TRUE)) %>% 
-  ungroup() %>% 
-  select(-count.x, -count.y)
-
-daily <- 
-  daily %>% 
-  strr_multi(host) %>% 
+daily <-
+  daily %>%
+  strr_multi(host) %>%
   as_tibble()
-
-rm(host_new)
 
 
 # Calculate ghost hostels -------------------------------------------------
 
-GH <- 
-  property %>% 
+GH <-
+  property %>%
   strr_ghost(start_date = "2016-01-01", end_date = max(daily$date))
 
 
 # Add daily status to GH --------------------------------------------------
 
-daily_GH <- 
-  daily %>% 
+daily_GH <-
+  daily %>%
   filter(property_ID %in% unique(unlist(GH$property_IDs)))
 
 setDT(daily_GH)
@@ -101,12 +86,12 @@ upgo:::handler_upgo("Analyzing row")
 with_progress({
   
   pb <- progressor(nrow(GH))
-
+  
   status <- foreach(i = 1:nrow(GH), .combine = "c") %dopar% {
     pb()
     status_fun(GH$date[[i]], GH$property_IDs[[i]])
   }
-
+  
 })
 
 GH$status <- status
@@ -117,17 +102,17 @@ rm(daily_GH, pb, status_fun, status)
 
 # Add GH status to daily --------------------------------------------------
 
-GH_daily <- 
-  GH %>% 
-  st_drop_geometry() %>% 
-  select(date, property_IDs) %>% 
-  unnest(property_IDs) %>% 
-  mutate(GH = TRUE) %>% 
+GH_daily <-
+  GH %>%
+  st_drop_geometry() %>%
+  select(date, property_IDs) %>%
+  unnest(property_IDs) %>%
+  mutate(GH = TRUE) %>%
   select(property_ID = property_IDs, date, GH)
 
-daily <- 
-  daily %>% 
-  left_join(GH_daily, by = c("property_ID", "date")) %>% 
+daily <-
+  daily %>%
+  left_join(GH_daily, by = c("property_ID", "date")) %>%
   mutate(GH = if_else(is.na(GH), FALSE, GH))
 
 rm(GH_daily)
@@ -135,4 +120,5 @@ rm(GH_daily)
 
 # Save output -------------------------------------------------------------
 
-save(property, daily, GH, file = "output/str_processed.Rdata")
+qsavem(property, daily, GH, file = "output/str_processed.qsm",
+       nthreads = availableCores())
