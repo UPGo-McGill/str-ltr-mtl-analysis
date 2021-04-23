@@ -22,10 +22,10 @@
 source("R/01_startup.R")
 library(imager)
 
-load("output/str_processed.Rdata")
-load("output/geometry.Rdata")
-load("output/ltr_processed.Rdata")
-load("output/matches_raw.Rdata")
+qload("output/str_processed.qsm")
+qload("output/geometry.qsm")
+ltr <- qread("output/ltr_processed.qs")
+qload("output/matches_raw.qsm")
 
 
 # Prepare new objects -----------------------------------------------------
@@ -140,7 +140,7 @@ figure_5_2 <-
   group_by(kj) %>% 
   mutate(n = slide_dbl(n, mean, .before = 2)) %>% 
   ungroup() %>% 
-  filter(created >= "2020-03-01", created <= "2020-07-31") %>% 
+  filter(created >= "2020-03-01", created <= "202012-31") %>% 
   ggplot(aes(created, n, fill = kj)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
@@ -284,7 +284,7 @@ asking_rents <-
 
 figure_5_4 <-
   asking_rents %>% 
-  filter(created >= "2020-03-13", created <= "2020-07-31") %>% 
+  filter(created >= "2020-03-13", created <= "2020-12-31") %>% 
   ggplot(aes(created, avg_price, color = status)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = .2) +

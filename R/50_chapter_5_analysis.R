@@ -17,9 +17,9 @@
 
 source("R/01_startup.R")
 
-load("output/str_processed.Rdata")
-load("output/geometry.Rdata")
-load("output/ltr_processed.Rdata")
+qload("output/str_processed.qsm")
+qload("output/geometry.qsm")
+ltr <- qread("output/ltr_processed.qs")
 load("output/cmhc.Rdata")
 
 
@@ -140,7 +140,7 @@ ltr %>%
   arrange(created) %>% 
   distinct(property_ID, .keep_all = TRUE) %>% 
   count(created, kj, sort = TRUE) %>% 
-  slice(1)
+  slice(1:10)
 
 #' [2] Average daily listings transfer, May - July
 ltr %>% 
@@ -153,6 +153,17 @@ ltr %>%
   filter(created >= "2020-05-01", created <= "2020-07-31") %>% 
   summarize(avg = round(mean(n), 1))
   
+# AVERAGE DAILY LISTINGS TRANSFER AUGUST - DECEMBER
+ltr %>% 
+  st_drop_geometry() %>% 
+  unnest(property_ID) %>% 
+  filter(!is.na(property_ID)) %>% 
+  arrange(created) %>% 
+  distinct(property_ID, .keep_all = TRUE) %>% 
+  count(created, kj) %>% 
+  filter(created > "2020-07-31", created <= "2020-12-31") %>% 
+  summarize(avg = round(mean(n), 1))
+
 
 # Spatial distribution of matched listings --------------------------------
 
@@ -184,7 +195,7 @@ property %>%
   filter(!is.na(ltr_ID)) %>% 
   count(borough) %>% 
   mutate(pct = n / sum(n)) %>% 
-  slice(18) %>% 
+  slice(17) %>% 
   pull(n)} /
   {daily %>% 
       filter(housing, borough == "Ville-Marie", status != "B", 
@@ -198,7 +209,7 @@ property %>%
     filter(!is.na(ltr_ID)) %>% 
     count(borough) %>% 
     mutate(pct = n / sum(n)) %>% 
-    slice(18) %>% 
+    slice(17) %>% 
     pull(n)} /
   {daily %>% 
       filter(housing, borough == "Ville-Marie", status != "B", 
@@ -279,7 +290,7 @@ asking_rents %>%
 #' [2] April-July averages
 asking_rents %>% 
   filter(geography == "City of Montreal", created >= "2020-04-01",
-         created <= "2020-07-31") %>% 
+         created <= "2020-12-31") %>% 
   group_by(status) %>% 
   summarize(avg_price = mean(avg_price)) %>% 
   mutate(pct_higher = avg_price / min(avg_price) - 1)
@@ -303,15 +314,15 @@ asking_rents %>%
 #' it was $1,627 [2]—a $109 [2] or 6.7% [2] decline.
 
 asking_rents %>% 
-  filter(created >= "2020-03-13", created <= "2020-07-31", 
+  filter(created >= "2020-03-13", created <= "2020-12-31", 
          status == "All listings", geography == "City of Montreal") %>% 
   summarize(min = min(avg_price), max = max(avg_price))
 
 #' [2] Ville-Marie March/July rent differences
 asking_rents %>% 
   filter(geography == "Ville-Marie", created >= "2020-03-13",
-         created <= "2020-07-31", status == "All listings") %>% 
-  filter(created <= "2020-03-31" | created >= "2020-07-01") %>% 
+         created <= "2020-12-31", status == "All listings") %>% 
+  filter(created <= "2020-03-31" | created >= "2020-12-01") %>% 
   group_by(created <= "2020-03-31") %>% 
   summarize(avg_price = mean(avg_price)) %>% 
   mutate(dif = avg_price - min(avg_price),
@@ -361,7 +372,7 @@ ltr %>%
 #' [3] Bedrooms in 2019 STRs
 property %>% 
   st_drop_geometry() %>% 
-  filter(housing, active >= "2019-01-01", created <= "2019-12-31") %>% 
+  filter(housing, active >= "2020-01-01", created <= "2020-12-31") %>% 
   count(bedrooms) %>% 
   filter(!is.na(bedrooms)) %>% 
   rowwise() %>% 
@@ -390,7 +401,7 @@ bedroom_match_table <-
 bedroom_match_table <-
   property %>% 
   st_drop_geometry() %>% 
-  filter(housing, active >= "2019-01-01", created <= "2019-12-31") %>% 
+  filter(housing, active >= "2020-01-01", created <= "2020-12-31") %>% 
   count(bedrooms) %>% 
   filter(!is.na(bedrooms)) %>% 
   rowwise() %>% 
@@ -400,7 +411,7 @@ bedroom_match_table <-
   rename(bedrooms = group) %>% 
   mutate(pct = round(pct / sum(pct), 3)) %>% 
   mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
-  mutate(Category = "STR market (2019)", .before = bedrooms) %>% 
+  mutate(Category = "STR market (2020)", .before = bedrooms) %>% 
   bind_rows(bedroom_match_table, .)
 
 bedroom_match_table <-
@@ -661,7 +672,7 @@ property %>%
 revenue_2019 <- 
   daily %>%
   filter(housing,
-         date <= LTM_end_date, date >= LTM_start_date,
+         date <= "2019-12-31", date >= "2019-01-01",
          status == "R") %>%
   group_by(property_ID) %>%
   summarize(revenue_LTM = sum(price)) %>% 
@@ -751,8 +762,8 @@ property %>%
   filter(scraped >= "2020-01-01") %>% 
   summarize(total = n(),
             total_pct = total / nrow(filter(property, !is.na(ltr_ID))),
-            n_scraped = sum(scraped >= "2020-07-31"),
-            pct_scraped = mean(scraped >= "2020-07-31"),
+            n_scraped = sum(scraped >= "2020-12-31"),
+            pct_scraped = mean(scraped >= "2020-12-31"),
             not_scraped = total - n_scraped,
             pct_not_scraped = 1 - pct_scraped,
             n_gone = pct_not_scraped * nrow(filter(property, !is.na(ltr_ID))),
@@ -762,7 +773,7 @@ property %>%
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
-  filter(scraped >= "2020-01-01", scraped < "2020-07-31") %>% 
+  filter(scraped >= "2020-01-01", scraped < "2020-12-31") %>% 
   left_join(select(ltr_unique_property_ID, property_ID, furnished)) %>% 
   filter(!is.na(furnished)) %>% 
   summarize(furnished = round(mean(furnished), 3))
@@ -771,12 +782,12 @@ property %>%
 #'  beginning of 2020 and still present by the end of July, 393 [1] (42.9% [1]) 
 #'  were blocked for the entirety of the month of July.
 
-#' [1] Inactive in July
+#' [1] Inactive in JDecember
 property %>% 
   st_drop_geometry() %>% 
-  filter(!is.na(ltr_ID), scraped >= "2020-07-31") %>% 
+  filter(!is.na(ltr_ID), scraped >= "2020-12-31") %>% 
   summarize(total = n(),
-            n_inactive = total - sum(active >= "2020-07-01", na.rm = TRUE) +
+            n_inactive = total - sum(active >= "2020-12-01", na.rm = TRUE) +
               sum(is.na(active)),
             pct_inactive = n_inactive / total)
   
@@ -795,7 +806,7 @@ deactivated_pct <-
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   filter(scraped >= "2020-01-01") %>% 
-  summarize(pct_not_scraped = 1 - mean(scraped >= "2020-07-31")) %>% 
+  summarize(pct_not_scraped = 1 - mean(scraped >= "2020-12-31")) %>% 
   pull(pct_not_scraped)
 
 blocked_pct <-
@@ -803,9 +814,9 @@ blocked_pct <-
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   filter(scraped >= "2020-01-01") %>% 
-  summarize(pct_blocked = (sum(active < "2020-07-01" & scraped >= "2020-07-31", 
+  summarize(pct_blocked = (sum(active < "2020-12-01" & scraped >= "2020-12-31", 
                                na.rm = TRUE) + sum(is.na(active) & scraped >= 
-                                                     "2020-07-31")) / n()) %>% 
+                                                     "2020-12-31")) / n()) %>% 
   pull(pct_blocked)
 
 property %>% 
