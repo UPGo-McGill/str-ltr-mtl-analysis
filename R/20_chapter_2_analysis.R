@@ -16,29 +16,46 @@
 
 source("R/01_startup.R")
 
-load("output/str_processed.Rdata")
+qload("output/str_processed.qsm", nthreads = availableCores())
 load("output/national_comparison.Rdata")
-load("output/geometry.Rdata")
-load("output/condo_analysis.Rdata")
+qload("output/geometry.qsm", nthreads = availableCores())
+qload("output/condo_analysis.qsm", nthreads = availableCores())
 
 
 # Prepare new objects -----------------------------------------------------
 
-# 2019 active
-active_2019 <- 
+# # 2019 active
+# active_2019 <- 
+#   daily %>%
+#   filter(housing, status %in% c("R", "A"), date <= LTM_end_date, 
+#          date >= LTM_start_date) %>%
+#   pull(property_ID) %>% 
+#   unique()
+
+# 2020 active
+active_2020 <- 
   daily %>%
   filter(housing, status %in% c("R", "A"), date <= LTM_end_date, 
          date >= LTM_start_date) %>%
   pull(property_ID) %>% 
   unique()
   
-# 2019 revenue
-revenue_2019 <-
+# # 2019 revenue
+# revenue_2019 <-
+#   daily %>%
+#   filter(housing, status == "R", date <= LTM_end_date,
+#          date >= LTM_start_date) %>%
+#   group_by(property_ID) %>%
+#   summarize(revenue_LTM = sum(price)) %>%
+#   inner_join(property, .)
+
+# 2020 revenue
+revenue_2020 <-
   daily %>%
-  filter(housing, status == "R", date <= LTM_end_date, 
+  filter(housing, status == "R", date <= LTM_end_date,
          date >= LTM_start_date) %>%
   group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price)) %>% 
+  summarize(revenue_LTM = sum(price)) %>%
   inner_join(property, .)
 
 
@@ -82,10 +99,10 @@ daily %>%
   summarize(hosts = round(mean(n), digit = -1))
 
 #' [3] Total annual revenue
-prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
+prettyNum(round(sum(revenue_2020$revenue_LTM), digit = -5), ",")
 
 #' [4] Average revenue per active listing
-(sum(revenue_2019$revenue_LTM) /
+(sum(revenue_2020$revenue_LTM) /
     daily %>% 
     filter(housing, status != "B", date >= LTM_start_date, 
            date <= LTM_end_date) %>% 
@@ -95,7 +112,7 @@ prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
   prettyNum(",")
 
 #' [5] Average revenue per active host
-(sum(revenue_2019$revenue_LTM) /
+(sum(revenue_2020$revenue_LTM) /
     daily %>% 
     filter(housing, status != "B", date >= LTM_start_date, 
            date <= LTM_end_date) %>%
@@ -106,10 +123,10 @@ prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
   prettyNum(",")
 
 #' [6] Average revenue per all listings
-prettyNum(round(mean(revenue_2019$revenue_LTM), digit = -2), ",")
+prettyNum(round(mean(revenue_2020$revenue_LTM), digit = -2), ",")
 
 #' [7] Average revenue per all hosts
-revenue_2019 %>% 
+revenue_2020 %>% 
   st_drop_geometry() %>% 
   filter(!is.na(host_ID)) %>%
   group_by(host_ID) %>% 
@@ -135,7 +152,7 @@ daily %>%
 daily %>% 
   filter(housing, status != "B", date >= LTM_start_date - years(1), 
          date <= LTM_end_date) %>% 
-  group_by(year_2019 = date >= LTM_start_date) %>% 
+  group_by(year_2020 = date >= LTM_start_date) %>% 
   summarize(active_listings = n() / 365,
             revenue = sum(price[status == "R"])) %>% 
   summarize(across(c(active_listings, revenue), ~{(.x[2] - .x[1]) / .x[1]}))
@@ -184,12 +201,10 @@ daily %>%
 
 #' [4] YOY listing growth, 2019-2020
 daily %>% 
-  filter(housing, status != "B", date >= LTM_start_date,
-         date <= LTM_end_date + years(1),
-         (date <= "2019-07-31" | date >= LTM_start_date + years(1)),
-         date != "2020-02-29") %>%
-  group_by(year_2020 = date >= LTM_start_date + years(1)) %>% 
-  summarize(n = n() / 181) %>% 
+  filter(housing, status != "B", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2020 = date >= LTM_start_date) %>% 
+  summarize(n = n() / 365) %>% 
   summarize(change = (n[2] - n[1]) / n[1])
 
 #' [5] YOY reservation change, 2018-2019
@@ -217,13 +232,26 @@ daily %>%
 
 #' [8] YOY revenue change, 2019-2020
 daily %>% 
-  filter(housing, status == "R", date >= LTM_start_date,
-         date <= LTM_end_date + years(1),
-         (date <= "2019-07-31" | date >= LTM_start_date + years(1)),
-         date != "2020-02-29") %>%
-  group_by(year_2020 = date >= LTM_start_date + years(1)) %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2020 = date >= LTM_start_date) %>% 
   summarize(revenue = sum(price)) %>% 
   summarize(change = (revenue[2] - revenue[1]) / revenue[1])
+
+#' [9] YOY reservation change, 2019-2020
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2020 = date >= LTM_start_date) %>% 
+  summarize(n = n()) %>% 
+  summarize(change = (n[2] - n[1]) / n[1])
+
+#' [10] Reservation counts, 2019-2020
+daily %>% 
+  filter(housing, status == "R", date >= LTM_start_date - years(1),
+         date <= LTM_end_date) %>% 
+  group_by(year_2020 = date >= LTM_start_date) %>% 
+  summarize(n = n())
 
 
 # Montreal in comparison with other major Canadian cities -----------------
@@ -244,7 +272,7 @@ daily %>%
   summarize(active_listings = round(mean(n), digit = -1))
 
 #' [2] Annual host revenue
-prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
+prettyNum(round(sum(revenue_2020$revenue_LTM), digit = -5), ",")
 
 #' [3] Vancouver and Montreal listings per 1000 households
 national_comparison %>% 
@@ -286,11 +314,11 @@ boroughs_breakdown <-
   left_join(st_drop_geometry(boroughs)) %>% 
   group_by(borough, dwellings) %>% 
   summarize(active_listings = mean(n[date >= LTM_start_date]),
-            active_2018 = mean(n[date < LTM_start_date]),
-            active_growth = (active_listings - active_2018) / active_2018,
+            active_2019 = mean(n[date < LTM_start_date]),
+            active_growth = (active_listings - active_2019) / active_2019,
             annual_rev = sum(revenue[date >= LTM_start_date]),
-            rev_2018 = sum(revenue[date < LTM_start_date]),
-            rev_growth = (annual_rev - rev_2018) / rev_2018,
+            rev_2019 = sum(revenue[date < LTM_start_date]),
+            rev_growth = (annual_rev - rev_2019) / rev_2019,
             .groups = "drop") %>% 
   mutate(listings_pct = active_listings / sum(active_listings),
          listings_pct_dwellings = active_listings / dwellings,
@@ -376,10 +404,10 @@ listing_type_breakdown <-
   filter(housing, status != "B", date >= LTM_start_date - years(1), 
          date <= LTM_end_date - years(1)) %>% 
   group_by(listing_type) %>% 
-  summarize(active_2018 = n() / 365) %>% 
+  summarize(active_2019 = n() / 365) %>% 
   left_join(listing_type_breakdown, .) %>% 
-  mutate(pct_listing_growth = (active_listings - active_2018) / active_2018) %>% 
-  select(-active_2018)
+  mutate(pct_listing_growth = (active_listings - active_2019) / active_2019) %>% 
+  select(-active_2019)
 
 #' The vast majority of STRs in Montreal are entire homes, a category which 
 #' includes single-family homes, townhouses, apartments and condominiums. 
@@ -393,7 +421,7 @@ listing_type_breakdown <-
 #' [1] Bedroom counts
 property %>% 
   st_drop_geometry() %>% 
-  filter(property_ID %in% active_2019, listing_type == "Entire home/apt") %>% 
+  filter(property_ID %in% active_2020, listing_type == "Entire home/apt") %>% 
   mutate(bedrooms = if_else(bedrooms >= 3, "3+", as.character(bedrooms))) %>% 
   count(bedrooms) %>% 
   mutate(percentage = n / sum(n))
@@ -460,7 +488,7 @@ borough_tenure <-
   select(p_condo, p_renter, geometry) %>% 
   st_interpolate_aw(boroughs, extensive = TRUE) %>% 
   st_drop_geometry() %>% 
-  select(-Group.1) %>% 
+  #select(-Group.1) %>% 
   rename(n_condo = p_condo, n_renter = p_renter) %>% 
   cbind(boroughs, .) %>% 
   as_tibble() %>% 
@@ -493,7 +521,7 @@ tenure_breakdown <-
 
 #' [1] Active listing property types
 property %>% 
-  filter(property_ID %in% active_2019) %>% 
+  filter(property_ID %in% active_2020) %>% 
   st_drop_geometry() %>% 
   count(property_type, sort = TRUE) %>% 
   mutate(pct = n / sum(n))
@@ -508,20 +536,20 @@ length(high_condos)
 
 #' [3] Listings in high-condo DAs
 property %>% 
-  filter(property_ID %in% active_2019, GeoUID %in% high_condos) %>% 
+  filter(property_ID %in% active_2020, GeoUID %in% high_condos) %>% 
   st_drop_geometry() %>% 
   nrow()
 
 #' [4] Property types in high-condo DAs
 property %>% 
-  filter(property_ID %in% active_2019, GeoUID %in% high_condos) %>% 
+  filter(property_ID %in% active_2020, GeoUID %in% high_condos) %>% 
   st_drop_geometry() %>% 
   count(property_type, sort = TRUE) %>% 
   mutate(pct = n / sum(n))
 
 #' [5] Correlation between condo % and condo property_type
 property %>% 
-  filter(property_ID %in% active_2019) %>% 
+  filter(property_ID %in% active_2020) %>% 
   st_drop_geometry() %>% 
   count(GeoUID, property_type) %>% 
   group_by(GeoUID) %>% 
@@ -535,6 +563,7 @@ tenure_breakdown %>%
   st_drop_geometry() %>% 
   mutate(listings_2017 = n_condo_2017 / condo_pct_2017,
          listings_2019 = n_condo_2019 / condo_pct_2019) %>% 
+  filter(!is.na(listings_2019)) %>% 
   summarize(
     borough = "City of Montreal",
     n_condo_2017 = sum(n_condo_2017),
@@ -547,12 +576,12 @@ tenure_breakdown %>%
     renter_pct_2019 = n_renter_2019 / sum(listings_2019)) %>% 
   bind_rows(st_drop_geometry(tenure_breakdown)) %>% 
   mutate(`Number of STRs in condos` = round(n_condo_2019, digits = 1),
-         `% of STRs in condos (2019)` = condo_pct_2019,
-         `% change in % of STRs in condos (2017 to 2019)` =
+         `% of STRs in condos (2020)` = condo_pct_2019,
+         `% change in % of STRs in condos (2017 to 2020)` =
            (condo_pct_2019 - condo_pct_2017) / condo_pct_2017,
          `Number of STRs in rental units` = round(n_renter_2019, digits = 1),
-         `% of STRs in rental units (2019)` = renter_pct_2019,
-         `% change in % of STRs in rental units (2017 to 2019)` =
+         `% of STRs in rental units (2020)` = renter_pct_2019,
+         `% change in % of STRs in rental units (2017 to 2020)` =
            (renter_pct_2019 - renter_pct_2017) / renter_pct_2017) %>% 
   select(-c(n_condo_2017:renter_pct_2019)) %>% 
   rename(Borough = borough) %>% 
@@ -602,7 +631,7 @@ host_rev %>%
   nrow()
 
 #' [4] Total annual revenue
-prettyNum(round(sum(revenue_2019$revenue_LTM), digit = -5), ",")
+prettyNum(round(sum(revenue_2020$revenue_LTM), digit = -5), ",")
 
 #' [5] Top 10% revenue
 host_rev %>% summarize(top_10 = sum(rev[rev > quantile(rev, .9)]) / sum(rev))
@@ -677,6 +706,13 @@ daily %>%
 #' [3] June 2020 ML revenue
 daily %>% 
   filter(housing, status == "R", date >= "2020-06-01", date <= "2020-06-30") %>% 
+  group_by(multi) %>% 
+  tally(price) %>% 
+  summarize(multi_rev = n[2] / sum(n))
+
+#' [4] Dec 2020 ML revenue
+daily %>% 
+  filter(housing, status == "R", date >= "2020-12-01", date <= "2020-12-31") %>% 
   group_by(multi) %>% 
   tally(price) %>% 
   summarize(multi_rev = n[2] / sum(n))
