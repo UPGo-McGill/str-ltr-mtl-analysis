@@ -105,6 +105,6 @@ DA_probabilities_2019 <- calculate_DA_prob(active_properties_2019)
 
 # Save output -------------------------------------------------------------
 
-save(listing_probabilities_2017, DA_probabilities_2017, 
+qsavem(listing_probabilities_2017, DA_probabilities_2017, 
      listing_probabilities_2019, DA_probabilities_2019, 
-     file = "output/condo_analysis.Rdata")
+     file = "output/condo_analysis.qsm", nthreads = availableCores())

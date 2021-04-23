@@ -26,6 +26,7 @@ qload("output/str_raw.qsm", nthreads = availableCores())
 qload("output/matches_raw.qsm", nthreads = availableCores())
 ltr <- qread("output/ltr_raw.qs", nthreads = availableCores())
 dl_location <- "/Volumes/Data 2/Scrape photos/montreal"
+rm(exchange_rates)
 
 
 # Clean up matches --------------------------------------------------------
@@ -79,7 +80,8 @@ matches <-
   relocate(ltr_ID, .after = property_ID) %>% 
   mutate(dist = map2_dbl(geometry, ltr_geom, st_distance), 
          .after = ltr_ID) %>% 
-  filter(dist < 500) %>% 
+  filter((str_detect(ltr_ID, "cl") & dist < 1000) | 
+           (str_detect(ltr_ID, "kj") & dist < 500)) %>% 
   st_drop_geometry() %>% 
   select(property_ID, ltr_ID)
 

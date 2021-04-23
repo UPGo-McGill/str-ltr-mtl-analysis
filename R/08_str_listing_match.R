@@ -31,13 +31,39 @@ ab_matches <-
   filter(match == "match") %>%
   mutate(
     x_name = str_replace_all(vctrs::field(x_sig, "file"),
-                             paste0(dl_location, "/ab/|-[:digit:]+.jpg"), ""),
+                             paste0(dl_location, "/ab/|.jpg"), ""),
     y_name = str_replace_all(vctrs::field(y_sig, "file"),
-                             paste0(dl_location, "/ab/|-[:digit:]+.jpg"), "")
+                             paste0(dl_location, "/ab/|.jpg"), "")
   ) %>%
-  select(x_name, y_name)
+  select(x_name, y_name) %>% 
+  filter(x_name %in% property$property_ID, y_name %in% property$property_ID)
 
 rm(dl_location, matches)
+
+
+# Filter matches to < 500 m distance --------------------------------------
+
+matches_join <- 
+  property %>% 
+  select(x_name = property_ID, geometry) %>% 
+  inner_join(ab_matches, by = "x_name")
+
+y_to_join <- 
+  property %>% 
+  as_tibble() %>% 
+  select(y_name = property_ID, y_geom = geometry)
+
+ab_matches <- 
+  matches_join %>% 
+  inner_join(y_to_join, by = "y_name") %>% 
+  relocate(y_name, .after = x_name) %>% 
+  mutate(dist = map2_dbl(geometry, y_geom, st_distance), 
+         .after = y_name) %>% 
+  filter(dist < 500) %>% 
+  st_drop_geometry() %>% 
+  select(x_name, y_name)
+
+rm(matches_join, y_to_join)
 
 
 # Identify groupings ------------------------------------------------------
@@ -205,7 +231,7 @@ property_map <-
 ltr <-
   ltr %>%
   mutate(property_ID =
-           future_map(property_ID, ~{
+           furrr::future_map(property_ID, ~{
              tibble(all_PIDs = .x) %>%
                left_join(property_map, by = "all_PIDs") %>%
                mutate(property_ID = if_else(is.na(property_ID), all_PIDs,

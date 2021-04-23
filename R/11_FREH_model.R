@@ -139,7 +139,7 @@ daily <-
 # probabilities_12 <- model_12_test %>% predict(test_data_12, type = "response")
 # predicted_classes_12 <- ifelse(probabilities_12 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_12 == test_data_12$FREH)
-# # Outcome: 0.87
+# # Outcome: 0.861
 
 
 # Model based on last 3 months --------------------------------------------
@@ -204,7 +204,7 @@ daily <- daily %>% select(-year, -month)
 # probabilities_3 <- model_3_test %>% predict(test_data_3, type = "response")
 # predicted_classes_3 <- ifelse(probabilities_3 > 0.5, "TRUE", "FALSE")
 # mean(predicted_classes_3 == test_data_3$FREH)
-# # Outcome: 0.860
+# # Outcome: 0.834
 
 
 # Save output -------------------------------------------------------------
