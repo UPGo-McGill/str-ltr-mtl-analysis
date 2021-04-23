@@ -176,16 +176,13 @@ rm(dl_location, ab_urls, ab_ids, cl_urls, cl_ids, kj_urls, kj_ids)
 # Get signatures ----------------------------------------------------------
 
 ab_sigs <- create_signature(ab_paths)
-
 qsavem(ab_sigs, file = "output/img_sigs.qsm", nthreads = availableCores())
 
 cl_sigs <- create_signature(cl_paths)
-
 qsavem(ab_sigs, cl_sigs, file = "output/img_sigs.qsm",
        nthreads = availableCores())
 
 kj_sigs <- create_signature(kj_paths)
-
 qsavem(ab_sigs, cl_sigs, kj_sigs, file = "output/img_sigs.qsm",
        nthreads = availableCores())
 
@@ -194,55 +191,26 @@ rm(ab_paths, cl_paths, kj_paths)
 
 # Match images ------------------------------------------------------------
 
-ab_matches <- identify_matches(ab_sigs)
+ab_matrix <- match_signatures(ab_sigs)
+ab_matches <- identify_matches(ab_matrix)
+rm(ab_matrix)
 ab_changes <- compare_images(ab_matches)
 ab_matches <- integrate_changes(ab_matches, ab_changes)
 qsavem(ab_matches, file = "output/matches_raw.qsm", nthreads = availableCores())
 
 cl_matrix <- match_signatures(ab_sigs, cl_sigs)
 cl_matches <- identify_matches(cl_matrix)
-cl_matches_new <- cl_matches
-
-cl_matches <-
-  cl_matches %>%
-  relocate(correlation, .after = y_sig)
-
-cl_matches <-
-  cl_matches_new %>%
-  anti_join(cl_matches, by = c("x_sig", "y_sig")) %>%
-  mutate(confirmed = FALSE) %>%
-  bind_rows(cl_matches)
-
+rm(cl_matrix)
 cl_changes <- compare_images(cl_matches)
 cl_matches <- integrate_changes(cl_matches, cl_changes)
 qsavem(ab_matches, cl_matches, file = "output/matches_raw.qsm",
        nthreads = availableCores())
-rm(cl_matrix)
 
 kj_matrix <- match_signatures(ab_sigs, kj_sigs)
 kj_matches <- identify_matches(kj_matrix)
-kj_matches_new <- kj_matches
-
-kj_matches <-
-  kj_matches %>%
-  relocate(correlation, .after = y_sig)
-
-kj_matches <-
-  kj_matches_new %>%
-  anti_join(kj_matches, by = c("x_sig", "y_sig")) %>%
-  mutate(confirmed = FALSE) %>%
-  bind_rows(kj_matches)
-
-kj_changes <- compare_images(kj_matches)
-kj_matches <- integrate_changes(kj_matches, kj_changes) %>%
-  relocate(correlation, .after = y_sig)
-
-qsavem(ab_matches, cl_matches, kj_matches, file = "output/matches_raw.qsm",
-       nthreads = availableCores())
 rm(kj_matrix)
-
-qload("output/matches_raw_old.qsm", nthreads = 32)
-
+kj_changes <- compare_images(kj_matches)
+kj_matches <- integrate_changes(kj_matches, kj_changes)
 
 
 # Save output -------------------------------------------------------------

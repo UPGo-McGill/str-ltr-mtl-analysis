@@ -27,7 +27,8 @@ property <-
   property_remote %>% 
   filter(country == "Canada", city == "Montreal") %>% 
   collect() %>% 
-  filter(!is.na(created))
+  filter(!is.na(created)) %>% 
+  filter(created <= "2020-12-31")
 
 daily <- 
   daily_remote %>% 

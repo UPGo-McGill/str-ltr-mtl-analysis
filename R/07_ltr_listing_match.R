@@ -35,7 +35,7 @@ cl_matches <-
   filter(match == "match") %>%
   mutate(
     x_name = str_replace_all(vctrs::field(x_sig, "file"),
-                             paste0(dl_location, "/ab/|-[:digit:]+.jpg"), ""),
+                             paste0(dl_location, "/ab/|.jpg"), ""),
     y_name = str_replace_all(vctrs::field(y_sig, "file"),
                              paste0(dl_location, "/cl/|-[:digit:]+.jpg"), ""))
 
@@ -44,7 +44,7 @@ kj_matches <-
   filter(match == "match") %>%
   mutate(
     x_name = str_replace_all(vctrs::field(x_sig, "file"),
-                             paste0(dl_location, "/ab/|-[:digit:]+.jpg"), ""),
+                             paste0(dl_location, "/ab/|.jpg"), ""),
     y_name = str_replace_all(vctrs::field(y_sig, "file"),
                              paste0(dl_location, "/kj/|-[:digit:]+.jpg"), ""))
 
@@ -58,6 +58,32 @@ matches <-
   filter(property_ID %in% property$property_ID)
 
 rm(cl_matches, kj_matches)
+
+
+# Filter matches to < 500 m distance --------------------------------------
+
+matches_join <- 
+  property %>% 
+  select(property_ID, geometry) %>% 
+  inner_join(matches, by = "property_ID")
+  
+ltr_to_join <- 
+  ltr %>% 
+  as_tibble() %>% 
+  select(id, ltr_geom = geometry) %>% 
+  distinct(id, .keep_all = TRUE)
+
+matches <- 
+  matches_join %>% 
+  inner_join(ltr_to_join, by = c("ltr_ID" = "id")) %>% 
+  relocate(ltr_ID, .after = property_ID) %>% 
+  mutate(dist = map2_dbl(geometry, ltr_geom, st_distance), 
+         .after = ltr_ID) %>% 
+  filter(dist < 500) %>% 
+  st_drop_geometry() %>% 
+  select(property_ID, ltr_ID)
+
+rm(matches_join, ltr_to_join)
 
 
 # Connect STR and LTR listings --------------------------------------------
