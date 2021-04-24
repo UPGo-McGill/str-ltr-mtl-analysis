@@ -18,7 +18,7 @@ source("R/01_startup.R")
 library(feasts)
 library(fabletools)
 
-load("output/str_processed.Rdata")
+qload("output/str_processed.qsm")
 
 
 # Figure 4.1 - Active and reserved listings since 2018 --------------------
@@ -301,10 +301,10 @@ deactivated_2020 <-
     variable = "deactivated",
     value = c({
       FREH_2020 %>% 
-        summarize(total = sum(scraped <= "2020-07-31")) %>% 
+        summarize(total = sum(scraped <= "2020-12-31")) %>% 
         pull(total)}, {
           non_FREH_2020 %>% 
-            summarize(total = sum(scraped <= "2020-07-31")) %>% 
+            summarize(total = sum(scraped <= "2020-12-31")) %>% 
             pull(total)})
   )
 
@@ -315,16 +315,16 @@ deactivated_2019 <-
     variable = "deactivated",
     value = c({
       FREH_2019 %>% 
-        summarize(total = sum(scraped <= "2019-07-31")) %>% 
+        summarize(total = sum(scraped <= "2019-12-31")) %>% 
         pull(total)}, {
           non_FREH_2019 %>% 
-            summarize(total = sum(scraped <= "2019-07-31")) %>% 
+            summarize(total = sum(scraped <= "2019-12-31")) %>% 
             pull(total)})
   )
 
 blocked_PIDs_2020 <- 
   daily %>% 
-  filter(housing, date >= "2020-07-01", date <= "2020-07-31") %>% 
+  filter(housing, date >= "2020-12-01", date <= "2020-12-31") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") == 1) %>% 
   pull(property_ID) %>% 
@@ -332,7 +332,7 @@ blocked_PIDs_2020 <-
 
 blocked_PIDs_2019 <- 
   daily %>% 
-  filter(housing, date >= "2019-07-01", date <= "2019-07-31") %>% 
+  filter(housing, date >= "2019-12-01", date <= "2019-12-31") %>% 
   group_by(property_ID) %>% 
   filter(mean(status == "B") == 1) %>% 
   pull(property_ID) %>% 
@@ -450,7 +450,7 @@ fig_labels <-
     variable == "total listings" ~ paste0(label, " ", variable, "\nin Jan/Feb"),
     variable == "active" ~ paste0(label, " (", 
                                   round(label/sum(label) * 100, 1), "%) ", 
-                                  variable, "\nin July"),
+                                  variable, "\nin December"),
     TRUE ~ paste0(label, " (", round(label/sum(label) * 100, 1), "%) ",
                   variable))) %>% 
   ungroup()
@@ -517,7 +517,7 @@ figure_4_5_left <-
   mutate(n = slide_dbl(n, mean, .before = 13)) %>% 
   ungroup() %>% 
   ggplot(aes(date, n, colour = FREH_feb)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-12-25"), 
            ymin = 0, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
@@ -528,16 +528,17 @@ figure_4_5_left <-
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
-                                    size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        # text = element_text(face = "plain", family = "Futura"), 
+        # legend.title = element_text(face = "bold", family = "Futura", 
+                                    # size = 10),
+        # legend.text = element_text( size = 10, family = "Futura")
+)
 
 figure_4_5_right <- 
   monthly_reservation_trajectories %>% 
   mutate(date = as.Date(yearmon)) %>% 
   ggplot(aes(date, n, colour = FREH_feb)) +
-  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"), 
+  annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-12-25"), 
            ymin = 0, ymax = Inf, alpha = 0.2) +
   geom_line(lwd = 1) +
   scale_x_date(name = NULL) +
@@ -548,10 +549,11 @@ figure_4_5_right <-
   theme_minimal() +
   theme(legend.position = "bottom", 
         panel.grid.minor.x = element_blank(),
-        text = element_text(face = "plain", family = "Futura"), 
-        legend.title = element_text(face = "bold", family = "Futura", 
-                                    size = 10),
-        legend.text = element_text( size = 10, family = "Futura"))
+        # text = element_text(face = "plain", family = "Futura"), 
+        # legend.title = element_text(face = "bold", family = "Futura", 
+                                    # size = 10),
+        # legend.text = element_text( size = 10, family = "Futura")
+)
 
 figure_4_5 <- figure_4_5_left + figure_4_5_right + 
   plot_layout(guides = 'collect') & theme(legend.position = "bottom")
