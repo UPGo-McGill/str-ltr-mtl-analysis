@@ -55,7 +55,8 @@ figure_2_1 <-
            y = 12000, yend = 10500, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2019-05-01"), y = 11700,
-           label = "STRs banned \nby Province", family = "Futura Condensed") +
+           label = "STRs banned \nby Province" #, family = "Futura Condensed"
+           ) +
   geom_line() +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_x_date(name = NULL, limits = c(as.Date("2016-01-01"), NA)) +
@@ -67,7 +68,8 @@ figure_2_1 <-
                     guide = "none") +
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
-        text = element_text(family = "Futura"))
+        #text = element_text(family = "Futura")
+        )
 
 ggsave("output/figures/figure_2_1.pdf", plot = figure_2_1, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -104,7 +106,8 @@ figure_2_2 <-
   scale_color_manual(name = NULL, values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
-        text = element_text(family = "Futura"))
+        #text = element_text(family = "Futura")
+        )
 
 ggsave("output/figures/figure_2_2.pdf", plot = figure_2_2, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -150,11 +153,14 @@ make_listing_map <- function(df) {
                                   title.vjust = 1)) + 
     gg_bbox(df) +
     theme_void() +
-    theme(text = element_text(family = "Futura", face = "plain"),
-          legend.title = element_text(family = "Futura", face = "bold",
+    theme(text = element_text(#family = "Futura", 
+      face = "plain"),
+          legend.title = element_text(#family = "Futura", 
+            face = "bold",
                                       size = 7),
           legend.title.align = 0.9,
-          legend.text = element_text(family = "Futura", size = 5),
+          legend.text = element_text(#family = "Futura", 
+            size = 5),
           panel.border = element_rect(colour = "white", size = 2))
 }
 
@@ -218,11 +224,13 @@ make_condo_map <- function(df) {
                                   title.vjust = 1)) + 
     gg_bbox(df) +
     theme_void() +
-    theme(text = element_text(family = "Futura", face = "plain"),
-          legend.title = element_text(family = "Futura", face = "bold",
+    theme(text = element_text(#family = "Futura", 
+      face = "plain"),
+          legend.title = element_text(#family = "Futura", 
+            face = "bold",
                                       size = 7),
           legend.title.align = 0.9,
-          legend.text = element_text(family = "Futura", size = 5),
+          #legend.text = element_text(family = "Futura", size = 5),
           panel.border = element_rect(colour = "white", size = 2))
 }
 
@@ -294,8 +302,9 @@ figure_2_5 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        text = element_text(family = "Futura"),
-        legend.title = element_text(family = "Futura", face = "bold"))
+        #text = element_text(family = "Futura"),
+        legend.title = element_text(#family = "Futura", 
+          face = "bold"))
 
 ggsave("output/figures/figure_2_5.pdf", plot = figure_2_5, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -416,9 +425,12 @@ figure_2_7 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold"),
-        legend.text = element_text(family = "Futura"))
+        text = element_text(#family = "Futura", 
+          face = "plain"),
+        legend.title = element_text(#family = "Futura", 
+          face = "bold"),
+        #legend.text = element_text(family = "Futura")
+        )
 
 ggsave("output/figures/figure_2_7.pdf", plot = figure_2_7, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
@@ -451,9 +463,12 @@ figure_2_8 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold"),
-        legend.text = element_text(family = "Futura"))
+        text = element_text(#family = "Futura", 
+          face = "plain"),
+        legend.title = element_text(#family = "Futura", 
+          face = "bold"),
+        #legend.text = element_text(family = "Futura")
+        )
 
 ggsave("output/figures/figure_2_8.pdf", plot = figure_2_8, width = 8, 
        height = 5, units = "in", useDingbats = FALSE)
