@@ -22,9 +22,9 @@
 
 source("R/01_startup.R")
 
-load("output/str_processed.Rdata")
-load("output/geometry.Rdata")
-load("output/condo_analysis.Rdata")
+qload("output/str_processed.qsm", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
+qload("output/condo_analysis.qsm", nthreads = availableCores())
 
 
 # Figure 2.1 Active daily listings ----------------------------------------

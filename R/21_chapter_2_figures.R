@@ -153,14 +153,11 @@ make_listing_map <- function(df) {
                                   title.vjust = 1)) + 
     gg_bbox(df) +
     theme_void() +
-    theme(text = element_text(#family = "Futura", 
-      face = "plain"),
-          legend.title = element_text(#family = "Futura", 
-            face = "bold",
+    theme(text = element_text(family = "Futura", face = "plain"),
+          legend.title = element_text(family = "Futura", face = "bold",
                                       size = 7),
           legend.title.align = 0.9,
-          legend.text = element_text(#family = "Futura", 
-            size = 5),
+          legend.text = element_text(family = "Futura", size = 5),
           panel.border = element_rect(colour = "white", size = 2))
 }
 
@@ -425,11 +422,9 @@ figure_2_7 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        text = element_text(#family = "Futura", 
-          face = "plain"),
-        legend.title = element_text(#family = "Futura", 
-          face = "bold"),
-        #legend.text = element_text(family = "Futura")
+        text = element_text(family = "Futura", face = "plain"),
+        legend.title = element_text(family = "Futura", face = "bold"),
+        legend.text = element_text(family = "Futura")
         )
 
 ggsave("output/figures/figure_2_7.pdf", plot = figure_2_7, width = 8, 
@@ -463,11 +458,11 @@ figure_2_8 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        text = element_text(#family = "Futura", 
+        text = element_text(family = "Futura", 
           face = "plain"),
-        legend.title = element_text(#family = "Futura", 
+        legend.title = element_text(family = "Futura", 
           face = "bold"),
-        #legend.text = element_text(family = "Futura")
+        legend.text = element_text(family = "Futura")
         )
 
 ggsave("output/figures/figure_2_8.pdf", plot = figure_2_8, width = 8, 
