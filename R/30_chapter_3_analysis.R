@@ -35,10 +35,10 @@ FREH <-
 
 FREH_borough <- 
   daily %>% 
-  filter(date %in% as.Date(c("2018-12-01", "2019-12-01"))) %>% 
+  filter(date %in% as.Date(c("2019-12-01", "2020-12-01"))) %>% 
   group_by(borough, date) %>% 
   summarize(FREH = sum(FREH_3)) %>% 
-  mutate(date = if_else(date >= LTM_start_date, 2019, 2018))
+  mutate(date = if_else(date >= LTM_start_date, 2020, 2019))
 
 GH_borough <- 
   GH %>% 
@@ -49,7 +49,7 @@ GH_borough <-
   group_by(borough, date) %>% 
   summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
   as_tibble() %>% 
-  mutate(date = if_else(date >= LTM_start_date, 2019, 2018))
+  mutate(date = if_else(date >= LTM_start_date, 2020, 2019))
 
 
 # STR-induced housing loss ------------------------------------------------
@@ -63,33 +63,39 @@ GH_borough <-
 #' 16.6% [4] in that same time period, from 4,730 [5] to 5,520.
 
 #' [1] FREH in 2019-1
-FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3) %>% round(digit = -1)
+FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3) %>% round(digit = -1)
 
 #' [2] GH in 2019-12
 GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>% 
   round(digit = -1)
 
 #' [3] Total housing loss for 2019
-{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
+{{FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3)} +
     {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} %>% 
   round(digit = -1)
 
 #' [4] YOY increase in housing loss
-{{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
+{{{FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3)} +
     {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} /
-  {{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
+  {{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
       {GH %>% filter(date == LTM_end_date - years(1)) %>% 
           pull(housing_units) %>% sum()}}} %>% 
   {. - 1} %>% 
   round(3)
 
-#' [5] Total housing loss for 2018
-{{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
+#' [5] Total housing loss for 2020
+{{FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3)} +
+    {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% 
+        sum()}} %>% 
+  round(digit = -1)
+
+#' [6] Total housing loss for 2019
+{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
   {GH %>% filter(date == LTM_end_date - years(1)) %>% pull(housing_units) %>% 
       sum()}} %>% 
   round(digit = -1)
 
-#' At the end of 2019 more than six in ten (62.0% [1]) entire-home listings 
+#' At the end of 2020 more than six in ten (62.0% [1]) entire-home listings 
 #' and one in four (25.4% [1]) private-room listings were taking housing off 
 #' the market in Montreal (Figure 3.2). Three years earlier, the proportions 
 #' were only 34.2% [1] and 12.3% [1] respectively.
@@ -102,7 +108,7 @@ daily %>%
   summarize(eh = mean(FREH_3[listing_type == "Entire home/apt"] > 0.5),
             pr = mean(GH[listing_type == "Private room"])) %>% 
   mutate(across(c(eh, pr), slide_dbl, mean, .before = 30)) %>% 
-  filter(date %in% as.Date(c("2016-12-31", "2019-12-31")))
+  filter(date %in% as.Date(c("2016-12-31", "2019-12-31", "2020-12-31")))
 
 #' The 5,520 housing units taken off of Montreal’s housing market in 2019 is 
 #' only 0.7% [1] of the total amount of housing in the city, but this housing 
@@ -115,31 +121,37 @@ daily %>%
 #' than there are vacant apartments for rent.
 
 #' [1] Total housing loss as % of dwellings
-{{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
+{{{FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3)} +
     {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} /
   sum(boroughs$dwellings)} %>% 
+  round(3)
+
+#' [1] Total housing loss as % of dwellings
+{{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
+    {GH %>% filter(date == (LTM_end_date - years(1))) %>% pull(housing_units) %>% sum()}} /
+    sum(boroughs$dwellings)} %>% 
   round(3)
 
 #' [2] Housing loss in VM and LPMR
 boroughs %>% 
   left_join(FREH_borough) %>% 
   left_join(GH_borough) %>% 
-  filter(date == "2019") %>% 
+  filter(date == "2020") %>% 
   mutate(GH = if_else(is.na(GH), 0L, GH),
          housing_loss_per_dwelling = (FREH + GH) / dwellings,
          housing_loss_per_dwelling = round(housing_loss_per_dwelling, 3)) %>% 
   st_drop_geometry() %>% 
   filter(borough %in% c("Ville-Marie", "Le Plateau-Mont-Royal"))
 
-#' [3] Vacancy rates in VM and LPMR
-annual_vacancy %>% 
-  filter(dwelling_type == "Total",
-         bedroom == "Total",
-         zone %in% c(1, 6),
-         !is.na(vacancy)) %>% 
-  group_by(zone) %>% 
-  filter(date == max(date)) %>% 
-  ungroup()
+#' #' [3] Vacancy rates in VM and LPMR
+#' annual_vacancy %>% 
+#'   filter(dwelling_type == "Total",
+#'          bedroom == "Total",
+#'          zone %in% c(1, 6),
+#'          !is.na(vacancy)) %>% 
+#'   group_by(zone) %>% 
+#'   filter(date == max(date)) %>% 
+#'   ungroup()
 
 #' Table 3.1
 borough_housing_table <- 
@@ -151,31 +163,31 @@ borough_housing_table <-
   group_by(borough) %>% 
   summarize(
     dwellings = mean(dwellings),
-    housing_loss_2018 = sum(FREH[date == 2018]) + sum(GH[date == 2018]),
     housing_loss_2019 = sum(FREH[date == 2019]) + sum(GH[date == 2019]),
-    yoy_change = (housing_loss_2019 - housing_loss_2018) / housing_loss_2018,
-    housing_loss_pct_2019 = housing_loss_2019 / dwellings)
+    housing_loss_2020 = sum(FREH[date == 2020]) + sum(GH[date == 2020]),
+    yoy_change = (housing_loss_2020 - housing_loss_2019) / housing_loss_2019,
+    housing_loss_pct_2020 = housing_loss_2020 / dwellings)
   
 borough_housing_table %>% 
   summarize(
     dwellings = sum(dwellings),
-    housing_loss_2018 = sum(housing_loss_2018),
     housing_loss_2019 = sum(housing_loss_2019),
-    yoy_change = (housing_loss_2019 - housing_loss_2018) / housing_loss_2018,
-    housing_loss_pct_2019 = housing_loss_2019 / dwellings) %>% 
+    housing_loss_2020 = sum(housing_loss_2020),
+    yoy_change = (housing_loss_2020 - housing_loss_2019) / housing_loss_2019,
+    housing_loss_pct_2020 = housing_loss_2020 / dwellings) %>% 
   mutate(borough = "City of Montreal") %>% 
   bind_rows(borough_housing_table) %>% 
   relocate(borough) %>% 
   select(-dwellings) %>% 
-  filter(housing_loss_2019 > 50) %>% 
-  mutate(across(c(housing_loss_2018, housing_loss_2019), round, -1)) %>% 
-  mutate(across(c(yoy_change, housing_loss_pct_2019), round, 4)) %>% 
-  arrange(desc(housing_loss_2019)) %>%
+  filter(housing_loss_2020 > 50) %>% 
+  mutate(across(c(housing_loss_2019, housing_loss_2020), round, -1)) %>% 
+  mutate(across(c(yoy_change, housing_loss_pct_2020), round, 4)) %>% 
+  arrange(desc(housing_loss_2020)) %>%
   rename(Borough = borough,
+         `Housing loss (2020)` = housing_loss_2020,
          `Housing loss (2019)` = housing_loss_2019,
-         `Housing loss (2018)` = housing_loss_2018,
          `Year-over-year growth (%)` = yoy_change,
-         `% of housing lost (2019)` = housing_loss_pct_2019) %>% 
+         `% of housing lost (2020)` = housing_loss_pct_2020) %>% 
   gt() %>% 
   tab_header(title = "STR-induced housing loss by borough") %>%
   opt_row_striping() %>% 
@@ -199,59 +211,59 @@ borough_housing_table %>%
 #' bedrooms was 0.5% [5] for Ville-Marie (the Downtown Montreal/Îles-des-Soeurs 
 #' zone), and 0.3% [6] in Le Plateau-Mont-Royal. 
 
-#' [1] 2019 city vacancy
-city_vacancy %>% 
-  filter(date == 2019, bedroom == "Total")
+#' #' [1] 2019 city vacancy
+#' city_vacancy %>% 
+#'   filter(date == 2019, bedroom == "Total")
+#' 
+#' #' [2] Le Sud-Ouest 2019 vacancy
+#' annual_vacancy %>% 
+#'   filter(zone == 2, date == 2019, dwelling_type == "Total", bedroom == "Total")
+#' 
+#' #' [3] Total rental units in Le Sud-Ouest
+#' annual_units %>% 
+#'   filter(zone == 2, date == 2019, dwelling_type == "Total", 
+#'          bedroom == "Total") %>% 
+#'   pull(units) %>% 
+#'   round(-2)
 
-#' [2] Le Sud-Ouest 2019 vacancy
-annual_vacancy %>% 
-  filter(zone == 2, date == 2019, dwelling_type == "Total", bedroom == "Total")
-
-#' [3] Total rental units in Le Sud-Ouest
-annual_units %>% 
-  filter(zone == 2, date == 2019, dwelling_type == "Total", 
-         bedroom == "Total") %>% 
-  pull(units) %>% 
-  round(-2)
-
-#' [4] Total vacant units in Le Sud-Ouest
-annual_units %>% 
-  left_join(annual_vacancy) %>% 
-  filter(zone == 2, date == 2019, dwelling_type == "Total", 
-         bedroom == "Total") %>% 
-  transmute(vacant_units = vacancy * units)
-
-#' [5] 3+ bedroom vacancy rate in VM
-annual_vacancy %>% 
-  filter(zone == 1, date == 2018, dwelling_type == "Total",
-         bedroom == "3 Bedroom +") %>% 
-  pull(vacancy)
-
-#' [6] 3+ bedroom vacancy rate in LPM
-annual_vacancy %>% 
-  filter(zone == 6, date == 2019, dwelling_type == "Total",
-         bedroom == "3 Bedroom +") %>% 
-  pull(vacancy)
+#' #' [4] Total vacant units in Le Sud-Ouest
+#' annual_units %>% 
+#'   left_join(annual_vacancy) %>% 
+#'   filter(zone == 2, date == 2019, dwelling_type == "Total", 
+#'          bedroom == "Total") %>% 
+#'   transmute(vacant_units = vacancy * units)
+#' 
+#' #' [5] 3+ bedroom vacancy rate in VM
+#' annual_vacancy %>% 
+#'   filter(zone == 1, date == 2018, dwelling_type == "Total",
+#'          bedroom == "3 Bedroom +") %>% 
+#'   pull(vacancy)
+#' 
+#' #' [6] 3+ bedroom vacancy rate in LPM
+#' annual_vacancy %>% 
+#'   filter(zone == 6, date == 2019, dwelling_type == "Total",
+#'          bedroom == "3 Bedroom +") %>% 
+#'   pull(vacancy)
 
 #' For example, in the Notre-Dame-de-Grâce/Côte-St-Luc zone, 66.9% [1] of 
 #' households are renters, so we assume that 66.9% of housing units converted to 
 #' dedicated STRs would have been rental housing, and the remaining 33.1% would 
 #' have been ownership housing.
 
-DA_probabilities_2019 %>% 
-  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
-  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
-  select(dwellings, p_condo, p_renter, geometry) %>% 
-  st_interpolate_aw(cmhc, extensive = TRUE) %>% 
-  st_drop_geometry() %>% 
-  select(-Group.1) %>% 
-  rename(n_condo = p_condo, n_renter = p_renter) %>% 
-  cbind(cmhc, .) %>% 
-  as_tibble() %>% 
-  select(-geometry) %>% 
-  mutate(p_renter = n_renter / dwellings) %>% 
-  select(zone, p_renter) %>% 
-  filter(zone == 4)
+# DA_probabilities_2019 %>% 
+#   mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
+#   mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
+#   select(dwellings, p_condo, p_renter, geometry) %>% 
+#   st_interpolate_aw(cmhc, extensive = TRUE) %>% 
+#   st_drop_geometry() %>% 
+#   select(-Group.1) %>% 
+#   rename(n_condo = p_condo, n_renter = p_renter) %>% 
+#   cbind(cmhc, .) %>% 
+#   as_tibble() %>% 
+#   select(-geometry) %>% 
+#   mutate(p_renter = n_renter / dwellings) %>% 
+#   select(zone, p_renter) %>% 
+#   filter(zone == 4)
 
 
 # The impact of STRs on residential rents ---------------------------------
@@ -264,115 +276,115 @@ DA_probabilities_2019 %>%
 #' has paid an additional $870 [3] in rent because of the impact of STRs on the 
 #' housing market.
 
-#' [1] Total rent increase
-rent_increase %>% 
-  slice(-1) %>% 
-  mutate(rent_increase = rent_increase + 1) %>% 
-  pull(rent_increase) %>% 
-  prod() %>% 
-  {. - 1} %>% 
-  round(3)
-
-#' [2] Average rent increase
-city_avg_rent %>% 
-  filter(bedroom == "Total") %>% 
-  filter(date >= 2014) %>% 
-  mutate(increase = slide_dbl(avg_rent, ~{.x[2] / .x[1]}, .before = 1)) %>% 
-  slice(-1) %>% 
-  pull(increase) %>% 
-  prod() %>% 
-  {. - 1} %>% 
-  round(3)
-
-#' [3] Extra rent payment
-city_avg_rent %>% 
-  filter(bedroom == "Total") %>% 
-  mutate(date = as.character(date)) %>% 
-  left_join(rent_increase, by = c("date" = "year_created")) %>% 
-  filter(date >= "2015") %>% 
-  select(date, avg_rent, rent_increase) %>% 
-  mutate(rent_plus_1 = 1 + rent_increase,
-         cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
-         extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
-  pull(extra_rent) %>% 
-  sum() %>% 
-  round(-1)
-
-#' Table 3.2
-strs_by_zone <- 
-  property %>% 
-  st_intersection(cmhc) %>% 
-  st_drop_geometry() %>% 
-  select(property_ID, zone) %>% 
-  left_join(daily, .) %>% 
-  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
-         status != "B") %>% 
-  count(zone) %>% 
-  mutate(active_strs = n / 365)
-
-annual_avg_rent %>% 
-  filter(bedroom == "Total", occupied_status == "Occupied Units") %>% 
-  select(-bedroom, -occupied_status, -quality, -occ_rent_higher) %>% 
-  mutate(date = as.character(date)) %>% 
-  left_join(rent_increase_zone, by = c("zone", "date" = "year_created")) %>% 
-  group_by(zone, zone_name) %>%
-  mutate(rent_plus_1 = 1 + rent_increase,
-         cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
-         extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
-  summarize(avg_rent_2015 = avg_rent[date == 2015],
-            avg_rent_2019 = avg_rent[date == 2019],
-            rent_change = (avg_rent_2019 - avg_rent_2015) / avg_rent_2015,
-            str_rent_increase = prod(rent_plus_1) - 1,
-            str_share = str_rent_increase / rent_change,
-            extra_rent = sum(extra_rent)) %>% 
-  ungroup() %>% 
-  left_join(strs_by_zone) %>% 
-  relocate(active_strs, .after = zone_name) %>% 
-  select(-zone, -n) %>% 
-  add_row(
-    tibble_row(
-      zone_name = "City of Montreal",
-      active_strs = nrow(
-        filter(daily, housing, status != "B", date >= LTM_start_date, 
-               date <= LTM_end_date)) / 365,
-      avg_rent_2015 = (filter(city_avg_rent, date == 2015, 
-                              bedroom == "Total"))$avg_rent,
-      avg_rent_2019 = (filter(city_avg_rent, date == 2019, 
-                              bedroom == "Total"))$avg_rent,
-      rent_change = (avg_rent_2019 - avg_rent_2015) / avg_rent_2015,
-      str_rent_increase = (rent_increase %>% 
-                             slice(-1) %>% 
-                             mutate(rent_increase = rent_increase + 1) %>% 
-                             pull(rent_increase) %>% 
-                             prod()) - 1,
-      str_share = str_rent_increase / rent_change,
-      extra_rent = city_avg_rent %>% 
-        filter(bedroom == "Total") %>% 
-        mutate(date = as.character(date)) %>% 
-        left_join(rent_increase, by = c("date" = "year_created")) %>% 
-        filter(date >= "2015") %>% 
-        select(date, avg_rent, rent_increase) %>% 
-        mutate(rent_plus_1 = 1 + rent_increase,
-               cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
-               extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
-        pull(extra_rent) %>% 
-        sum())) %>% 
-  arrange(-active_strs) %>% 
-  slice(1:9) %>% 
-  mutate(across(c(active_strs, avg_rent_2015, avg_rent_2019, extra_rent), round, 
-                -1)) %>% 
-  set_names(c("CMHC Zone", "Active daily STR listings (2019)", 
-              "Average rent (2015)", "Average rent (2019)",
-              "Total rent increase (2015-2019)", 
-              "STR-induced rent increase (2015-2019)",
-              "STR share of total rent increase",
-              "Average extra rent paid due to STRs (2015-2019")) %>% 
-  gt() %>%
-  tab_header(title = "STR impacts on rents") %>%
-  opt_row_striping() %>% 
-  fmt_percent(columns = c(5:7), decimals = 1) %>% 
-  fmt_number(columns = 2:4, decimals = 0) %>% 
-  fmt_currency(8, decimals = 0)
+#' #' [1] Total rent increase
+#' rent_increase %>% 
+#'   slice(-1) %>% 
+#'   mutate(rent_increase = rent_increase + 1) %>% 
+#'   pull(rent_increase) %>% 
+#'   prod() %>% 
+#'   {. - 1} %>% 
+#'   round(3)
+#' 
+#' #' [2] Average rent increase
+#' city_avg_rent %>% 
+#'   filter(bedroom == "Total") %>% 
+#'   filter(date >= 2014) %>% 
+#'   mutate(increase = slide_dbl(avg_rent, ~{.x[2] / .x[1]}, .before = 1)) %>% 
+#'   slice(-1) %>% 
+#'   pull(increase) %>% 
+#'   prod() %>% 
+#'   {. - 1} %>% 
+#'   round(3)
+#' 
+#' #' [3] Extra rent payment
+#' city_avg_rent %>% 
+#'   filter(bedroom == "Total") %>% 
+#'   mutate(date = as.character(date)) %>% 
+#'   left_join(rent_increase, by = c("date" = "year_created")) %>% 
+#'   filter(date >= "2015") %>% 
+#'   select(date, avg_rent, rent_increase) %>% 
+#'   mutate(rent_plus_1 = 1 + rent_increase,
+#'          cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
+#'          extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
+#'   pull(extra_rent) %>% 
+#'   sum() %>% 
+#'   round(-1)
+#' 
+#' #' Table 3.2
+#' strs_by_zone <- 
+#'   property %>% 
+#'   st_intersection(cmhc) %>% 
+#'   st_drop_geometry() %>% 
+#'   select(property_ID, zone) %>% 
+#'   left_join(daily, .) %>% 
+#'   filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
+#'          status != "B") %>% 
+#'   count(zone) %>% 
+#'   mutate(active_strs = n / 365)
+#' 
+#' annual_avg_rent %>% 
+#'   filter(bedroom == "Total", occupied_status == "Occupied Units") %>% 
+#'   select(-bedroom, -occupied_status, -quality, -occ_rent_higher) %>% 
+#'   mutate(date = as.character(date)) %>% 
+#'   left_join(rent_increase_zone, by = c("zone", "date" = "year_created")) %>% 
+#'   group_by(zone, zone_name) %>%
+#'   mutate(rent_plus_1 = 1 + rent_increase,
+#'          cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
+#'          extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
+#'   summarize(avg_rent_2015 = avg_rent[date == 2015],
+#'             avg_rent_2019 = avg_rent[date == 2019],
+#'             rent_change = (avg_rent_2019 - avg_rent_2015) / avg_rent_2015,
+#'             str_rent_increase = prod(rent_plus_1) - 1,
+#'             str_share = str_rent_increase / rent_change,
+#'             extra_rent = sum(extra_rent)) %>% 
+#'   ungroup() %>% 
+#'   left_join(strs_by_zone) %>% 
+#'   relocate(active_strs, .after = zone_name) %>% 
+#'   select(-zone, -n) %>% 
+#'   add_row(
+#'     tibble_row(
+#'       zone_name = "City of Montreal",
+#'       active_strs = nrow(
+#'         filter(daily, housing, status != "B", date >= LTM_start_date, 
+#'                date <= LTM_end_date)) / 365,
+#'       avg_rent_2015 = (filter(city_avg_rent, date == 2015, 
+#'                               bedroom == "Total"))$avg_rent,
+#'       avg_rent_2019 = (filter(city_avg_rent, date == 2019, 
+#'                               bedroom == "Total"))$avg_rent,
+#'       rent_change = (avg_rent_2019 - avg_rent_2015) / avg_rent_2015,
+#'       str_rent_increase = (rent_increase %>% 
+#'                              slice(-1) %>% 
+#'                              mutate(rent_increase = rent_increase + 1) %>% 
+#'                              pull(rent_increase) %>% 
+#'                              prod()) - 1,
+#'       str_share = str_rent_increase / rent_change,
+#'       extra_rent = city_avg_rent %>% 
+#'         filter(bedroom == "Total") %>% 
+#'         mutate(date = as.character(date)) %>% 
+#'         left_join(rent_increase, by = c("date" = "year_created")) %>% 
+#'         filter(date >= "2015") %>% 
+#'         select(date, avg_rent, rent_increase) %>% 
+#'         mutate(rent_plus_1 = 1 + rent_increase,
+#'                cumulative_increase = slide_dbl(rent_plus_1, prod, .before = 4),
+#'                extra_rent = (cumulative_increase - 1) * avg_rent * 12) %>% 
+#'         pull(extra_rent) %>% 
+#'         sum())) %>% 
+#'   arrange(-active_strs) %>% 
+#'   slice(1:9) %>% 
+#'   mutate(across(c(active_strs, avg_rent_2015, avg_rent_2019, extra_rent), round, 
+#'                 -1)) %>% 
+#'   set_names(c("CMHC Zone", "Active daily STR listings (2019)", 
+#'               "Average rent (2015)", "Average rent (2019)",
+#'               "Total rent increase (2015-2019)", 
+#'               "STR-induced rent increase (2015-2019)",
+#'               "STR share of total rent increase",
+#'               "Average extra rent paid due to STRs (2015-2019")) %>% 
+#'   gt() %>%
+#'   tab_header(title = "STR impacts on rents") %>%
+#'   opt_row_striping() %>% 
+#'   fmt_percent(columns = c(5:7), decimals = 1) %>% 
+#'   fmt_number(columns = 2:4, decimals = 0) %>% 
+#'   fmt_currency(8, decimals = 0)
 
 
 # Clean up ----------------------------------------------------------------
