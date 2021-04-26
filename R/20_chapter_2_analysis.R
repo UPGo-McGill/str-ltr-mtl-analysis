@@ -443,12 +443,12 @@ listing_type_breakdown %>%
          `Annual revenue (CAD)` = revenue,
          `% of active listings` = pct_of_listings,
          `% of annual revenue` = pct_of_revenue,
-         `% average daily listing growth (YOY 2018-2019)` = pct_listing_growth
+         `% average daily listing growth (YOY 2019-2020)` = pct_listing_growth
          ) %>% 
   gt() %>% 
   tab_header(
     title = "Listing type breakdown",
-    subtitle = "2019"
+    subtitle = "2020"
   ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = 4:6, decimals = 1) %>% 

@@ -19,28 +19,46 @@ source("R/01_startup.R")
 
 # Load previous data ------------------------------------------------------
 
-load("output/str_processed.Rdata")
+qload("output/str_processed.qsm", nthreads = availableCores())
 load("output/national_comparison.Rdata")
-load("output/geometry.Rdata")
+qload("output/geometry.qsm", nthreads = availableCores())
+qload("output/condo_analysis.qsm", nthreads = availableCores())
 
 
 # Prepare new objects -----------------------------------------------------
 
-# 2019 active
-active_2019 <- 
+# # 2019 active
+# active_2019 <- 
+#   daily %>%
+#   filter(housing, status %in% c("R", "A"), date <= LTM_end_date, 
+#          date >= LTM_start_date) %>%
+#   pull(property_ID) %>% 
+#   unique()
+
+# 2020 active
+active_2020 <- 
   daily %>%
   filter(housing, status %in% c("R", "A"), date <= LTM_end_date, 
          date >= LTM_start_date) %>%
   pull(property_ID) %>% 
   unique()
 
-# 2019 revenue
-revenue_2019 <-
+# # 2019 revenue
+# revenue_2019 <-
+#   daily %>%
+#   filter(housing, status == "R", date <= LTM_end_date,
+#          date >= LTM_start_date) %>%
+#   group_by(property_ID) %>%
+#   summarize(revenue_LTM = sum(price)) %>%
+#   inner_join(property, .)
+
+# 2020 revenue
+revenue_2020 <-
   daily %>%
-  filter(housing, status == "R", date <= LTM_end_date, 
+  filter(housing, status == "R", date <= LTM_end_date,
          date >= LTM_start_date) %>%
   group_by(property_ID) %>%
-  summarize(revenue_LTM = sum(price)) %>% 
+  summarize(revenue_LTM = sum(price)) %>%
   inner_join(property, .)
 
 
@@ -278,11 +296,11 @@ boroughs_breakdown <-
   left_join(st_drop_geometry(boroughs)) %>% 
   group_by(borough, dwellings) %>% 
   summarize(active_listings = mean(n[date >= LTM_start_date]),
-            active_2018 = mean(n[date < LTM_start_date]),
-            active_growth = (active_listings - active_2018) / active_2018,
+            active_2019 = mean(n[date < LTM_start_date]),
+            active_growth = (active_listings - active_2019) / active_2019,
             annual_rev = sum(revenue[date >= LTM_start_date]),
-            rev_2018 = sum(revenue[date < LTM_start_date]),
-            rev_growth = (annual_rev - rev_2018) / rev_2018,
+            rev_2019 = sum(revenue[date < LTM_start_date]),
+            rev_growth = (annual_rev - rev_2019) / rev_2019,
             .groups = "drop") %>% 
   mutate(listings_pct = active_listings / sum(active_listings),
          listings_pct_dwellings = active_listings / dwellings,
@@ -365,10 +383,10 @@ listing_type_breakdown <-
   filter(housing, status != "B", date >= LTM_start_date - years(1), 
          date <= LTM_end_date - years(1)) %>% 
   group_by(listing_type) %>% 
-  summarize(active_2018 = n() / 365) %>% 
+  summarize(active_2019 = n() / 365) %>% 
   left_join(listing_type_breakdown, .) %>% 
-  mutate(pct_listing_growth = (active_listings - active_2018) / active_2018) %>% 
-  select(-active_2018)
+  mutate(pct_listing_growth = (active_listings - active_2019) / active_2019) %>% 
+  select(-active_2019)
 
 #' The vast majority of STRs in Montreal are entire homes, a category which 
 #' includes single-family homes, townhouses, apartments and condominiums. 
@@ -382,7 +400,7 @@ listing_type_breakdown <-
 #' [1] Bedroom counts
 property %>% 
   st_drop_geometry() %>% 
-  filter(property_ID %in% active_2019, listing_type == "Entire home/apt") %>% 
+  filter(property_ID %in% active_2020, listing_type == "Entire home/apt") %>% 
   mutate(bedrooms = if_else(bedrooms >= 3, "3+", as.character(bedrooms))) %>% 
   count(bedrooms) %>% 
   mutate(percentage = n / sum(n))
@@ -404,12 +422,12 @@ listing_type_breakdown %>%
          `Revenu annuel (CAD)` = revenue,
          `% d'annonces actives quotidiennement` = pct_of_listings,
          `% du revenu annuel` = pct_of_revenue,
-         `% de la variation annuelle d'annonces actives quotidennement (2018-2019)` = 
+         `% de la variation annuelle d'annonces actives quotidennement (2019-2020)` = 
            pct_listing_growth) %>% 
   gt() %>% 
   tab_header(
     title = "Répartition par type d'annonces",
-    subtitle = "2019"
+    subtitle = "2020"
   ) %>%
   opt_row_striping() %>% 
   fmt_percent(columns = 4:6, decimals = 1) %>% 
@@ -482,7 +500,7 @@ tenure_breakdown <-
 
 #' [1] Active listing property types
 property %>% 
-  filter(property_ID %in% active_2019) %>% 
+  filter(property_ID %in% active_2020) %>% 
   st_drop_geometry() %>% 
   count(property_type, sort = TRUE) %>% 
   mutate(pct = n / sum(n))
@@ -495,20 +513,20 @@ high_condos <-
 
 #' [3] Listings in high-condo DAs
 property %>% 
-  filter(property_ID %in% active_2019, GeoUID %in% high_condos) %>% 
+  filter(property_ID %in% active_2020, GeoUID %in% high_condos) %>% 
   st_drop_geometry() %>% 
   nrow()
 
 #' [4] Property types in high-condo DAs
 property %>% 
-  filter(property_ID %in% active_2019, GeoUID %in% high_condos) %>% 
+  filter(property_ID %in% active_2020, GeoUID %in% high_condos) %>% 
   st_drop_geometry() %>% 
   count(property_type, sort = TRUE) %>% 
   mutate(pct = n / sum(n))
 
 #' [5] Correlation between condo % and condo property_type
 property %>% 
-  filter(property_ID %in% active_2019) %>% 
+  filter(property_ID %in% active_2020) %>% 
   st_drop_geometry() %>% 
   count(GeoUID, property_type) %>% 
   group_by(GeoUID) %>% 
@@ -516,6 +534,7 @@ property %>%
   left_join(DA_probabilities_2019, .) %>% 
   st_drop_geometry() %>% 
   summarize(cor = cor(p_condo, condo_pct, use = "complete.obs"))
+
 
 #' Table 2.4
 tenure_breakdown %>% 
