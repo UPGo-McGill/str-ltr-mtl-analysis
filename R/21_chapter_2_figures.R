@@ -144,8 +144,9 @@ make_listing_map <- function(df) {
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = percentage),
             colour = if (nrow(df) == 19) "white" else "transparent") +
-    scale_fill_stepsn(colours = col_palette[c(3, 3, 4, 1, 1)], na.value = "grey80",
-                      limits = c(0, 0.05), oob = scales::squish, 
+    scale_fill_stepsn(colours = col_palette[c(3, 3, 4, 1, 1)], 
+                      na.value = "grey80", limits = c(0, 0.05), 
+                      oob = scales::squish, 
                       labels = scales::percent) +
     guides(fill = guide_colourbar(title = "STRs/\ndwelling",
                                   title.vjust = 1)) + 
@@ -212,9 +213,9 @@ make_condo_map <- function(df) {
     geom_sf(aes(fill = p_condo), 
             colour = if (nrow(df) == 19) "white" else "transparent") +
     scale_fill_stepsn(colors = col_palette[c(3, 3, 4, 1, 1)], 
-                      na.value = "grey80",
-                         limits = c(0, 1), oob = scales::squish, 
-                         labels = scales::percent)  +
+                      na.value = "grey80", limits = c(0, 1), 
+                      oob = scales::squish, 
+                      labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "% of STRs\nwhich are condos",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
@@ -433,7 +434,7 @@ extrafont::embed_fonts("output/figures/figure_2_7.pdf")
 commercial_listings <- 
   daily %>% 
   filter(housing, status != "B", date >= "2016-01-01") %>% 
-  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  mutate(commercial = FREH_3 >= 0.5 | multi) %>% 
   count(date, commercial) %>% 
   group_by(commercial) %>% 
   mutate(n = slide_dbl(n, mean, .before = 6)) %>% 

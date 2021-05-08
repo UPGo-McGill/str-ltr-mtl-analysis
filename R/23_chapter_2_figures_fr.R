@@ -120,8 +120,7 @@ extrafont::embed_fonts("output/figures/figure_2_2F.pdf")
 
 active_borough <-
   daily %>%
-  filter(housing, status != "B", date >= LTM_start_date, 
-         date <= LTM_end_date) %>%
+  filter(housing, status != "B", year(date) == 2020) %>%
   count(borough, date) %>% 
   group_by(borough) %>% 
   summarize(n = mean(n, na.rm = TRUE)) %>%
@@ -131,8 +130,7 @@ active_borough <-
 
 active_DA <-
   daily %>%
-  filter(housing, status != "B", date >= LTM_start_date,
-         date <= LTM_end_date) %>%
+  filter(housing, status != "B", year(date) == 2020) %>%
   left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>% 
   count(GeoUID, date) %>% 
   group_by(GeoUID) %>% 
@@ -147,10 +145,11 @@ make_listing_map <- function(df) {
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = percentage),
             colour = if (nrow(df) == 19) "white" else "transparent") +
-    scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
-                         limits = c(0, 0.05), oob = scales::squish, 
-                         labels = scales::percent_format(decimal.mark = ",",
-                                                         suffix = " %"))  +
+    scale_fill_stepsn(colours = col_palette[c(3, 3, 4, 1, 1)], 
+                      na.value = "grey80", limits = c(0, 0.05), 
+                      oob = scales::squish, 
+                      labels = scales::percent_format(decimal.mark = ",", 
+                                                      suffix = " %"))  +
     guides(fill = guide_colourbar(title = "LCT/\nlogements",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
@@ -199,8 +198,7 @@ extrafont::embed_fonts("output/figures/figure_2_3F.pdf")
 
 active_condos_borough <- 
   daily %>% 
-  filter(housing, date >= LTM_start_date, 
-         date <= LTM_end_date, status != "B") %>% 
+  filter(housing, year(date) == 2019, status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings = n(),
@@ -216,10 +214,11 @@ make_condo_map <- function(df) {
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = p_condo), 
             colour = if (nrow(df) == 19) "white" else "transparent") +
-    scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
-                         limits = c(0, 1), oob = scales::squish, 
-                         labels = scales::percent_format(decimal.mark = ",",
-                                                         suffix = " %")) +
+    scale_fill_stepsn(colors = col_palette[c(3, 3, 4, 1, 1)], 
+                      na.value = "grey80", limits = c(0, 1), 
+                      oob = scales::squish, 
+                      labels = scales::percent_format(decimal.mark = ",", 
+                                                      suffix = " %")) +
     guides(fill = guide_colourbar(title = "% de LCT\nétant des copropriétés",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
@@ -316,8 +315,7 @@ revenue_colour <- colorRampPalette(col_palette[c(1, 4, 2, 3, 5)])(10)
 
 host_deciles <-
   daily %>%
-  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
-         status == "R", !is.na(host_ID)) %>%
+  filter(housing, year(date) == 2020, status == "R", !is.na(host_ID)) %>%
   group_by(host_ID) %>%
   summarize(rev = sum(price)) %>% 
   summarize(all = sum(rev),
@@ -402,7 +400,7 @@ extrafont::embed_fonts("output/figures/figure_2_6F.pdf")
 
 ML <- 
   daily %>% 
-  filter(status != "B") %>% 
+  filter(housing, status != "B") %>% 
   group_by(date) %>% 
   summarize(Annonces = mean(multi),
             Revenu = sum(price[status == "R" & multi], na.rm = TRUE) / 
@@ -440,8 +438,8 @@ extrafont::embed_fonts("output/figures/figure_2_7F.pdf")
 
 commercial_listings <- 
   daily %>% 
-  filter(status != "B", date >= "2016-01-01") %>% 
-  mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
+  filter(housing, status != "B", date >= "2016-01-01") %>% 
+  mutate(commercial = FREH_3 >= 0.5 | multi) %>% 
   count(date, commercial) %>% 
   group_by(commercial) %>% 
   mutate(n = slide_dbl(n, mean, .before = 6)) %>% 
