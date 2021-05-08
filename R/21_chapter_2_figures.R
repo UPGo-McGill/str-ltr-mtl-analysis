@@ -55,7 +55,7 @@ figure_2_1 <-
            y = 12000, yend = 10500, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
   annotate("text", x = as.Date("2019-05-01"), y = 11700,
-           label = "STRs banned \nby Province" #, family = "Futura Condensed"
+           label = "STRs banned \nby Province" , family = "Futura Condensed"
            ) +
   geom_line() +
   scale_y_continuous(name = NULL, label = scales::comma) +
@@ -68,7 +68,7 @@ figure_2_1 <-
                     guide = "none") +
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
-        #text = element_text(family = "Futura")
+        text = element_text(family = "Futura")
         )
 
 ggsave("output/figures/figure_2_1.pdf", plot = figure_2_1, width = 8, 
@@ -106,7 +106,7 @@ figure_2_2 <-
   scale_color_manual(name = NULL, values = col_palette[c(5, 1)]) +
   theme_minimal() +
   theme(legend.position = "bottom", panel.grid.minor.x = element_blank(),
-        #text = element_text(family = "Futura")
+        text = element_text(family = "Futura")
         )
 
 ggsave("output/figures/figure_2_2.pdf", plot = figure_2_2, width = 8, 
@@ -119,8 +119,7 @@ extrafont::embed_fonts("output/figures/figure_2_2.pdf")
 
 active_borough <-
   daily %>%
-  filter(housing, status != "B", date >= LTM_start_date, 
-         date <= LTM_end_date) %>%
+  filter(housing, status != "B", year(date) == 2020) %>%
   count(borough, date) %>% 
   group_by(borough) %>% 
   summarize(n = mean(n, na.rm = TRUE)) %>%
@@ -130,8 +129,7 @@ active_borough <-
 
 active_DA <-
   daily %>%
-  filter(housing, status != "B", date >= LTM_start_date,
-         date <= LTM_end_date) %>%
+  filter(housing, status != "B", year(date) == 2020) %>%
   left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>% 
   count(GeoUID, date) %>% 
   group_by(GeoUID) %>% 
@@ -146,9 +144,9 @@ make_listing_map <- function(df) {
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = percentage),
             colour = if (nrow(df) == 19) "white" else "transparent") +
-    scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
-                         limits = c(0, 0.05), oob = scales::squish, 
-                         labels = scales::percent)  +
+    scale_fill_stepsn(colours = col_palette[c(3, 3, 4, 1, 1)], na.value = "grey80",
+                      limits = c(0, 0.05), oob = scales::squish, 
+                      labels = scales::percent) +
     guides(fill = guide_colourbar(title = "STRs/\ndwelling",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
@@ -197,8 +195,7 @@ extrafont::embed_fonts("output/figures/figure_2_3.pdf")
 
 active_condos_borough <- 
   daily %>% 
-  filter(housing, date >= LTM_start_date, 
-         date <= LTM_end_date, status != "B") %>% 
+  filter(housing, year(date) == 2019, status != "B") %>% 
   left_join(listing_probabilities_2019) %>% 
   group_by(date, borough) %>% 
   summarize(n_listings = n(),
@@ -214,20 +211,19 @@ make_condo_map <- function(df) {
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = p_condo), 
             colour = if (nrow(df) == 19) "white" else "transparent") +
-    scale_fill_gradientn(colors = col_palette[c(3, 4, 1)], na.value = "grey80",
+    scale_fill_stepsn(colors = col_palette[c(3, 3, 4, 1, 1)], 
+                      na.value = "grey80",
                          limits = c(0, 1), oob = scales::squish, 
                          labels = scales::percent)  +
     guides(fill = guide_colourbar(title = "% of STRs\nwhich are condos",
                                   title.vjust = 1)) + 
     gg_bbox(df) +
     theme_void() +
-    theme(text = element_text(#family = "Futura", 
-      face = "plain"),
-          legend.title = element_text(#family = "Futura", 
-            face = "bold",
+    theme(text = element_text(family = "Futura", face = "plain"),
+          legend.title = element_text(family = "Futura", face = "bold", 
                                       size = 7),
           legend.title.align = 0.9,
-          #legend.text = element_text(family = "Futura", size = 5),
+          legend.text = element_text(family = "Futura", size = 5),
           panel.border = element_rect(colour = "white", size = 2))
 }
 
@@ -299,7 +295,7 @@ figure_2_5 <-
   theme_minimal() +
   theme(legend.position = "bottom",
         panel.grid.minor.x = element_blank(),
-        #text = element_text(family = "Futura"),
+        text = element_text(family = "Futura"),
         legend.title = element_text(#family = "Futura", 
           face = "bold"))
 
@@ -315,8 +311,7 @@ revenue_colour <- colorRampPalette(col_palette[c(1, 4, 2, 3, 5)])(10)
 
 host_deciles <-
   daily %>%
-  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
-         status == "R", !is.na(host_ID)) %>%
+  filter(housing, year(date) == 2020, status == "R", !is.na(host_ID)) %>%
   group_by(host_ID) %>%
   summarize(rev = sum(price)) %>% 
   summarize(all = sum(rev),
@@ -400,7 +395,7 @@ extrafont::embed_fonts("output/figures/figure_2_6.pdf")
 
 ML <- 
   daily %>% 
-  filter(status != "B") %>% 
+  filter(housing, status != "B") %>% 
   group_by(date) %>% 
   summarize(Listings = mean(multi),
             Revenue = sum(price[status == "R" & multi], na.rm = TRUE) / 
@@ -437,7 +432,7 @@ extrafont::embed_fonts("output/figures/figure_2_7.pdf")
 
 commercial_listings <- 
   daily %>% 
-  filter(status != "B", date >= "2016-01-01") %>% 
+  filter(housing, status != "B", date >= "2016-01-01") %>% 
   mutate(commercial = if_else(FREH_3 < 0.5 & !multi, FALSE, TRUE)) %>% 
   count(date, commercial) %>% 
   group_by(commercial) %>% 

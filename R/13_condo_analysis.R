@@ -13,7 +13,7 @@
 #' - `uniteevaluationfonciere.shp`: Municipal evaluation data shapefile
 
 source("R/01_startup.R")
-load("output/str_processed.Rdata")
+qload("output/str_processed.qsm", nthreads = availableCores())
 
 
 # Load UEF shapefile ------------------------------------------------------
@@ -31,15 +31,13 @@ uef <-
 
 active_properties_2017 <- 
   daily %>% 
-  filter(date >= "2017-01-01", date <= "2017-12-31",
-         status %in% c("A", "R")) %>% 
+  filter(housing, year(date) == 2017, status %in% c("A", "R")) %>% 
   pull(property_ID) %>% 
   unique()
 
 active_properties_2019 <- 
   daily %>% 
-  filter(date >= LTM_start_date, date <= LTM_end_date,
-         status %in% c("A", "R")) %>% 
+  filter(housing, year(date) == 2019, status %in% c("A", "R")) %>% 
   pull(property_ID) %>% 
   unique()
 
