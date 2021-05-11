@@ -20,7 +20,6 @@ source("R/01_startup.R")
 load("output/str_processed.Rdata")
 load("output/geometry.Rdata")
 load("output/cmhc.Rdata")
-load("output/rent_increases.Rdata")
 load("output/condo_analysis.Rdata")
 
 
@@ -28,171 +27,195 @@ load("output/condo_analysis.Rdata")
 
 FREH <- 
   daily %>% 
-  filter(date >= "2016-01-01") %>% 
+  filter(housing, date >= "2016-01-01", day(date) == 1) %>% 
   group_by(date) %>% 
-  summarize(across(c(FREH, FREH_3), sum)) %>%
-  filter(substr(date, 9, 10) == "01")
+  summarize(across(c(FREH, FREH_3), sum))
 
 FREH_borough <- 
   daily %>% 
-  filter(date %in% as.Date(c("2019-12-01", "2020-12-01"))) %>% 
+  filter(housing, date >= "2016-01-01", month(date) == 12, day(date) == 1) %>% 
   group_by(borough, date) %>% 
-  summarize(FREH = sum(FREH_3)) %>% 
-  mutate(date = if_else(date >= LTM_start_date, 2020, 2019))
+  summarize(FREH = sum(FREH_3), .groups = "drop") %>% 
+  mutate(date = year(date))
 
 GH_borough <- 
   GH %>% 
-  filter(date %in% as.Date(c(LTM_end_date - years(1), LTM_end_date))) %>% 
+  filter(date >= "2016-01-01", month(date) == 12, day(date) == 31) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(boroughs) %>% 
   st_drop_geometry() %>% 
   group_by(borough, date) %>% 
-  summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
-  as_tibble() %>% 
-  mutate(date = if_else(date >= LTM_start_date, 2020, 2019))
+  summarize(GH = sum(housing_units, na.rm = TRUE), .groups = "drop") %>% 
+  mutate(date = year(date))
 
 
 # STR-induced housing loss ------------------------------------------------
 
-#' At the end of 2019, there were 5,150 [1] FREH listings in the City of 
-#' Montreal, and 370 [2] more housing units which were operating as ghost 
-#' hostels. In total, therefore, short-term rentals removed 5,520 [3] housing 
-#' units from Montreal’s long-term market last year (Figure 3.1). Notably, while 
-#' the number of active daily listings declined by 5.6% over 2019, the number of 
-#' housing units which STRs took off of Montreal’s housing market increased by 
-#' 16.6% [4] in that same time period, from 4,730 [5] to 5,520.
+#' At the end of 2020, there were 1,810 [1] FREH listings in the City of 
+#' Montreal, and 230 [2] more housing units which were operating as ghost 
+#' hostels. In total, therefore, short-term rentals removed 2,040 [3] housing 
+#' units from Montreal’s long-term market last year (Figure 3.1). This 
+#' represents a dramatic decline of 63.1% [4] since the end of 2019, when the
+#' figure was 5,530 [5].
 
-#' [1] FREH in 2019-1
-FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3) %>% round(digit = -1)
+#' [1] FREH in 2020-12
+FREH %>% 
+  filter(date == "2020-12-01") %>% 
+  pull(FREH_3) %>%
+  scales::comma(10)
 
-#' [2] GH in 2019-12
-GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum() %>% 
-  round(digit = -1)
+#' [2] GH in 2020-12
+GH %>% 
+  filter(date == LTM_end_date, status != "B") %>% 
+  pull(housing_units) %>% sum() %>% 
+  scales::comma(10)
 
 #' [3] Total housing loss for 2019
 {{FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3)} +
-    {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} %>% 
-  round(digit = -1)
+    {GH %>% filter(date == LTM_end_date, status != "B") %>% 
+        pull(housing_units) %>% sum()}} %>% 
+  scales::comma(10)
 
 #' [4] YOY increase in housing loss
 {{{FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3)} +
-    {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} /
+    {GH %>% filter(date == LTM_end_date, status != "B") %>% 
+        pull(housing_units) %>% sum()}} /
   {{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
-      {GH %>% filter(date == LTM_end_date - years(1)) %>% 
+      {GH %>% filter(date == LTM_end_date - years(1), status != "B") %>% 
           pull(housing_units) %>% sum()}}} %>% 
   {. - 1} %>% 
-  round(3)
+  scales::percent(0.1)
 
-#' [5] Total housing loss for 2020
-{{FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3)} +
-    {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% 
-        sum()}} %>% 
-  round(digit = -1)
-
-#' [6] Total housing loss for 2019
+#' [5] Total housing loss for 2019
 {{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
-  {GH %>% filter(date == LTM_end_date - years(1)) %>% pull(housing_units) %>% 
+  {GH %>% filter(date == LTM_end_date - years(1), status != "B") %>% 
+      pull(housing_units) %>% 
       sum()}} %>% 
-  round(digit = -1)
+  scales::comma(10)
 
-#' At the end of 2020 more than six in ten (62.0% [1]) entire-home listings 
-#' and one in four (25.4% [1]) private-room listings were taking housing off 
-#' the market in Montreal (Figure 3.2). Three years earlier, the proportions 
-#' were only 34.2% [1] and 12.3% [1] respectively.
+#'  While the number of active daily listings declined by 8.8% [1] from 2018 to 
+#'  2019, the number of housing units which STRs removed from Montreal’s housing 
+#'  market increased by 14.2% [2] in that same time period, from 4,850 [3] to 
+#'  5,530 [4].
+
+#' [1] Active daily listings in 2018 and 2019
+daily %>% 
+  filter(housing, year(date) %in% 2018:2019, status != "B") %>% 
+  group_by(year = year(date)) %>% 
+  summarize(listings = sum(n()) / 365, .groups = "drop") %>% 
+  summarize(change = (listings[1] - listings[2]) / listings[2]) %>% 
+  pull(change) %>% 
+  scales::percent(0.1)
+
+#' [2] YOY increase in housing loss, 2018-2019
+{{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
+    {GH %>% filter(date == LTM_end_date - years(1), status != "B") %>% 
+        pull(housing_units) %>% sum()}} /
+    {{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
+        {GH %>% filter(date == LTM_end_date - years(2), status != "B") %>% 
+            pull(housing_units) %>% sum()}}} %>% 
+  {. - 1} %>% 
+  scales::percent(0.1)
+
+#' [3] STR housing loss, 2018
+{{FREH %>% filter(date == "2018-12-01") %>% pull(FREH_3)} +
+  {GH %>% filter(date == LTM_end_date - years(2), status != "B") %>% 
+      pull(housing_units) %>% sum()}} %>% 
+  scales::comma(10)
+
+#' [4] STR housing loss, 2018
+{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
+    {GH %>% filter(date == LTM_end_date - years(1), status != "B") %>% 
+        pull(housing_units) %>% sum()}} %>% 
+  scales::comma(10)
+
+#' In 2019, six in ten (60.9% [1]) entire-home listings and one in four 
+#' (26.7% [1]) private-room listings contributed to housing loss in the city. 
+#' In 2016, the proportions were only 33.5% [1] and 12.6% [1] respectively. Even 
+#' in 2020, amidst the pandemic, one in seven (14.9% [1]) entire-home listings 
+#' and three in ten (31.6% [1]) private-room listings were taking housing off 
+#' the market in Montreal (Figure 3.2). 
 
 #' [1] Housing loss shares
 daily %>% 
-  filter(housing, status != "B", listing_type %in% c("Entire home/apt",
-                                                     "Private room")) %>% 
+  filter(housing, status != "B", 
+         listing_type %in% c("Entire home/apt", "Private room")) %>% 
   group_by(date) %>% 
   summarize(eh = mean(FREH_3[listing_type == "Entire home/apt"] > 0.5),
             pr = mean(GH[listing_type == "Private room"])) %>% 
   mutate(across(c(eh, pr), slide_dbl, mean, .before = 30)) %>% 
+  mutate(across(c(eh, pr), scales::percent, 0.1)) %>% 
   filter(date %in% as.Date(c("2016-12-31", "2019-12-31", "2020-12-31")))
 
-#' The 5,520 housing units taken off of Montreal’s housing market in 2019 is 
-#' only 0.7% [1] of the total amount of housing in the city, but this housing 
-#' loss has been concentrated in a small part of the city.... In the borough 
-#' of Ville-Marie, 3.1% [2] of all housing units have been converted to 
-#' dedicated STRs, while the figure is 2.2% [2] for Le Plateau-Mont-Royal. In 
-#' Ville-Marie the rental vacancy rate was 2.5% [3] in 2019, while it was 
-#' 1.5% [3] in Le Plateau-Mont-Royal in 2018 (CMHC did not release a number for 
-#' 2019). This means that there are more dedicated STRs in these neighbourhoods 
-#' than there are vacant apartments for rent.
+#' The 2,120 housing units taken off of Montreal’s housing market in 2020 is 
+#' only 0.3% [1] of the total amount of housing in the city, but this housing 
+#' loss has been concentrated in a small part of the city..... In the borough 
+#' of Ville-Marie, 1.1% [2] of all housing units have been converted to 
+#' dedicated STRs, while the figure is 0.9% [2] for Le Plateau-Mont-Royal.
 
-#' [1] Total housing loss as % of dwellings
+#' [1] Total housing loss as % of dwellings, 2020
 {{{FREH %>% filter(date == "2020-12-01") %>% pull(FREH_3)} +
     {GH %>% filter(date == LTM_end_date) %>% pull(housing_units) %>% sum()}} /
   sum(boroughs$dwellings)} %>% 
-  round(3)
-
-#' [1] Total housing loss as % of dwellings
-{{{FREH %>% filter(date == "2019-12-01") %>% pull(FREH_3)} +
-    {GH %>% filter(date == (LTM_end_date - years(1))) %>% pull(housing_units) %>% sum()}} /
-    sum(boroughs$dwellings)} %>% 
-  round(3)
+  scales::percent(0.1)
 
 #' [2] Housing loss in VM and LPMR
 boroughs %>% 
   left_join(FREH_borough) %>% 
   left_join(GH_borough) %>% 
   filter(date == "2020") %>% 
-  mutate(GH = if_else(is.na(GH), 0L, GH),
+  mutate(GH = replace_na(GH, 0L),
          housing_loss_per_dwelling = (FREH + GH) / dwellings,
-         housing_loss_per_dwelling = round(housing_loss_per_dwelling, 3)) %>% 
+         housing_loss_per_dwelling = 
+           scales::percent(housing_loss_per_dwelling, 0.1)) %>% 
   st_drop_geometry() %>% 
   filter(borough %in% c("Ville-Marie", "Le Plateau-Mont-Royal"))
-
-#' #' [3] Vacancy rates in VM and LPMR
-#' annual_vacancy %>% 
-#'   filter(dwelling_type == "Total",
-#'          bedroom == "Total",
-#'          zone %in% c(1, 6),
-#'          !is.na(vacancy)) %>% 
-#'   group_by(zone) %>% 
-#'   filter(date == max(date)) %>% 
-#'   ungroup()
 
 #' Table 3.1
 borough_housing_table <- 
   boroughs %>% 
   st_drop_geometry() %>% 
-  left_join(FREH_borough) %>% 
-  left_join(GH_borough) %>%
-  mutate(GH = if_else(is.na(GH), 0L, GH)) %>% 
+  left_join(FREH_borough, by = "borough") %>% 
+  left_join(GH_borough, by = c("borough", "date")) %>%
+  mutate(GH = replace_na(GH, 0L)) %>% 
   group_by(borough) %>% 
   summarize(
     dwellings = mean(dwellings),
-    housing_loss_2019 = sum(FREH[date == 2019]) + sum(GH[date == 2019]),
-    housing_loss_2020 = sum(FREH[date == 2020]) + sum(GH[date == 2020]),
-    yoy_change = (housing_loss_2020 - housing_loss_2019) / housing_loss_2019,
-    housing_loss_pct_2020 = housing_loss_2020 / dwellings)
+    loss_2018 = sum(FREH[date == 2018]) + sum(GH[date == 2018]),
+    loss_2019 = sum(FREH[date == 2019]) + sum(GH[date == 2019]),
+    loss_2020 = sum(FREH[date == 2020]) + sum(GH[date == 2020]),
+    change_2019 = (loss_2019 - loss_2018) / loss_2018,
+    change_2020 = (loss_2020 - loss_2019) / loss_2019,
+    loss_pct_2019 = loss_2019 / dwellings,
+    loss_pct_2020 = loss_2020 / dwellings)
   
 borough_housing_table %>% 
   summarize(
     dwellings = sum(dwellings),
-    housing_loss_2019 = sum(housing_loss_2019),
-    housing_loss_2020 = sum(housing_loss_2020),
-    yoy_change = (housing_loss_2020 - housing_loss_2019) / housing_loss_2019,
-    housing_loss_pct_2020 = housing_loss_2020 / dwellings) %>% 
-  mutate(borough = "City of Montreal") %>% 
+    loss_2018 = sum(loss_2018),
+    loss_2019 = sum(loss_2019),
+    loss_2020 = sum(loss_2020),
+    change_2019 = (loss_2019 - loss_2018) / loss_2018,
+    change_2020 = (loss_2020 - loss_2019) / loss_2019,
+    loss_pct_2019 = loss_2019 / dwellings,
+    loss_pct_2020 = loss_2020 / dwellings) %>% 
+  mutate(borough = "City of Montreal", .before = dwellings) %>% 
   bind_rows(borough_housing_table) %>% 
-  relocate(borough) %>% 
-  select(-dwellings) %>% 
-  filter(housing_loss_2020 > 50) %>% 
-  mutate(across(c(housing_loss_2019, housing_loss_2020), round, -1)) %>% 
-  mutate(across(c(yoy_change, housing_loss_pct_2020), round, 4)) %>% 
-  arrange(desc(housing_loss_2020)) %>%
+  select(-dwellings, -loss_2018) %>% 
+  filter(loss_2020 > 40) %>% 
+  arrange(desc(loss_2020)) %>%
+  mutate(across(c(loss_2019, loss_2020), scales::comma, 10)) %>% 
+  mutate(across(change_2019:loss_pct_2020, scales::percent, 0.1)) %>% 
   rename(Borough = borough,
-         `Housing loss (2020)` = housing_loss_2020,
-         `Housing loss (2019)` = housing_loss_2019,
-         `Year-over-year growth (%)` = yoy_change,
-         `% of housing lost (2020)` = housing_loss_pct_2020) %>% 
+         `Housing loss (2019)` = loss_2019,
+         `Housing loss (2020)` = loss_2020,
+         `Year-over-year growth (2018-2019)` = change_2019,
+         `Year-over-year growth (2019-2020)` = change_2020,
+         `% of housing lost (2019)` = loss_pct_2019,
+         `% of housing lost (2020)` = loss_pct_2020) %>% 
   gt() %>% 
   tab_header(title = "STR-induced housing loss by borough") %>%
-  opt_row_striping() %>% 
-  fmt_percent(columns = c(4, 5), decimals = 1) %>% 
-  fmt_number(columns = 2:3, decimals = 0)
+  opt_row_striping()
 
 
 

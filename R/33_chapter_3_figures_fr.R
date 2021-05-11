@@ -34,10 +34,10 @@ load("output/condo_analysis.Rdata")
 
 FREH_total <- 
   daily %>% 
-  filter(date >= "2016-01-01") %>% 
+  filter(housing, date >= "2016-01-01") %>% 
   group_by(date) %>% 
   summarize(across(c(FREH, FREH_3), sum)) %>%
-  filter(substr(date, 9, 10) == "01")
+  filter(day(date) == 1)
 
 GH_total <-
   GH %>%
@@ -68,7 +68,7 @@ figure_3_1 <-
   annotate("curve", x = as.Date("2019-04-20"), xend = as.Date("2020-05-01"),
            y = 5500, yend = 5800, curvature = -.2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2019-01-01"), y = 5500,
+  annotate("text", x = as.Date("2019-01-15"), y = 5500,
            label = "Interdiction des LCT \npar la province", 
            family = "Futura Condensed") +
   scale_fill_manual(name = "Type d'annonce", values = col_palette[c(1, 5)],
@@ -94,8 +94,8 @@ extrafont::embed_fonts("output/figures/figure_3_1F.pdf")
 
 housing_loss_share <- 
   daily %>% 
-  filter(housing, status != "B", listing_type %in% c("Entire home/apt",
-                                                     "Private room")) %>% 
+  filter(housing, status != "B", 
+         listing_type %in% c("Entire home/apt", "Private room")) %>% 
   group_by(date) %>% 
   summarize(
     `Entire home/apt` = mean(FREH_3[listing_type == "Entire home/apt"] > 0.5),
@@ -132,22 +132,22 @@ extrafont::embed_fonts("output/figures/figure_3_2F.pdf")
 
 # Figure 3.3 Housing loss by borough --------------------------------------
 
-FREH_borough <- 
+FREH_borough_map <- 
   daily %>% 
-  filter(date == "2019-12-01") %>% 
+  filter(housing, date == "2020-12-01") %>% 
   group_by(borough) %>% 
   summarize(FREH = sum(FREH_3))
 
-FREH_DA <- 
+FREH_DA_map <- 
   daily %>% 
-  filter(date == "2019-12-01") %>% 
+  filter(housing, date == "2020-12-01") %>% 
   left_join(select(st_drop_geometry(property), property_ID, GeoUID)) %>% 
   group_by(GeoUID) %>% 
   summarize(FREH = sum(FREH_3))
 
-GH_borough <- 
+GH_borough_map <- 
   GH %>% 
-  filter(date == LTM_end_date) %>% 
+  filter(status != "B", date == LTM_end_date) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(boroughs) %>% 
   st_drop_geometry() %>% 
@@ -155,9 +155,9 @@ GH_borough <-
   summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
   as_tibble()
 
-GH_DA <- 
+GH_DA_map <- 
   GH %>% 
-  filter(date == LTM_end_date) %>% 
+  filter(status != "B", date == LTM_end_date) %>% 
   mutate(geometry = st_centroid(geometry)) %>% 
   st_join(DA) %>% 
   st_drop_geometry() %>% 
@@ -165,18 +165,18 @@ GH_DA <-
   summarize(GH = sum(housing_units, na.rm = TRUE)) %>% 
   as_tibble()
 
-housing_loss_borough <- 
+housing_loss_borough_map <- 
   boroughs %>% 
-  left_join(FREH_borough) %>% 
-  left_join(GH_borough) %>% 
-  mutate(GH = if_else(is.na(GH), 0L, GH),
+  left_join(FREH_borough_map) %>% 
+  left_join(GH_borough_map) %>% 
+  mutate(GH = replace_na(GH, 0L),
          housing_loss_pct = (FREH + GH) / dwellings)
 
-housing_loss_DA <- 
+housing_loss_DA_map <- 
   DA %>% 
-  left_join(FREH_DA) %>% 
-  left_join(GH_DA) %>% 
-  mutate(GH = if_else(is.na(GH), 0L, GH),
+  left_join(FREH_DA_map) %>% 
+  left_join(GH_DA_map) %>% 
+  mutate(GH = replace_na(GH, 0L),
          housing_loss_pct = (FREH + GH) / dwellings)
 
 make_housing_map <- function(df) {
@@ -184,11 +184,11 @@ make_housing_map <- function(df) {
     geom_sf(data = province, colour = "transparent", fill = "grey93") +
     geom_sf(aes(fill = housing_loss_pct),
             colour = if (nrow(df) == 19) "white" else "transparent") +
-    scale_fill_gradientn(colors = col_palette[c(3, 4, 1, 2)], 
-                         na.value = "grey80",
-                         limits = c(0, 0.10), oob = scales::squish, 
-                         labels = scales::percent_format(suffix = " %",
-                                                         decimal.mark = ","))  +
+    scale_fill_stepsn(colours = col_palette[c(3, 3, 4, 1, 2, 2)], 
+                      na.value = "grey80",
+                      limits = c(0, 0.04), oob = scales::squish, 
+                      labels = scales::percent_format(suffix = " %", 
+                                                      decimal.mark = ","))  +
     guides(fill = guide_colourbar(
       title = "% logements perdus\nen raison des LCT", title.vjust = 1)) + 
     gg_bbox(df) +
@@ -234,66 +234,61 @@ extrafont::embed_fonts("output/figures/figure_3_3F.pdf")
 
 # Figure 3.4 Changes in housing supply ------------------------------------
 
-renter_zone <- 
-  DA_probabilities_2019 %>% 
-  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
-  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
-  select(dwellings, p_condo, p_renter, geometry) %>% 
-  st_interpolate_aw(cmhc, extensive = TRUE) %>% 
-  st_drop_geometry() %>% 
-  select(-Group.1) %>% 
-  rename(n_condo = p_condo, n_renter = p_renter) %>% 
-  cbind(cmhc, .) %>% 
-  as_tibble() %>% 
-  select(-geometry) %>% 
-  mutate(p_renter = n_renter / dwellings) %>% 
+renter_zone <-
+  DA_probabilities_2019 %>%
+  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>%
+  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>%
+  select(dwellings, p_condo, p_renter, geometry) %>%
+  st_interpolate_aw(cmhc, extensive = TRUE) %>%
+  st_drop_geometry() %>%
+  rename(n_condo = p_condo, n_renter = p_renter) %>%
+  cbind(cmhc, .) %>%
+  as_tibble() %>%
+  select(-geometry) %>%
+  mutate(p_renter = n_renter / dwellings) %>%
   select(zone, p_renter)
 
-daily_cmhc <- 
-  property %>% 
-  st_intersection(cmhc) %>% 
-  st_drop_geometry() %>% 
-  select(property_ID, zone) %>% 
-  left_join(daily, .) %>% 
+daily_cmhc <-
+  property %>%
+  st_intersection(cmhc) %>%
+  st_drop_geometry() %>%
+  select(property_ID, zone) %>%
+  left_join(daily, .) %>%
   filter(housing, date %in% as.Date(c("2019-12-01", "2019-12-31", "2018-12-01",
-                                      "2018-12-31"))) %>% 
+                                      "2018-12-31"))) %>%
   mutate(FREH_3 = if_else(substr(date, 9, 9) == 0, FREH_3, 0),
-         GH     = if_else(substr(date, 9, 9) == 3, GH, FALSE)) %>% 
-  mutate(date = as.integer(substr(date, 1, 4))) %>% 
-  group_by(zone, date) %>% 
-  summarize(housing_loss = sum(FREH_3) + sum(GH)) %>% 
+         GH     = if_else(substr(date, 9, 9) == 3, GH, FALSE)) %>%
+  mutate(date = as.integer(substr(date, 1, 4))) %>%
+  group_by(zone, date) %>%
+  summarize(housing_loss = sum(FREH_3) + sum(GH)) %>%
   ungroup()
 
-strs_by_zone <- 
-  property %>% 
-  st_intersection(cmhc) %>% 
-  st_drop_geometry() %>% 
-  select(property_ID, zone) %>% 
-  left_join(daily, .) %>% 
-  filter(housing, date >= LTM_start_date, date <= LTM_end_date, 
-         status != "B") %>% 
-  count(zone) %>% 
+strs_by_zone <-
+  property %>%
+  st_intersection(cmhc) %>%
+  st_drop_geometry() %>%
+  select(property_ID, zone) %>%
+  left_join(daily, .) %>%
+  filter(housing, year(date) == 2019, status != "B") %>%
+  count(zone) %>%
   mutate(active_strs = n / 365)
 
-unit_change <- 
-  annual_units %>% 
-  filter(dwelling_type == "Total", bedroom == "Total") %>% 
-  inner_join(daily_cmhc) %>% 
-  left_join(renter_zone) %>% 
-  mutate(housing_loss = housing_loss * p_renter) %>% 
-  group_by(zone) %>% 
+unit_change <-
+  annual_units %>%
+  filter(dwelling_type == "Total", bedroom == "Total") %>%
+  inner_join(daily_cmhc) %>%
+  left_join(renter_zone) %>%
+  mutate(housing_loss = housing_loss * p_renter) %>%
+  group_by(zone) %>%
   summarize(unit_change = units[date == 2019] - units[date == 2018],
-            housing_loss_change = housing_loss[date == 2019] - 
-              housing_loss[date == 2018]) %>% 
-  mutate(net_unit_change = unit_change - housing_loss_change) %>% 
-  left_join(strs_by_zone) %>% 
-  arrange(-active_strs) %>% 
-  slice(1:10) %>% 
-  left_join(st_drop_geometry(cmhc)) %>% 
-  select(zone, zone_name, unit_change:net_unit_change) %>% 
-  mutate(zone_name = if_else(
-    str_detect(zone_name, "Downtown"), "Centre-ville Montréal/Îles-des-Soeurs",
-    zone_name))
+            housing_loss_change = housing_loss[date == 2019] -
+              housing_loss[date == 2018]) %>%
+  mutate(net_unit_change = unit_change - housing_loss_change) %>%
+  left_join(strs_by_zone) %>%
+  arrange(-active_strs) %>%
+  slice(1:10) %>%
+  left_join(st_drop_geometry(cmhc)) %>%
+  select(zone, zone_name, unit_change:net_unit_change)
 
 figure_3_4 <- 
   unit_change %>%
@@ -334,107 +329,107 @@ ggsave("output/figures/figure_3_4F.pdf", plot = figure_3_4,  width = 8,
 extrafont::embed_fonts("output/figures/figure_3_4F.pdf")
 
 
-# Figure 3.5 Vacancy rates ------------------------------------------------
-
-vacancy_for_map <- 
-  annual_vacancy %>% 
-  filter(dwelling_type == "Total", bedroom == "Total", !is.na(vacancy)) %>% 
-  group_by(zone) %>% 
-  filter(date == max(date)) %>% 
-  ungroup() %>% 
-  left_join(cmhc) %>% 
-  mutate(vacant_units = vacancy * renter_households) %>% 
-  left_join(select(filter(daily_cmhc, date == 2019), zone, housing_loss)) %>% 
-  left_join(renter_zone) %>% 
-  filter(housing_loss >= 50) %>% 
-  arrange(zone) %>% 
-  mutate(units_returning = housing_loss * p_renter,
-         new_vacant = vacant_units + units_returning,
-         new_vacancy = new_vacant / renter_households) %>% 
-  select(zone, zone_name, vacancy, new_vacancy, geometry) %>% 
-  rename(`Taux d'inoccupation actuel` = vacancy, 
-         `LCT dédiées de retour sur le marché` = new_vacancy) %>% 
-  pivot_longer(-c(zone, zone_name, geometry), names_to = "status",
-               values_to = "vacancy") %>% 
-  left_join(cmhc) %>% 
-  st_as_sf() %>% 
-  mutate(status = factor(status, 
-                         levels = c("Taux d'inoccupation actuel",
-                                    "LCT dédiées de retour sur le marché")))
-
-figure_3_5 <- 
-  vacancy_for_map %>% 
-  mutate(label = scales::percent(vacancy, accuracy = 0.1, suffix = " %", 
-                                 decimal.mark = ",")) %>% 
-  ggplot() +
-  geom_sf(data = province, colour = "transparent", fill = "grey93") +
-  geom_sf(data = streets, size = 0.2, colour = "white") +
-  geom_sf(aes(fill = vacancy), colour = "white", alpha = 0.7) +
-  geom_sf_label(aes(label = label), size = 2, family = "Futura") +
-  scale_fill_gradientn(colors = col_palette[c(2, 4, 6)], 
-                       na.value = "grey80",
-                       limits = c(0, 0.05), oob = scales::squish,
-                       labels = scales::percent)  +
-  guides(fill = guide_colourbar(title = "% logements perdus\nen raison des LCT",
-                                title.vjust = 1)) + 
-  facet_wrap(vars(status), nrow = 1) +
-  gg_bbox(vacancy_for_map) +
-  theme_void() +
-  theme(legend.position = "none",
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold",
-                                    size = 7),
-        legend.title.align = 0.9,
-        legend.text = element_text(family = "Futura", size = 5),
-        strip.text = element_text(family = "Futura", face = "bold", size = 12),
-        panel.border = element_rect(colour = "white", size = 2))
-
-ggsave("output/figures/figure_3_5F.pdf", plot = figure_3_5, width = 8, 
-       height = 4.2, units = "in", useDingbats = FALSE)
-
-extrafont::embed_fonts("output/figures/figure_3_5F.pdf")
-
-
-# Figure 3.6 STR-induced rent increases -----------------------------------
-
-rent_increase_for_map <- 
-  rent_increase_zone %>% 
-  group_by(zone) %>% 
-  slice(-1) %>% 
-  mutate(rent_increase = 1 + rent_increase) %>% 
-  summarize(total_rent_increase = prod(rent_increase)) %>% 
-  mutate(total_rent_increase = total_rent_increase - 1) %>% 
-  left_join(cmhc, .) %>% 
-  filter(zone %in% c(1, 6, 9, 2, 5, 8, 17, 7, 4))
-
-figure_3_6 <- 
-  rent_increase_for_map %>% 
-  mutate(label = scales::percent(total_rent_increase, accuracy = 0.1,
-                                 suffix = " %", decimal.mark = ",")) %>% 
-  ggplot() +
-  geom_sf(data = province, colour = "transparent", fill = "grey93") +
-  geom_sf(data = streets, size = 0.2, colour = "white") +
-  geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
-  geom_sf_label(aes(label = label), size = 2, family = "Futura") +
-  scale_fill_gradientn(name = "2015-2019 rent increase",
-                       colors = col_palette[c(3, 2)], 
-                       na.value = "grey80",
-                       limits = c(0.02, 0.04),
-                       labels = scales::label_percent(accuracy = 0.1)) +
-  gg_bbox(rent_increase_for_map) +
-  theme_void() +
-  theme(legend.position = "none",
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold",
-                                    size = 7),
-        legend.title.align = 0.9,
-        legend.text = element_text(family = "Futura", size = 5),
-        panel.border = element_rect(colour = "white", size = 2))
-
-ggsave("output/figures/figure_3_6F.pdf", plot = figure_3_6, width = 3.0, 
-       height = 4.2, units = "in", useDingbats = FALSE)
-
-extrafont::embed_fonts("output/figures/figure_3_6F.pdf")
+# # Figure 3.5 Vacancy rates ------------------------------------------------
+# 
+# vacancy_for_map <- 
+#   annual_vacancy %>% 
+#   filter(dwelling_type == "Total", bedroom == "Total", !is.na(vacancy)) %>% 
+#   group_by(zone) %>% 
+#   filter(date == max(date)) %>% 
+#   ungroup() %>% 
+#   left_join(cmhc) %>% 
+#   mutate(vacant_units = vacancy * renter_households) %>% 
+#   left_join(select(filter(daily_cmhc, date == 2019), zone, housing_loss)) %>% 
+#   left_join(renter_zone) %>% 
+#   filter(housing_loss >= 50) %>% 
+#   arrange(zone) %>% 
+#   mutate(units_returning = housing_loss * p_renter,
+#          new_vacant = vacant_units + units_returning,
+#          new_vacancy = new_vacant / renter_households) %>% 
+#   select(zone, zone_name, vacancy, new_vacancy, geometry) %>% 
+#   rename(`Taux d'inoccupation actuel` = vacancy, 
+#          `LCT dédiées de retour sur le marché` = new_vacancy) %>% 
+#   pivot_longer(-c(zone, zone_name, geometry), names_to = "status",
+#                values_to = "vacancy") %>% 
+#   left_join(cmhc) %>% 
+#   st_as_sf() %>% 
+#   mutate(status = factor(status, 
+#                          levels = c("Taux d'inoccupation actuel",
+#                                     "LCT dédiées de retour sur le marché")))
+# 
+# figure_3_5 <- 
+#   vacancy_for_map %>% 
+#   mutate(label = scales::percent(vacancy, accuracy = 0.1, suffix = " %", 
+#                                  decimal.mark = ",")) %>% 
+#   ggplot() +
+#   geom_sf(data = province, colour = "transparent", fill = "grey93") +
+#   geom_sf(data = streets, size = 0.2, colour = "white") +
+#   geom_sf(aes(fill = vacancy), colour = "white", alpha = 0.7) +
+#   geom_sf_label(aes(label = label), size = 2, family = "Futura") +
+#   scale_fill_gradientn(colors = col_palette[c(2, 4, 6)], 
+#                        na.value = "grey80",
+#                        limits = c(0, 0.05), oob = scales::squish,
+#                        labels = scales::percent)  +
+#   guides(fill = guide_colourbar(title = "% logements perdus\nen raison des LCT",
+#                                 title.vjust = 1)) + 
+#   facet_wrap(vars(status), nrow = 1) +
+#   gg_bbox(vacancy_for_map) +
+#   theme_void() +
+#   theme(legend.position = "none",
+#         text = element_text(family = "Futura", face = "plain"),
+#         legend.title = element_text(family = "Futura", face = "bold",
+#                                     size = 7),
+#         legend.title.align = 0.9,
+#         legend.text = element_text(family = "Futura", size = 5),
+#         strip.text = element_text(family = "Futura", face = "bold", size = 12),
+#         panel.border = element_rect(colour = "white", size = 2))
+# 
+# ggsave("output/figures/figure_3_5F.pdf", plot = figure_3_5, width = 8, 
+#        height = 4.2, units = "in", useDingbats = FALSE)
+# 
+# extrafont::embed_fonts("output/figures/figure_3_5F.pdf")
+# 
+# 
+# # Figure 3.6 STR-induced rent increases -----------------------------------
+# 
+# rent_increase_for_map <- 
+#   rent_increase_zone %>% 
+#   group_by(zone) %>% 
+#   slice(-1) %>% 
+#   mutate(rent_increase = 1 + rent_increase) %>% 
+#   summarize(total_rent_increase = prod(rent_increase)) %>% 
+#   mutate(total_rent_increase = total_rent_increase - 1) %>% 
+#   left_join(cmhc, .) %>% 
+#   filter(zone %in% c(1, 6, 9, 2, 5, 8, 17, 7, 4))
+# 
+# figure_3_6 <- 
+#   rent_increase_for_map %>% 
+#   mutate(label = scales::percent(total_rent_increase, accuracy = 0.1,
+#                                  suffix = " %", decimal.mark = ",")) %>% 
+#   ggplot() +
+#   geom_sf(data = province, colour = "transparent", fill = "grey93") +
+#   geom_sf(data = streets, size = 0.2, colour = "white") +
+#   geom_sf(aes(fill = total_rent_increase), colour = "white", alpha = 0.8) +
+#   geom_sf_label(aes(label = label), size = 2, family = "Futura") +
+#   scale_fill_gradientn(name = "2015-2019 rent increase",
+#                        colors = col_palette[c(3, 2)], 
+#                        na.value = "grey80",
+#                        limits = c(0.02, 0.04),
+#                        labels = scales::label_percent(accuracy = 0.1)) +
+#   gg_bbox(rent_increase_for_map) +
+#   theme_void() +
+#   theme(legend.position = "none",
+#         text = element_text(family = "Futura", face = "plain"),
+#         legend.title = element_text(family = "Futura", face = "bold",
+#                                     size = 7),
+#         legend.title.align = 0.9,
+#         legend.text = element_text(family = "Futura", size = 5),
+#         panel.border = element_rect(colour = "white", size = 2))
+# 
+# ggsave("output/figures/figure_3_6F.pdf", plot = figure_3_6, width = 3.0, 
+#        height = 4.2, units = "in", useDingbats = FALSE)
+# 
+# extrafont::embed_fonts("output/figures/figure_3_6F.pdf")
 
 
 # Nettoyage ---------------------------------------------------------------

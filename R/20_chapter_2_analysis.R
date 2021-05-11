@@ -84,7 +84,7 @@ daily %>%
   filter(housing, year(date) >= 2019) %>% 
   count(date, B = status == "B", Y2019 = year(date) == 2019) %>% 
   group_by(B, Y2019) %>% 
-  summarize(listings = round(mean(n), digit = -1), .groups = "drop")
+  summarize(listings = scales::comma(mean(n), 10), .groups = "drop")
 
 #' [2] Average number of hosts (taking out blocked 365 days)
 daily %>% 
@@ -92,7 +92,7 @@ daily %>%
   count(date, host_ID, Y2019 = year(date) == 2019) %>% 
   count(date, Y2019) %>% 
   group_by(Y2019) %>% 
-  summarize(hosts = round(mean(n), digit = -1))
+  summarize(hosts = scales::comma(mean(n), 10))
 
 #' [3] Total annual revenue, 2019
 scales::dollar(sum(revenue_2019$revenue_LTM), 100000)
@@ -194,7 +194,8 @@ daily %>%
   count(date) %>% 
   filter(n == max(n)) %>% 
   group_by(date) %>% 
-  summarize(daily_max = round((n), digit = -1))
+  summarize(daily_max = scales::comma(n, 10)) %>% 
+  pull(daily_max)
 
 
 # STR growth rates --------------------------------------------------------

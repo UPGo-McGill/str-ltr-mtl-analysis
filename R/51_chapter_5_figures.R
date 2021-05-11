@@ -24,8 +24,8 @@ library(imager)
 
 qload("output/str_processed.qsm")
 qload("output/geometry.qsm")
-ltr <- qread("output/ltr_processed.qs")
-qload("output/matches_raw.qsm")
+ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
+qload("output/matches_raw.qsm", nthreads = availableCores())
 
 
 # Prepare new objects -----------------------------------------------------
