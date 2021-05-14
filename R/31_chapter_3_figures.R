@@ -23,11 +23,11 @@
 
 source("R/01_startup.R")
 
-load("output/str_processed.Rdata")
-load("output/geometry.Rdata")
+qload("output/str_processed.qsm", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
 load("output/cmhc.Rdata")
-load("output/rent_increases.Rdata")
-load("output/condo_analysis.Rdata")
+# load("output/rent_increases.Rdata")
+qload("output/condo_analysis.qsm", nthreads = availableCores())
 
 
 # Figure 3.1 Housing loss -------------------------------------------------
@@ -250,74 +250,69 @@ daily_cmhc <-
   st_drop_geometry() %>%
   select(property_ID, zone) %>%
   left_join(daily, .) %>%
-  filter(housing, date %in% as.Date(c("2019-12-01", "2019-12-31", "2018-12-01",
-                                      "2018-12-31"))) %>%
-  mutate(FREH_3 = if_else(substr(date, 9, 9) == 0, FREH_3, 0),
-         GH     = if_else(substr(date, 9, 9) == 3, GH, FALSE)) %>%
-  mutate(date = as.integer(substr(date, 1, 4))) %>%
+  filter(housing, year(date) >= 2016, month(date) == 12, 
+         day(date) %in% c(1, 31)) %>%
+  mutate(FREH_3 = if_else(day(date) == 1, FREH_3, 0),
+         GH     = if_else(day(date) == 31 & status != "B", GH, FALSE)) %>%
+  mutate(date = year(date)) %>%
   group_by(zone, date) %>%
   summarize(housing_loss = sum(FREH_3) + sum(GH)) %>%
   ungroup()
+
+unit_change <-
+  annual_units %>% 
+  filter(!is.na(zone), dwelling_type == bedroom) %>% 
+  group_by(zone) %>% 
+  mutate(unit_change = slider::slide_dbl(units, ~{.x[2] - .x[1]}, .before = 1, 
+                                         .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(date >= 2017) %>% 
+  select(-c(dwelling_type:units))
+
+str_change <- 
+  daily_cmhc %>% 
+  left_join(renter_zone) %>%
+  mutate(housing_loss = housing_loss * p_renter) %>% 
+  group_by(zone) %>% 
+  mutate(str_change = slider::slide_dbl(housing_loss, ~{.x[2] - .x[1]}, 
+                                        .before = 1, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(date >= 2017) %>% 
+  select(-housing_loss, -p_renter)
 
 strs_by_zone <-
   property %>%
   st_intersection(cmhc) %>%
   st_drop_geometry() %>%
   select(property_ID, zone) %>%
-  left_join(daily, .) %>%
-  filter(housing, year(date) == 2019, status != "B") %>%
-  count(zone) %>%
+  left_join(daily, ., by = "property_ID") %>%
+  filter(housing, year(date) >= 2019, status != "B") %>%
+  count(zone, date = year(date)) %>%
+  ungroup() %>% 
   mutate(active_strs = n / 365)
 
-unit_change <-
-  annual_units %>%
-  filter(dwelling_type == "Total", bedroom == "Total") %>%
-  inner_join(daily_cmhc) %>%
-  left_join(renter_zone) %>%
-  mutate(housing_loss = housing_loss * p_renter) %>%
-  group_by(zone) %>%
-  summarize(unit_change = units[date == 2019] - units[date == 2018],
-            housing_loss_change = housing_loss[date == 2019] -
-              housing_loss[date == 2018]) %>%
-  mutate(net_unit_change = unit_change - housing_loss_change) %>%
-  left_join(strs_by_zone) %>%
-  arrange(-active_strs) %>%
-  slice(1:10) %>%
-  left_join(st_drop_geometry(cmhc)) %>%
-  select(zone, zone_name, unit_change:net_unit_change)
-
 figure_3_4 <-
-  unit_change %>%
-  mutate(zone_name = factor(zone_name, levels = zone_name)) %>%
-  select(-zone) %>%
-  pivot_longer(-zone_name) %>%
-  filter(name != "housing_loss_change") %>%
-  mutate(name = factor(name, levels = c("unit_change", "net_unit_change"))) %>%
+  unit_change %>% 
+  inner_join(str_change) %>% 
+  inner_join(strs_by_zone) %>% 
+  filter(date >= 2019) %>%
+  mutate(date = as.factor(date)) %>% 
   ggplot() +
-  geom_col(aes(zone_name, value, fill = name),
-           position = position_dodge(width = 0.5)) +
-  geom_segment(data = unit_change,
-               mapping = aes(x = zone_name, xend = zone_name, y = unit_change,
-                             yend = net_unit_change),
-               size = 1.2,
-               arrow = arrow(length = unit(0.3, "cm")),
-               position = position_nudge(x = -0.125)) +
-  scale_fill_manual(name = NULL, values = col_palette[c(3, 1)], labels = c(
-    "Rental unit change",
-    "Rental unit change with STRs")) +
-  scale_y_continuous(name = NULL, breaks = c(-200, 0, 200, 400, 600)) +
-  scale_x_discrete(name = NULL,
-                   labels =
-                     unit_change$zone_name %>%
-                     str_replace_all("/", "/\n") %>%
-                     str_replace_all("Plateau-", "Plateau-\n") %>%
-                     str_replace_all("laga-", "laga-\n")) +
+  geom_smooth(aes(str_change, unit_change), method = "lm", se = FALSE,
+              colour = "grey", lwd = 0.5) +
+  geom_point(aes(str_change, unit_change, size = active_strs, fill = date),
+             colour = "white", shape = 21) +
+  scale_y_continuous(name = "Year-over-year change in total rental units") +
+  scale_x_continuous(name = "Year-over-year change in dedicated STRs") +
+  scale_fill_manual(name = "Year", values = col_palette[c(5, 1)],
+                    guide = guide_legend(override.aes = list(size = 5))) +
+  scale_size(name = "Active daily STR listings", guide = guide_legend(
+    override.aes = list(shape = 21, colour = "black", fill = "black"))) +
   theme_minimal() +
   theme(legend.position = "bottom",
         text = element_text(family = "Futura"),
         axis.text.x = element_text(family = "Futura", size = 6),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.major.x = element_blank())
+        panel.grid.minor.x = element_blank())
 
 ggsave("output/figures/figure_3_4.pdf", plot = figure_3_4,  width = 8,
        height = 5, units = "in", useDingbats = FALSE)

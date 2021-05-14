@@ -17,9 +17,9 @@
 
 source("R/01_startup.R")
 
-qload("output/str_processed.qsm")
-qload("output/geometry.qsm")
-ltr <- qread("output/ltr_processed.qs")
+qload("output/str_processed.qsm", nthreads = availableCores())
+qload("output/geometry.qsm", nthreads = availableCores())
+ltr <- qread("output/ltr_processed.qs", nthreads = availableCores())
 load("output/cmhc.Rdata")
 
 
@@ -57,17 +57,20 @@ ltr_PR <-
 
 # How many STR listings have returned to the long-term market? ------------
 
-#' Our image matching algorithm recognized 2,526 [1] unique Airbnb listings 
+#' Our image matching algorithm recognized 2,792 [1] unique Airbnb listings 
 #' which matched with 4,842 [2] different LTR listings (as some units are posted 
 #' multiple times) in the City of Montreal. The matching LTR listings were 
-#' evenly split between Kijiji (2,596 [3] listings, or 53.6%) and Craigslist 
-#' (2,246 [3] listings, or 46.4%). Out of the 2,526 matching Airbnb listings,
-#' 51.2% (1,294 [3] listings) were active STRs in 2020, which establishes a 
+#' evenly split between Kijiji (3,230 [3] listings, or 53.1%) and Craigslist 
+#' (2,850 [3] listings, or 46.9%). Out of the 2,792 matching Airbnb listings,
+#' 53.4% (1,492 [4] listings) were active STRs in 2020, which establishes a 
 #' lower bound for the number of unique housing units that went from the STR 
 #' market to the LTR market due to the COVID-19 pandemic.
 
 #' [1] Unique STR matches
-property %>% filter(!is.na(ltr_ID)) %>% nrow()
+property %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  nrow() %>% 
+  scales::comma()
 
 #' [2] Unique LTR matches
 ltr %>% 
@@ -78,7 +81,8 @@ ltr %>%
   group_by(id) %>% 
   slice(1) %>% 
   ungroup() %>% 
-  nrow()
+  nrow() %>% 
+  scales::comma()
 
 #' [3] KJ/CL split
 ltr %>% 
@@ -90,19 +94,21 @@ ltr %>%
   slice(1) %>% 
   ungroup() %>% 
   count(kj) %>% 
-  mutate(pct = n/sum(n))
+  mutate(pct = n / sum(n)) %>% 
+  mutate(n = scales::comma(n), pct = scales::percent(pct, 0.1))
 
 #' [4] Unique STR matches active in 2020
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   count(active = active >= "2020-01-01" | created >= "2020-01-01") %>% 
-  mutate(pct = n / sum(n))
+  mutate(pct = n / sum(n)) %>% 
+  mutate(n = scales::comma(n), pct = scales::percent(pct, 0.1))
 
-#' Out of the 1,690 [1] Airbnb listings which we matched to Kijiji, 74.0% [2]
-#' were identified by their hosts as “long-term rentals” and 26.0% [2] were 
-#' identified as “short-term rentals”. Among these listings, 50.3% [3] specified 
-#' lease lengths of one year, 21.9% [3] specified month-to-month, and 27.8% [3]
+#' Out of the 1,883 [1] Airbnb listings which we matched to Kijiji, 74.1% [2]
+#' were identified by their hosts as “long-term rentals” and 25.8% [2] were 
+#' identified as “short-term rentals”. Among these listings, 48.6% [3] specified 
+#' lease lengths of one year, 21.6% [3] specified month-to-month, and 29.8% [3]
 #' did not specify.
 
 #' [1] KJ or CL
@@ -110,27 +116,31 @@ ltr_unique_property_ID %>%
   group_by(kj) %>% 
   count() %>% 
   ungroup() %>% 
-  mutate(pct = n / sum(n))
+  mutate(pct = n / sum(n)) %>% 
+  mutate(n = scales::comma(n), pct = scales::percent(pct, 0.1))
 
 #' [2] Long-term or short-term
 ltr_unique_property_ID %>% 
   filter(kj) %>% 
   count(short_long) %>% 
-  mutate(perc = n / sum(n))
+  mutate(pct = n / sum(n)) %>% 
+  mutate(n = scales::comma(n), pct = scales::percent(pct, 0.1))
 
 #' [3] Agreement length
 ltr_unique_property_ID %>% 
   filter(kj) %>% 
   count(type) %>% 
-  mutate(perc = n / sum(n))
+  mutate(pct = n / sum(n)) %>% 
+  mutate(n = scales::comma(n), pct = scales::percent(pct, 0.1))
 
 
 # When did STR listings move to the long-term market? ---------------------
 
-#' By the end of the March, more than 60 [1] listings were being transferred 
+#' By the end of the March, more than 50 [1] listings were being transferred 
 #' each day. Daily numbers remained high through April, but even from May 
-#' through July an average of 5.5 [2] new Airbnb listings were transferred to 
-#' Craigslist or Kijiji each day.
+#' through July an average of 5.2 [2] new Airbnb listings were transferred to 
+#' Craigslist or Kijiji each day. From August to December 2020, the figure was 
+#' 2.5 [3].
 
 #' [1] Peak dailiy listings transfer
 ltr %>% 
@@ -153,7 +163,7 @@ ltr %>%
   filter(created >= "2020-05-01", created <= "2020-07-31") %>% 
   summarize(avg = round(mean(n), 1))
   
-# AVERAGE DAILY LISTINGS TRANSFER AUGUST - DECEMBER
+# Average daily listings transfer, Aug - Dec
 ltr %>% 
   st_drop_geometry() %>% 
   unnest(property_ID) %>% 
@@ -167,26 +177,30 @@ ltr %>%
 
 # Spatial distribution of matched listings --------------------------------
 
-#' Out of the 2,526 [1] unique STR listings matched to LTR listings in the City 
-#' of Montreal, nearly half (44.4% [2]) were located in the Ville-Marie borough 
-#' and 28.5% [2] in Le Plateau-Mont-Royal, with Le Sud-Ouest (8.2% [2]), 
-#' Côte-des-Neiges-Notre-Dame-de-Grâce (5.0% [2]) and Rosemont-La-Petite-Patrie 
-#' (4.0% [2]) accounting for most of the remaining matches.... In fact, 
+#' Out of the 2,792 [1] unique STR listings matched to LTR listings in the City 
+#' of Montreal, nearly half (42.5% [2]) were located in the Ville-Marie borough 
+#' and 29.7% [2] in Le Plateau-Mont-Royal, with Le Sud-Ouest (8.3% [2]), 
+#' Côte-des-Neiges-Notre-Dame-de-Grâce (4.9% [2]) and Rosemont-La-Petite-Patrie 
+#' (4.4% [2]) accounting for most of the remaining matches.... In fact, 
 #' the number of STR listings matched to LTR listings in Ville-Marie is 
-#' equivalent to nearly half (41.4% [3]) of all the STR listings active in the 
-#' borough on March 1, 2020, and 24.7% [4] of all the listings active in the 
+#' equivalent to nearly half (42.0% [3]) of all the STR listings active in the 
+#' borough on March 1, 2020, and 20.2% [4] of all the listings active in the 
 #' borough in 2020.
 
 #' [1] Unique STR matches
-property %>% filter(!is.na(ltr_ID)) %>% nrow()
+property %>% 
+  filter(!is.na(ltr_ID)) %>% 
+  nrow() %>% 
+  scales::comma()
 
 #' [2] Total number of unique matches by borough
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID)) %>% 
   count(borough) %>% 
-  mutate(pct = round(n / sum(n), 3)) %>% 
+  mutate(pct = n / sum(n)) %>% 
   arrange(-pct) %>% 
+  mutate(pct = scales::percent(pct, 0.1))
   slice(1:6)
 
 #' [3] Ville-Marie active March 1 percentage
@@ -201,7 +215,7 @@ property %>%
       filter(housing, borough == "Ville-Marie", status != "B", 
              date == "2020-03-01") %>% 
       nrow}} %>% 
-  round(3)
+  scales::percent(0.1)
 
 #' [4] Ville-Marie active 2020 percentage
 {{property %>% 
@@ -217,8 +231,8 @@ property %>%
       pull(property_ID) %>% 
       unique() %>% 
       length()}} %>% 
-  round(3)
-
+    scales::percent(0.1)
+  
 
 # Asking rents ------------------------------------------------------------
 
@@ -227,8 +241,7 @@ asking_rents <-
   filter(price > 425, price < 8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
-  summarize(avg_price = mean(price)) %>% 
-  ungroup() %>% 
+  summarize(avg_price = mean(price), .groups = "drop") %>% 
   mutate(status = if_else(matched, "Matched to STR", "Not matched"), 
          .before = created) %>% 
   select(-matched)
@@ -238,8 +251,7 @@ asking_rents <-
   filter(price > 425, price < 8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(created) %>%
-  summarize(avg_price = mean(price)) %>% 
-  ungroup() %>% 
+  summarize(avg_price = mean(price), .groups = "drop") %>% 
   mutate(status = "All listings", .before = created) %>% 
   bind_rows(asking_rents) %>% 
   mutate(geography = "City of Montreal")
@@ -249,8 +261,7 @@ asking_rents_vm <-
   filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
-  summarize(avg_price = mean(price)) %>% 
-  ungroup() %>% 
+  summarize(avg_price = mean(price), .groups = "drop") %>% 
   mutate(status = if_else(matched, "Matched to STR", "Not matched"), 
          .before = created) %>% 
   select(-matched)
@@ -260,116 +271,134 @@ asking_rents <-
   filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(created) %>%
-  summarize(avg_price = mean(price)) %>% 
-  ungroup() %>% 
+  summarize(avg_price = mean(price), .groups = "drop") %>% 
   mutate(status = "All listings", .before = created) %>% 
   bind_rows(asking_rents_vm) %>% 
   mutate(geography = "Ville-Marie") %>% 
   bind_rows(asking_rents)
 
-#' On March 13 [1], when the average asking rent on LTR platforms in the City 
-#' of Montreal was $1,387 [1], the average asking rent among listings which we 
-#' matched to Airbnb was $2,641 [1]—90.4% [1] higher. Over the course of
-#' March, average asking rents for LTR listings matched to Airbnb declined 
-#' steadily, and since April they have been relatively stable, with a daily 
-#' average of $1,746 [2]. This remains a significantly higher (22.0% [2]) 
-#' average asking price than the non-matched listings, though, which from 
-#' April through July averaged $1,431 [2].
+#' Over the week of March 15-21, 2020, when the average asking rent on LTR 
+#' platforms in the City of Montreal was $1,424 [1], the average asking rent 
+#' among listings which we matched to Airbnb was $1,953 [1]—37.1% [1] higher. 
+#' Over the course of March, average asking rents for LTR listings matched to 
+#' Airbnb declined rapidly, and since April they have declined a further 
+#' 8.0% [2] (an average of 1.0% [2] per month), from $1,800 [2] in April to 
+#' $1,656 [2] in December. Overall asking rents in the City peaked in May at 
+#' $1,456 [2], and then fell 8.0% to $1,340 in December. During this time 
+#' period, asking rents for matched listings were on average 20.1% [3] higher 
+#' than rents for unmatched listings.
 
-#' [1] Peak difference between matched and city-wide
+#' [1] Mid-March difference between matched and city-wide
 asking_rents %>% 
-  filter(geography == "City of Montreal", created >= "2020-03-13") %>% 
-  group_by(created) %>% 
-  summarize(city = avg_price[status == "All listings"],
-            match = avg_price[status == "Matched to STR"],
-            dif = avg_price[status == "Matched to STR"] - 
-              avg_price[status == "All listings"],
+  filter(geography == "City of Montreal", created >= "2020-03-15",
+         created <= "2020-03-21") %>% 
+  summarize(city = mean(avg_price[status == "All listings"]),
+            match = mean(avg_price[status == "Matched to STR"]),
+            dif = match - city,
             dif_pct = match / city - 1) %>% 
-  filter(dif == max(dif))
+  mutate(across(city:dif, scales::dollar, 1)) %>% 
+  mutate(dif_pct = scales::percent(dif_pct, 0.1))
 
-#' [2] April-July averages
+#' [2] April-December averages
 asking_rents %>% 
-  filter(geography == "City of Montreal", created >= "2020-04-01",
-         created <= "2020-12-31") %>% 
+  filter(geography == "City of Montreal", year(created) == 2020,
+         month(created) %in% c(4, 5, 12), created <= "2020-12-15") %>%
+  group_by(status, month = month(created)) %>% 
+  summarize(avg_price = mean(avg_price)) %>% 
+  summarize(april = avg_price[month == 4],
+            may = avg_price[month == 5],
+            dec = avg_price[month == 12],
+            monthly_change_apr = (dec / april) ^ (1/8) - 1,
+            total_change_apr = (dec - april) / april,
+            monthly_change_may = (dec / may) ^ (1/7) - 1,
+            total_change_may = (dec - may) / may) %>% 
+  mutate(across(april:dec, scales::dollar, 1)) %>% 
+  mutate(across(monthly_change_apr:total_change_may, scales::percent, 0.1))
+
+#' [3] Average rent differences
+asking_rents %>% 
+  filter(geography == "City of Montreal", year(created) == 2020,
+         month(created) >= 5, created <= "2020-12-15") %>%
   group_by(status) %>% 
   summarize(avg_price = mean(avg_price)) %>% 
-  mutate(pct_higher = avg_price / min(avg_price) - 1)
-  
+  summarize(pct = (avg_price[status == "Matched to STR"] - 
+                     avg_price[status == "Not matched"]) / 
+              avg_price[status == "Not matched"]) %>% 
+  pull(pct) %>% 
+  scales::percent(0.1)
+
 #' Even in Ville-Marie, however, LTR listings matched to Airbnb have been on 
-#' average 11.4% [1] higher than listings not matched, and the same pattern of 
+#' average 15.3% [1] higher than listings not matched, and the same pattern of 
 #' initially extremely high asking rents in March yielding to lower (although 
 #' still high) rents from April through July is visible.
 
 #' [1] Ville-Marie overall average rent differences
 asking_rents %>% 
-  filter(geography == "Ville-Marie", created >= "2020-03-13",
+  filter(geography == "Ville-Marie", year(created) == 2020,
+         month(created) >= 4, created <= "2020-12-15", 
          status != "All listings") %>% 
   group_by(status) %>% 
   summarize(avg_price = mean(avg_price)) %>% 
-  summarize(max(avg_price) / min(avg_price) - 1)
+  summarize(pct = max(avg_price) / min(avg_price) - 1) %>% 
+  pull(pct) %>% 
+  scales::percent(0.1)
 
-#' The average city-wide asking rent on Craigslist and Kijiji has remained 
-#' between $1,326 [1] and $1,579 [1] throughout the March-July period we tracked 
-#' it.... The daily average asking rent in March was $1,736 [2], while in July 
-#' it was $1,627 [2]—a $109 [2] or 6.7% [2] decline.
+#' Overall, STRs returning to the long-term market are correlated with a 
+#' substantial decline in Montreal asking rents. From May to December, average 
+#' City-wide asking rents fell an average 1.2% [1] each month—from $1,456 [1] 
+#' to $1,340 [1]. The decline was even larger in Ville-Marie, where STRs are 
+#' disproportionately located and where asking rents dropped 9.9% [1] (1.5% [1] 
+#' each month) from $1,652 [1] to $1,504 [1]. These facts lend substantial 
+#' weight to the possibility that returning STRs have exerted meaningful 
+#' downward pressure on rents, although a more definitive answer to this 
+#' question would require a longer-term period of measurement.
 
+#' [1] April-December averages
 asking_rents %>% 
-  filter(created >= "2020-03-13", created <= "2020-12-31", 
-         status == "All listings", geography == "City of Montreal") %>% 
-  summarize(min = min(avg_price), max = max(avg_price))
-
-#' [2] Ville-Marie March/July rent differences
-asking_rents %>% 
-  filter(geography == "Ville-Marie", created >= "2020-03-13",
-         created <= "2020-12-31", status == "All listings") %>% 
-  filter(created <= "2020-03-31" | created >= "2020-12-01") %>% 
-  group_by(created <= "2020-03-31") %>% 
+  filter(year(created) == 2020, month(created) %in% c(4, 5, 12), 
+         created <= "2020-12-15") %>%
+  group_by(geography, status, month = month(created)) %>% 
   summarize(avg_price = mean(avg_price)) %>% 
-  mutate(dif = avg_price - min(avg_price),
-         dif_pct = round(avg_price / min(avg_price) - 1, 3))
+  summarize(april = avg_price[month == 4],
+            may = avg_price[month == 5],
+            dec = avg_price[month == 12],
+            monthly_change_apr = (dec / april) ^ (1/8) - 1,
+            total_change_apr = (dec - april) / april,
+            monthly_change_may = (dec / may) ^ (1/7) - 1,
+            total_change_may = (dec - may) / may) %>% 
+  mutate(across(april:dec, scales::dollar, 1)) %>% 
+  mutate(across(monthly_change_apr:total_change_may, scales::percent, 0.1))
 
 
 # Listing amenities -------------------------------------------------------
 
 #' Studios were overrepresented among LTR listings which matched to Airbnb 
-#' (17.7% [1]) compared with LTR listings which did not match (9.9% [2]), 
-#' STR listings (in 2019, 10.0% [3]) and Montreal’s rental stock (9.9% [4]). 
+#' (16.3% [1]) compared with LTR listings which did not match (10.1% [1]), 
+#' STR listings (in 2020, 11.5% [2]) and Montreal’s rental stock (9.9% [3]). 
 #' Units with three bedrooms or more were overrepresented in LTR listings, 
-#' at 24.1% [1] for matches and 21.3% [2] for non-matches, compared to the 
-#' City (10.3% [4]) and the STR market (12.2% [3]). One-bedrooms, which were 
-#' considerably overrepresented in STR listings (56.6% [3]) compared to the 
-#' overall rental housing stock (27.2% [4]), constituted 36.0% [1] of LTR 
+#' at 23.9% [1] for matches and 20.7% [2] for non-matches, compared to the 
+#' City (10.3% [4]) and the STR market (12.5% [3]). One-bedrooms, which were 
+#' considerably overrepresented in STR listings (54.9% [3]) compared to the 
+#' overall rental housing stock (27.2% [4]), constituted 35.9% [1] of LTR 
 #' listings that matched with STR listings, and a similar proportion among 
-#' non-matched listings (35.7% [2]).
+#' non-matched listings (36.2% [2]).
 
-#' [1] Bedrooms in LTR matches
-ltr_unique_property_ID %>% 
-  count(bedrooms) %>% 
-  filter(!is.na(bedrooms)) %>% 
-  rowwise() %>% 
-  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
-  group_by(group) %>% 
-  summarize(n = sum(n)) %>% 
-  rename(bedrooms = group) %>% 
-  mutate(n = round(n / sum(n), 3))
-
-#' [2] Bedrooms in LTR non-matches
+#' [1] Bedrooms 
 ltr %>% 
   st_drop_geometry() %>% 
-  filter(is.na(property_ID)) %>% 
-  group_by(id) %>% 
+  group_by(match = !is.na(property_ID), id) %>% 
   slice(1) %>% 
   ungroup() %>% 
-  count(bedrooms) %>% 
+  count(match, bedrooms) %>% 
   filter(!is.na(bedrooms)) %>% 
   rowwise() %>% 
   mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
-  group_by(group) %>% 
+  group_by(match, group) %>% 
   summarize(n = sum(n)) %>% 
   rename(bedrooms = group) %>% 
-  mutate(n = round(n / sum(n), 3))
+  mutate(n = scales::percent(n / sum(n), 0.1))
 
-#' [3] Bedrooms in 2019 STRs
+#' [2] Bedrooms in 2019 STRs
 property %>% 
   st_drop_geometry() %>% 
   filter(housing, active >= "2020-01-01", created <= "2020-12-31") %>% 
@@ -380,20 +409,20 @@ property %>%
   group_by(group) %>% 
   summarize(n = sum(n)) %>% 
   rename(bedrooms = group) %>% 
-  mutate(n = round(n / sum(n), 3))
+  mutate(n = scales::percent(n / sum(n), 0.1))
 
-#' [4] Bedrooms in City of Montreal rentals
+#' [3] Bedrooms in City of Montreal rentals
 city_units %>% 
   filter(date == 2019) %>% 
   slice(1:4) %>% 
-  mutate(pct = round(units / sum(units), 3))
+  mutate(pct = scales::percent(units / sum(units), 0.1))
 
 #' Table 5.1 
 bedroom_match_table <-
   city_units %>% 
   filter(date == 2019) %>% 
   slice(1:4) %>% 
-  mutate(pct = round(units / sum(units), 3)) %>% 
+  mutate(pct = scales::percent(units / sum(units), 0.1)) %>% 
   mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
   select(bedrooms, pct) %>% 
   mutate(Category = "City of Montreal rental stock", .before = bedrooms)
@@ -409,42 +438,30 @@ bedroom_match_table <-
   group_by(group) %>% 
   summarize(pct = sum(n)) %>% 
   rename(bedrooms = group) %>% 
-  mutate(pct = round(pct / sum(pct), 3)) %>% 
+  mutate(pct = scales::percent(pct / sum(pct), 0.1)) %>% 
   mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
   mutate(Category = "STR market (2020)", .before = bedrooms) %>% 
   bind_rows(bedroom_match_table, .)
 
 bedroom_match_table <-
-  ltr_unique_property_ID %>% 
-  count(bedrooms) %>% 
-  filter(!is.na(bedrooms)) %>% 
-  rowwise() %>% 
-  mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
-  group_by(group) %>% 
-  summarize(pct = sum(n)) %>% 
-  rename(bedrooms = group) %>% 
-  mutate(pct = round(pct / sum(pct), 3)) %>% 
-  mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
-  mutate(Category = "LTRs matched to STR", .before = bedrooms) %>% 
-  bind_rows(bedroom_match_table, .)
-
-bedroom_match_table <-
   ltr %>% 
   st_drop_geometry() %>% 
-  filter(is.na(property_ID)) %>% 
-  group_by(id) %>% 
+  group_by(match = !is.na(property_ID), id) %>% 
   slice(1) %>% 
   ungroup() %>% 
-  count(bedrooms) %>% 
+  count(match, bedrooms) %>% 
   filter(!is.na(bedrooms)) %>% 
   rowwise() %>% 
   mutate(group = min(bedrooms, 3, na.rm = TRUE)) %>% 
-  group_by(group) %>% 
-  summarize(pct = sum(n)) %>% 
+  group_by(match, group) %>% 
+  summarize(n = sum(n)) %>% 
   rename(bedrooms = group) %>% 
-  mutate(pct = round(pct / sum(pct), 3)) %>% 
+  mutate(pct = scales::percent(n / sum(n), 0.1)) %>% 
   mutate(bedrooms = c("Studio", "1-bedroom", "2-bedroom", "3+-bedroom")) %>% 
-  mutate(Category = "LTRs not matched", .before = bedrooms) %>% 
+  ungroup() %>% 
+  mutate(Category = if_else(match, "LTRs matched to STR", "LTRs not matched"), 
+         .before = bedrooms) %>% 
+  select(-match, -n) %>% 
   bind_rows(bedroom_match_table, .)
 
 bedroom_match_table <- 
@@ -454,51 +471,50 @@ bedroom_match_table <-
 bedroom_match_table %>% 
   gt() %>% 
   tab_header(title = "STR and LTR listings by bedroom count") %>%
-  opt_row_striping() %>% 
-  fmt_percent(columns = c(2:5), decimals = 1)
+  opt_row_striping()
 
-#' Of the 82,016 [1] LTR listings we analyzed, 26.8% [2] were listed as 
-#' furnished, 55.8% [2] as unfurnished, and 17.4% [2] did not provide this 
+#' Of the 141,399 [1] LTR listings we analyzed, 28.5% [2] were listed as 
+#' furnished, 60.9% [2] as unfurnished, and 10.5% [2] did not provide this 
 #' information. Listings which matched with STRs had a significantly higher 
-#' proportion classified as furnished: 76.7% [3] furnished and 22.7% [3] 
-#' unfurnished, with only 0.6% [3] not providing this information.
+#' proportion classified as furnished: 75.0% [3] furnished and 22.7% [3] 
+#' unfurnished, with only 2.4% [3] not providing this information.
 
 #' [1] All scraped LTR listings
-ltr_unique %>% nrow()
+ltr_unique %>% nrow() %>% scales::comma()
 
 #' [2] Furnished proportion for all LTRs
 ltr_unique %>% 
   count(furnished) %>% 
-  mutate(pct = round(n / sum(n), 3))
+  mutate(pct = scales::percent(n / sum(n), 0.1))
 
 #' [3] Furnished proportion for matches
 ltr_unique_property_ID %>% 
   count(furnished) %>% 
-  mutate(pct = round(n / sum(n), 3))
+  mutate(pct = scales::percent(n / sum(n), 0.1))
 
 
 # Are matched listings commercial operations? -----------------------------
 
-#' Of the 2,526 [1] unique STR listings that matched with the LTR market, 
-#' 2,177 [2] (86.2% [2]) are entire-home listings and 315 [2] (12.5% [2]) are 
-#' private-room listings. Examining the entire-home listings, 58.4% [3] of them 
+#' Of the 2,792 [1] unique STR listings that matched with the LTR market, 
+#' 2,389 [2] (85.6% [2]) are entire-home listings and 368 [2] (13.2% [2]) are 
+#' private-room listings. Examining the entire-home listings, 57.5% [3] of them 
 #' were identified as frequently rented entire-home (FREH) listings at some 
 #' point, which means they were almost certainly operated commercially. 
-#' Moreover, 78.6% [3] of entire-home STR listings which matched to LTR listings 
+#' Moreover, 57.1% [3] of entire-home STR listings which matched to LTR listings 
 #' were multilistings at some point, which means they were operated by hosts 
-#' controlling multiple listings simultaneously. In total, 88.9% [3] of 
+#' controlling multiple listings simultaneously. In total, 76.5% [3] of 
 #' entire-home listings had one of these two strong indicators of commercial 
 #' activity.
 
 #' [1] Unique STR matches
-property %>% filter(!is.na(ltr_ID)) %>% nrow()
+property %>% filter(!is.na(ltr_ID)) %>% nrow() %>% scales::comma()
 
 #' [2] listing_type breakdown among matches
 property %>% 
   st_drop_geometry() %>% 
   filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
   count(listing_type) %>% 
-  mutate(pct = round(n / sum(n), 3))
+  mutate(pct = scales::percent(n / sum(n), 0.1))
 
 #' [3] Commercial status among EH matches
 daily %>% 
@@ -515,12 +531,14 @@ daily %>%
               nrow(),
             FREH_pct = sum(FREH) / total,
             ML_pct = sum(ML) / total,
-            either_pct = sum(ceiling((FREH + ML) / 2)) / total)
+            either_pct = sum(ceiling((FREH + ML) / 2)) / total) %>% 
+  mutate(across(!where(is.integer), scales::percent, 0.1)) %>% 
+  mutate(total = scales::comma(total))
 
-#' The 315 [1] private-room listings require some further analysis, because each 
+#' The 368 [1] private-room listings require some further analysis, because each 
 #' of these listings matched to a Craigslist or Kijiji listing advertised as an 
 #' entire housing unit. Our analysis suggests that these listings break down 
-#' into three categories. The first is miscategorizations. 69 [2] (21.9% [2]) of 
+#' into three categories. The first is miscategorizations. 73 [2] (19.8% [2]) of 
 #' the LTR listings that matched to STR private-room listings had titles such as 
 #' “1 fully furnished bedroom” or “swap”.
 
@@ -529,7 +547,7 @@ property %>%
   st_drop_geometry() %>% 
   filter(property_ID %in% ltr_unique_property_ID$property_ID) %>% 
   count(listing_type) %>% 
-  mutate(pct = n / sum(n)) %>% 
+  mutate(pct = scales::percent(n / sum(n), 0.1)) %>% 
   filter(listing_type == "Private room")
 
 #' [2] Miscategorizations
@@ -546,7 +564,7 @@ property %>%
       pull(n)})} %>% 
   round(3)
 
-#' 124 [1] (39.4%) [1] of the 315 [2] private-room listings which matched to 
+#' 149 [1] (40.5%) [1] of the 368 [2] private-room listings which matched to 
 #' Craiglist or Kijiji were listings identified as belonging to ghost hostels in 
 #' Montreal. 
 
@@ -572,7 +590,7 @@ property %>%
   filter(listing_type == "Private room") %>% 
   pull(n)
 
-#' The remaining 122 [1] private-room Airbnb listings which matched to 
+#' The remaining 146 [1] private-room Airbnb listings which matched to 
 #' Craigslist or Kijiji are likely to be ghost hostels which our algorithms 
 #' failed to identify, or smaller housing units similarly subdivided into 
 #' private rooms.
@@ -593,10 +611,10 @@ property %>%
       nrow()}
 
 #' Focusing on the unambiguous case of the entire-home listings which matched 
-#' between STR and LTR platforms, 24.2% [1] of the commercial listings active 
+#' between STR and LTR platforms, 24.1% [1] of the commercial listings active 
 #' in 2020 have been transferred to Craiglist or Kijiji since March.... 
 #' Expressed as a percentage of the commercial listings active on March 1, 2020, 
-#' at the onset of the pandemic, the matches represent 40.6% [2] of these 
+#' at the onset of the pandemic, the matches represent 45.5% [2] of these 
 #' listings.
 
 #' [1] EH matches as % of commercial operations on March 1
@@ -609,7 +627,7 @@ property %>%
            date >= "2020-01-01", (FREH_3 > 0.5 | multi == TRUE)) %>% 
     count(property_ID) %>% 
     nrow()} %>% 
-  round(3)
+  scales::percent(0.1)
 
 #' [2] EH matches as % of commercial operations on March 1
 {property %>% 
@@ -620,16 +638,16 @@ property %>%
   filter(listing_type == "Entire home/apt", status != "B", date == "2020-03-01", 
          (FREH_3 > 0.5 | multi == TRUE)) %>% 
   nrow()} %>% 
-  round(3)
+  scales::percent(0.1)
 
 
 # Which STR hosts transferred their listings to Craigslist and Kij --------
 
-#' In Montreal, 1,149 [1] unique Airbnb host IDs were linked to the 2,526 [2] 
-#' LTR matches. 288 [3] of these hosts posted more than one of their STR units 
+#' In Montreal, 1,338 [1] unique Airbnb host IDs were linked to the 2,792 [2] 
+#' LTR matches. 327 [3] of these hosts posted more than one of their STR units 
 #' on Craigslist or Kijiji. For example, the top host network in Montreal 
-#' (discussed in section 2) posted 239 [3] of its STR units on the LTR market. 
-#' Half (49.7% [4]) of the active properties of these 1,149 [1] hosts were found
+#' (discussed in section 2) posted 195 [3] of its STR units on the LTR market. 
+#' Half (45.1% [4]) of the active properties of these 1,338 [1] hosts were found
 #'  on either Kijiji, Craigslist, or both. 
 
 #' [1] number of hosts found on a LTR platform
@@ -637,10 +655,11 @@ property %>%
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID), !is.na(host_ID)) %>% 
   count(host_ID, sort = TRUE) %>% 
-  nrow() 
+  nrow() %>% 
+  scales::comma()
 
 #' [2] Unique STR matches
-property %>% filter(!is.na(ltr_ID)) %>% nrow()
+property %>% filter(!is.na(ltr_ID)) %>% nrow() %>% scales::comma()
 
 #' [3] Number of hosts with > 1 property on LTR market
 property %>%
@@ -657,7 +676,7 @@ property %>%
     filter(host_ID %in% (filter(property, !is.na(ltr_ID)))$host_ID, 
            scraped >= "2020-01-01") %>% 
     nrow()} %>% 
-  round(3)
+  scales::percent(0.1)
 
 #' The median STR host revenue was $4,300 [1] in the entire City of Montreal in 
 #' 2019. The annual median revenue of hosts who transferred listings to the LTR 
@@ -714,8 +733,8 @@ property %>%
   summarize(round(mean(n), 1))
 
 #' Out of all hosts with active STR listings in 2020 that shifted their listings 
-#' to the LTR market in Montreal, 22.9% [1] had Superhost status. This is almost 
-#' twice [1] as high as the general 12.8% [1] prevalence of Superhost status 
+#' to the LTR market in Montreal, 21.8% [1] had Superhost status. This is almost 
+#' twice [1] as high as the general 11.7% [1] prevalence of Superhost status 
 #' among Montreal hosts, which is consistent with the idea that the listings 
 #' moving from STR to LTR platforms in Montreal are dominated by commercial 
 #' operations. 
@@ -734,26 +753,26 @@ property %>%
 
 # Are matched listings successfully rented, or still active on Air --------
 
-#' STR matches were listed an average of 22.0 [1] days on LTR platforms, while 
-#' non-matches were listed only half as long—11.3 [1] days on average.
+#' STR matches were listed an average of 23.3 [1] days on LTR platforms, while 
+#' non-matches were listed only half as long—12.9 [1] days on average.
 
 #' [1] length of availability on LTR platforms
 ltr_unique %>% 
   group_by(matched = !is.na(property_ID)) %>% 
   summarize(round(mean(scraped - created, na.rm = TRUE), 1))
 
-#' Out of the total 2,526 [1] Airbnb listings which we identified on LTR 
-#' platforms, 1,475 [2] (58.4% [2]) were still present on Airbnb at the
-#' beginning of 2020. Out of this number, 916 [2] (62.1% [2]) were still present
-#' by the end of July 2020 (the last day for which we have data), while the 
-#' other 559 [2] (37.9% [2]) had been deactivated. Extrapolating this proportion 
-#' across the entire set of matched listings we identified, we estimate that 
-#' 957 [2] matched listings have been deactivated from Airbnb during the
-#' pandemic, while 1,569 [2] remain on the platform.... However, 75.6% [3] of 
-#' these listings were rented as furnished rentals on Craigslist or Kijiji. 
+#' Out of the total 2,792 [1] Airbnb listings which we identified on LTR 
+#' platforms, 1,680 [2] (60.2% [2]) were still present on Airbnb at the
+#' beginning of 2020. Out of this number, 873 [2] (52.0% [2]) were still present
+#' by the end of December 2020, while the other 807 [2] (48.0% [2]) had been 
+#' deactivated. Extrapolating this proportion across the entire set of matched 
+#' listings we identified, we estimate that 1,341 [2] matched listings have been 
+#' deactivated from Airbnb during the pandemic, while 1,451 [2] remain on the 
+#' platform.... However, 80.1% [3] of these listings were rented as furnished 
+#' rentals on Craigslist or Kijiji. 
 
 #' [1] Unique STR matches
-property %>% filter(!is.na(ltr_ID)) %>% nrow()
+property %>% filter(!is.na(ltr_ID)) %>% nrow() %>% scales::comma()
 
 #' [2] Number of matches still listed on Airbnb
 property %>% 
@@ -776,13 +795,13 @@ property %>%
   filter(scraped >= "2020-01-01", scraped < "2020-12-31") %>% 
   left_join(select(ltr_unique_property_ID, property_ID, furnished)) %>% 
   filter(!is.na(furnished)) %>% 
-  summarize(furnished = round(mean(furnished), 3))
+  summarize(furnished = scales::percent(mean(furnished), 0.1))
 
-#'  Of the 916 [1] matched listings which were present on Airbnb at the 
-#'  beginning of 2020 and still present by the end of July, 393 [1] (42.9% [1]) 
-#'  were blocked for the entirety of the month of July.
+#'  Of the 873 [1] matched listings which were present on Airbnb at the 
+#'  beginning of 2020 and still present by the end of December, 464 [1] 
+#'  (53.2% [1]) were blocked for the entirety of the month of December.
 
-#' [1] Inactive in JDecember
+#' [1] Inactive in December
 property %>% 
   st_drop_geometry() %>% 
   filter(!is.na(ltr_ID), scraped >= "2020-12-31") %>% 
@@ -792,12 +811,12 @@ property %>%
             pct_inactive = n_inactive / total)
   
 #' In total, taking into account the matched listings which have continued to 
-#' see activity on Airbnb, we estimate that, of the total 2,526 [1] STR listings 
-#' which were advertised on Craigslist or Kijiji, 957 [1] (37.9% [1]) have been 
-#' permanently deactivated from Airbnb and have likely transitioned back to 
-#' long-term housing, 615 [1] (24.3% [1]) have been temporarily blocked on 
+#' see activity on Airbnb, we estimate that, of the total 2,792 [1] STR listings 
+#' which were advertised on Craigslist or Kijiji, 1,341 [1] (48.0% [1]) have 
+#' been permanently deactivated from Airbnb and have likely transitioned back to 
+#' long-term housing, 733 [1] (26.3% [1]) have been temporarily blocked on 
 #' Airbnb and have likely been rented in the long-term market but may return to 
-#' being STRs in the future, and 954 [1] (37.8% [1]) failed to be rented on 
+#' being STRs in the future, and 718 [1] (25.7% [1]) failed to be rented on 
 #' LTR platforms and instead remain active on Airbnb.
 
 #' [1] Total active/deactivated/inactive estimates
@@ -828,7 +847,7 @@ property %>%
             active = total - deactivated - blocked) %>% 
   mutate(across(where(is.numeric), round, 0)) %>% 
   pivot_longer(-total) %>% 
-  mutate(pct = round(value / sum(value), 3))
+  mutate(pct = scales::percent(value / sum(value), 0.1))
 
 
 # Clean up ----------------------------------------------------------------

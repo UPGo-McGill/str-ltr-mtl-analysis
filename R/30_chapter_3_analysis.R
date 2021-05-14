@@ -48,6 +48,56 @@ GH_borough <-
   summarize(GH = sum(housing_units, na.rm = TRUE), .groups = "drop") %>% 
   mutate(date = year(date))
 
+renter_zone <-
+  DA_probabilities_2019 %>%
+  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>%
+  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>%
+  select(dwellings, p_condo, p_renter, geometry) %>%
+  st_interpolate_aw(cmhc, extensive = TRUE) %>%
+  st_drop_geometry() %>%
+  rename(n_condo = p_condo, n_renter = p_renter) %>%
+  cbind(cmhc, .) %>%
+  as_tibble() %>%
+  select(-geometry) %>%
+  mutate(p_renter = n_renter / dwellings) %>%
+  select(zone, p_renter)
+
+daily_cmhc <-
+  property %>%
+  st_intersection(cmhc) %>%
+  st_drop_geometry() %>%
+  select(property_ID, zone) %>%
+  left_join(daily, .) %>%
+  filter(housing, year(date) >= 2016, month(date) == 12, 
+         day(date) %in% c(1, 31)) %>%
+  mutate(FREH_3 = if_else(day(date) == 1, FREH_3, 0),
+         GH     = if_else(day(date) == 31 & status != "B", GH, FALSE)) %>%
+  mutate(date = year(date)) %>%
+  group_by(zone, date) %>%
+  summarize(housing_loss = sum(FREH_3) + sum(GH)) %>%
+  ungroup()
+
+unit_change <-
+  annual_units %>% 
+  filter(!is.na(zone), dwelling_type == bedroom) %>% 
+  group_by(zone) %>% 
+  mutate(unit_change = slider::slide_dbl(units, ~{.x[2] - .x[1]}, .before = 1, 
+                                         .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(date >= 2017) %>% 
+  select(-c(dwelling_type:units))
+
+str_change <- 
+  daily_cmhc %>% 
+  left_join(renter_zone) %>%
+  mutate(housing_loss = housing_loss * p_renter) %>% 
+  group_by(zone) %>% 
+  mutate(str_change = slider::slide_dbl(housing_loss, ~{.x[2] - .x[1]}, 
+                                        .before = 1, .complete = TRUE)) %>% 
+  ungroup() %>% 
+  filter(date >= 2017) %>% 
+  select(-housing_loss, -p_renter)
+
 
 # STR-induced housing loss ------------------------------------------------
 
@@ -234,59 +284,82 @@ borough_housing_table %>%
 #' bedrooms was 0.5% [5] for Ville-Marie (the Downtown Montreal/Îles-des-Soeurs 
 #' zone), and 0.3% [6] in Le Plateau-Mont-Royal. 
 
-#' #' [1] 2019 city vacancy
-#' city_vacancy %>% 
-#'   filter(date == 2019, bedroom == "Total")
-#' 
-#' #' [2] Le Sud-Ouest 2019 vacancy
-#' annual_vacancy %>% 
-#'   filter(zone == 2, date == 2019, dwelling_type == "Total", bedroom == "Total")
-#' 
-#' #' [3] Total rental units in Le Sud-Ouest
-#' annual_units %>% 
-#'   filter(zone == 2, date == 2019, dwelling_type == "Total", 
-#'          bedroom == "Total") %>% 
-#'   pull(units) %>% 
-#'   round(-2)
+#' [1] 2019 city vacancy
+city_vacancy %>%
+  filter(date == 2019, bedroom == "Total")
 
-#' #' [4] Total vacant units in Le Sud-Ouest
-#' annual_units %>% 
-#'   left_join(annual_vacancy) %>% 
-#'   filter(zone == 2, date == 2019, dwelling_type == "Total", 
-#'          bedroom == "Total") %>% 
-#'   transmute(vacant_units = vacancy * units)
-#' 
-#' #' [5] 3+ bedroom vacancy rate in VM
-#' annual_vacancy %>% 
-#'   filter(zone == 1, date == 2018, dwelling_type == "Total",
-#'          bedroom == "3 Bedroom +") %>% 
-#'   pull(vacancy)
-#' 
-#' #' [6] 3+ bedroom vacancy rate in LPM
-#' annual_vacancy %>% 
-#'   filter(zone == 6, date == 2019, dwelling_type == "Total",
-#'          bedroom == "3 Bedroom +") %>% 
-#'   pull(vacancy)
+#' [2] Le Sud-Ouest 2019 vacancy
+annual_vacancy %>%
+  filter(zone == 2, date == 2019, dwelling_type == "Total", bedroom == "Total")
 
-#' For example, in the Notre-Dame-de-Grâce/Côte-St-Luc zone, 66.9% [1] of 
-#' households are renters, so we assume that 66.9% of housing units converted to 
-#' dedicated STRs would have been rental housing, and the remaining 33.1% would 
+#' [3] Total rental units in Le Sud-Ouest
+annual_units %>%
+  filter(zone == 2, date == 2019, dwelling_type == "Total",
+         bedroom == "Total") %>%
+  pull(units) %>%
+  round(-2)
+
+#' [4] Total vacant units in Le Sud-Ouest
+annual_units %>%
+  left_join(annual_vacancy) %>%
+  filter(zone == 2, date == 2019, dwelling_type == "Total",
+         bedroom == "Total") %>%
+  transmute(vacant_units = vacancy * units)
+
+#' [5] 3+ bedroom vacancy rate in VM
+annual_vacancy %>%
+  filter(zone == 1, date == 2018, dwelling_type == "Total",
+         bedroom == "3 Bedroom +") %>%
+  pull(vacancy)
+
+#' [6] 3+ bedroom vacancy rate in LPM
+annual_vacancy %>%
+  filter(zone == 6, date == 2019, dwelling_type == "Total",
+         bedroom == "3 Bedroom +") %>%
+  pull(vacancy)
+
+#' There is a strong negative correlation (-0.50 [1]) between these amounts, 
+#' which means that neighbourhoods with high numbers of housing units converted 
+#' to STRs also tend to have low increases in total rental housing, and vice 
+#' versa.... A simple linear regression model suggests that roughly 
+#' one quarter [2] of the net change in rental housing in the last two years can 
+#' be explained by STRs being withdrawn from the long-term market (prior to the 
+#' pandemic) and being returned to the long-term market (during the pandemic). 
+#' This relationship is statistically significant at the p < 0.003 [2] level. 
+
+#' [1] Correlation
+unit_change %>% 
+  inner_join(str_change) %>% 
+  filter(date >= 2019) %>%
+  select(unit_change, str_change) %>% 
+  cor()
+
+#' [2] r^2 and p
+unit_change %>% 
+  inner_join(str_change) %>% 
+  filter(date >= 2019) %>%
+  select(unit_change, str_change) %>% 
+  lm(unit_change ~ str_change, data = .) %>% 
+  summary()
+
+#' For example, in the Notre-Dame-de-Grâce/Côte-St-Luc zone, 66.9% [1] of
+#' households are renters, so we assume that 66.9% of housing units converted to
+#' dedicated STRs would have been rental housing, and the remaining 33.1% would
 #' have been ownership housing.
 
-# DA_probabilities_2019 %>% 
-#   mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>% 
-#   mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>% 
-#   select(dwellings, p_condo, p_renter, geometry) %>% 
-#   st_interpolate_aw(cmhc, extensive = TRUE) %>% 
-#   st_drop_geometry() %>% 
-#   select(-Group.1) %>% 
-#   rename(n_condo = p_condo, n_renter = p_renter) %>% 
-#   cbind(cmhc, .) %>% 
-#   as_tibble() %>% 
-#   select(-geometry) %>% 
-#   mutate(p_renter = n_renter / dwellings) %>% 
-#   select(zone, p_renter) %>% 
-#   filter(zone == 4)
+DA_probabilities_2019 %>%
+  mutate(across(c(p_condo, p_renter), ~{.x * dwellings})) %>%
+  mutate(across(where(is.numeric), ~if_else(is.na(.x), 0, as.numeric(.x)))) %>%
+  select(dwellings, p_condo, p_renter, geometry) %>%
+  st_interpolate_aw(cmhc, extensive = TRUE) %>%
+  st_drop_geometry() %>%
+  rename(n_condo = p_condo, n_renter = p_renter) %>%
+  cbind(cmhc, .) %>%
+  as_tibble() %>%
+  select(-geometry) %>%
+  mutate(p_renter = n_renter / dwellings) %>%
+  select(zone, p_renter) %>%
+  filter(zone == 4)
 
 
 # The impact of STRs on residential rents ---------------------------------

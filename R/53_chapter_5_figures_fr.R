@@ -140,7 +140,7 @@ figure_5_2 <-
   group_by(kj) %>% 
   mutate(n = slide_dbl(n, mean, .before = 2)) %>% 
   ungroup() %>% 
-  filter(created >= "2020-03-01", created <= "2020-07-31") %>% 
+  filter(created >= "2020-03-01", created <= "2020-12-31") %>% 
   ggplot(aes(created, n, fill = kj)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = 0, ymax = Inf, alpha = .2) +
@@ -148,16 +148,15 @@ figure_5_2 <-
   annotate("curve", x = as.Date("2020-07-05"), xend = as.Date("2020-05-20"),
            y = 45, yend = 50, curvature = .2, lwd = 0.25,
            arrow = arrow(length = unit(0.05, "inches"))) +
-  annotate("text", x = as.Date("2020-07-18"), y = 45,
+  annotate("text", x = as.Date("2020-07-29"), y = 45,
            label = "Interdiction des LCT \npar la province", 
            family = "Futura Condensed") +
   scale_x_date(name = NULL, breaks = c(as.Date("2020-03-01"), 
-                                       as.Date("2020-04-01"),
                                        as.Date("2020-05-01"), 
-                                       as.Date("2020-06-01"),
                                        as.Date("2020-07-01"), 
-                                       as.Date("2020-08-01")),
-               labels = c("mars", "avr.", "mai", "juin", "juill.", "août")) +
+                                       as.Date("2020-09-01"),
+                                       as.Date("2020-11-01")),
+               labels = c("mars", "mai", "juill.", "sept.", "nov.")) +
   scale_y_continuous(name = NULL, label = scales::comma) +
   scale_fill_manual(name = NULL, labels = c("Craigslist", "Kijiji"), 
                     values = col_palette[c(1, 5)]) +
@@ -186,11 +185,11 @@ figure_5_3_left <-
   ggplot() +
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(aes(fill = n), colour = "white") +
-  scale_fill_gradientn(colors = col_palette[c(3, 4)],
-                       limits = c(0, 1500),
-                       breaks = c(0, 300, 600, 900, 1200, 1500),
-                       labels = scales::label_number(big.mark = " "),
-                       na.value = "grey80")  +
+  scale_fill_stepsn(colors = col_palette[c(3, 4)],
+                    limits = c(0, 1500),
+                    breaks = c(0, 300, 600, 900, 1200, 1500),
+                    labels = scales::label_number(big.mark = " "),
+                    na.value = "grey80")  +
   guides(fill = guide_colourbar(
     title = "Nombre total de\ncorrespondances LCT-LLT", title.vjust = 1)) + 
   gg_bbox(boroughs) +
@@ -214,12 +213,12 @@ figure_5_3_right <-
   ggplot() +
   geom_sf(data = province, colour = "transparent", fill = "grey93") +
   geom_sf(aes(fill = pct), colour = "white") +
-  scale_fill_gradientn(colors = col_palette[c(5, 2)], 
-                       na.value = "grey80",
-                       limits = c(0, .5),
-                       breaks = c(0, 0.1, .2, .3, .4, .5),
-                       label = scales::label_percent(accuracy = 1, 
-                                                     suffix = " %"))  +
+  scale_fill_stepsn(colors = col_palette[c(5, 2)], 
+                    na.value = "grey80",
+                    limits = c(0, .5),
+                    breaks = c(0, 0.1, .2, .3, .4, .5),
+                    label = scales::label_percent(accuracy = 1, 
+                                                  suffix = " %"))  +
   guides(fill = guide_colourbar(
     title = "% de correspondances\npar annonces LCT actives", 
     title.vjust = 1)) + 
@@ -248,9 +247,7 @@ asking_rents <-
   filter(price > 425, price < 8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
-  summarize(avg_price = mean(price)) %>% 
-  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
-  ungroup() %>% 
+  summarize(avg_price = mean(price), .groups = "drop") %>% 
   mutate(status = if_else(matched, "Correspondances", "Non-correspondances"), 
          .before = created) %>% 
   select(-matched)
@@ -260,9 +257,7 @@ asking_rents <-
   filter(price > 425, price < 8000) %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(created) %>%
-  summarize(avg_price = mean(price)) %>% 
-  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
-  ungroup() %>% 
+  summarize(avg_price = mean(price), .groups = "drop") %>% 
   mutate(status = "Toutes les annonces", .before = created) %>% 
   bind_rows(asking_rents) %>% 
   mutate(geography = "Ville de Montreal")
@@ -272,9 +267,7 @@ asking_rents_vm <-
   filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(matched, created) %>%
-  summarize(avg_price = mean(price)) %>% 
-  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
-  ungroup() %>% 
+  summarize(avg_price = mean(price), .groups = "drop") %>% 
   mutate(status = if_else(matched, "Correspondances", "Non-correspondances"), 
          .before = created) %>% 
   select(-matched)
@@ -284,9 +277,7 @@ asking_rents <-
   filter(price > 425, price < 8000, borough == "Ville-Marie") %>% 
   mutate(matched = if_else(!is.na(property_ID), TRUE, FALSE)) %>% 
   group_by(created) %>%
-  summarize(avg_price = mean(price)) %>% 
-  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
-  ungroup() %>% 
+  summarize(avg_price = mean(price), .groups = "drop") %>% 
   mutate(status = "Toutes les annonces", .before = created) %>% 
   bind_rows(asking_rents_vm) %>% 
   mutate(geography = "Ville-Marie") %>% 
@@ -294,18 +285,18 @@ asking_rents <-
 
 figure_5_4 <-
   asking_rents %>% 
-  filter(created >= "2020-03-13", created <= "2020-07-31") %>% 
+  group_by(status, geography) %>% 
+  mutate(avg_price = slide_dbl(avg_price, mean, .before = 6)) %>% 
+  ungroup() %>% 
+  filter(created >= "2020-03-13", created <= "2020-12-14") %>% 
   ggplot(aes(created, avg_price, color = status)) +
   annotate("rect", xmin = as.Date("2020-03-29"), xmax = as.Date("2020-06-25"),
            ymin = -Inf, ymax = Inf, alpha = .2) +
   geom_line(lwd = 1) +
-  scale_x_date(name = NULL, breaks = c(as.Date("2020-03-01"), 
-                                       as.Date("2020-04-01"),
-                                       as.Date("2020-05-01"), 
-                                       as.Date("2020-06-01"),
+  scale_x_date(name = NULL, breaks = c(as.Date("2020-04-01"), 
                                        as.Date("2020-07-01"), 
-                                       as.Date("2020-08-01")),
-               labels = c("mars", "avr.", "mai", "juin", "juill.", "août"),
+                                       as.Date("2020-10-01")),
+               labels = c("avr.", "juill.", "oct"),
                limits = c(as.Date("2020-03-01"), NA)) +
   
   scale_y_continuous(name = NULL, limits = c(1000, 2500), 
@@ -329,51 +320,49 @@ ggsave("output/figures/figure_5_4F.pdf", plot = figure_5_4, width = 8,
 extrafont::embed_fonts("output/figures/figure_5_4F.pdf")
 
 
-# Figure 5.5 STR listing age distributions --------------------------------
+# # Figure 5.5 STR listing age distributions --------------------------------
+# 
+# first_listing <- 
+#   property %>% 
+#   st_drop_geometry() %>% 
+#   filter(active > "2020-01-01") %>% 
+#   transmute(property_ID,
+#             active_length = as.numeric(round((active - created) / 30) / 12),
+#             matched = if_else(!is.na(ltr_ID), "Correspondance LCT-LLT", 
+#                               "Non-correspondance"))
+# 
+# figure_5_5 <- 
+#   first_listing %>% 
+#   ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
+#   geom_histogram(bins = 27) +
+#   scale_x_continuous(name = "Années d'activité", limits = c(NA, 10),
+#                      breaks = c(0:2 * 5)) +
+#   scale_y_continuous(name = "Pourcentage d'annonces",
+#                      labels = scales::percent_format(accuracy = 1,
+#                                                      suffix = " %")) +
+#   scale_fill_manual(name = NULL, values = col_palette[c(1, 5)]) +
+#   facet_wrap(vars(matched)) +
+#   theme_minimal() +
+#   theme(legend.position = "none",
+#         panel.grid.minor.x = element_blank(),
+#         panel.grid.minor.y = element_blank(),
+#         text = element_text(family = "Futura", face = "plain"),
+#         legend.title = element_text(family = "Futura", face = "bold", 
+#                                     size = 10),
+#         legend.text = element_text(family = "Futura", size = 10),
+#         strip.text = element_text(face = "bold", family = "Futura"))
+# 
+# ggsave("output/figures/figure_5_5F.pdf", plot = figure_5_5, width = 8, 
+#        height = 2.5, units = "in", useDingbats = FALSE)
+# 
+# extrafont::embed_fonts("output/figures/figure_5_5F.pdf")
 
-first_listing <- 
-  property %>% 
-  st_drop_geometry() %>% 
-  filter(active > "2020-01-01") %>% 
-  transmute(property_ID,
-            active_length = as.numeric(round((active - created) / 30) / 12),
-            matched = if_else(!is.na(ltr_ID), "Correspondance LCT-LLT", 
-                              "Non-correspondance"))
 
-figure_5_5 <- 
-  first_listing %>% 
-  ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
-  geom_histogram(bins = 27) +
-  scale_x_continuous(name = "Années d'activité", limits = c(NA, 10),
-                     breaks = c(0:2 * 5)) +
-  scale_y_continuous(name = "Pourcentage d'annonces",
-                     labels = scales::percent_format(accuracy = 1,
-                                                     suffix = " %")) +
-  scale_fill_manual(name = NULL, values = col_palette[c(1, 5)]) +
-  facet_wrap(vars(matched)) +
-  theme_minimal() +
-  theme(legend.position = "none",
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        text = element_text(family = "Futura", face = "plain"),
-        legend.title = element_text(family = "Futura", face = "bold", 
-                                    size = 10),
-        legend.text = element_text(family = "Futura", size = 10),
-        strip.text = element_text(face = "bold", family = "Futura"))
-
-ggsave("output/figures/figure_5_5F.pdf", plot = figure_5_5, width = 8, 
-       height = 2.5, units = "in", useDingbats = FALSE)
-
-extrafont::embed_fonts("output/figures/figure_5_5F.pdf")
-
-
-# Figure 5.6 Host revenue distributions -----------------------------------
+# Figure 5.5 Host revenue distributions -----------------------------------
 
 annual_revenue <- 
   daily %>%
-  filter(housing,
-         date <= LTM_end_date, date >= LTM_start_date,
-         status == "R") %>%
+  filter(housing, year(date) == 2019, status == "R") %>%
   group_by(property_ID) %>%
   summarize(revenue_LTM = sum(price)) %>% 
   inner_join(property, .) %>%
@@ -385,7 +374,7 @@ annual_revenue <-
   group_by(host_ID, matched) %>% 
   summarize(host_rev = sum(revenue_LTM))
 
-figure_5_6 <-
+figure_5_5 <-
   annual_revenue %>% 
   ggplot(aes(host_rev, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 30) +
@@ -407,13 +396,13 @@ figure_5_6 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_6F.pdf", plot = figure_5_6, width = 8, 
+ggsave("output/figures/figure_5_5F.pdf", plot = figure_5_5, width = 8, 
        height = 2.5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_6F.pdf")
+extrafont::embed_fonts("output/figures/figure_5_5F.pdf")
 
 
-# Figure 5.7 LTR listing age distribution ---------------------------------
+# Figure 5.6 LTR listing age distribution ---------------------------------
 
 length_of_stay <- 
   ltr_unique %>% 
@@ -421,7 +410,7 @@ length_of_stay <-
   mutate(matched = if_else(!is.na(property_ID), "Correspondance LCT-LLT", 
                            "Non-correspondance"))
 
-figure_5_7 <-  
+figure_5_6 <-  
   length_of_stay %>% 
   ggplot(aes(active_length, after_stat(width * density), fill = matched)) +
   geom_histogram(bins = 27) +
@@ -441,10 +430,10 @@ figure_5_7 <-
         legend.text = element_text(family = "Futura", size = 10),
         strip.text = element_text(face = "bold", family = "Futura"))
 
-ggsave("output/figures/figure_5_7F.pdf", plot = figure_5_7, width = 8, 
+ggsave("output/figures/figure_5_6F.pdf", plot = figure_5_6, width = 8, 
        height = 2.5, units = "in", useDingbats = FALSE)
 
-extrafont::embed_fonts("output/figures/figure_5_7F.pdf")
+extrafont::embed_fonts("output/figures/figure_5_6F.pdf")
 
 
 # Nettoyage ----------------------------------------------------------------
